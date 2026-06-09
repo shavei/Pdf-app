@@ -1,0 +1,7 @@
+project.manifest = manifest.xml
+
+# Per-device resource overrides
+fr165m.resourcePath             = $(fr165m.resourcePath);resources-fr165m
+instinct3amoled45mm.resourcePath = $(instinct3amoled45mm.resourcePath);resources-instinct3amoled
+instinct3amoled50mm.resourcePath = $(instinct3amoled50mm.resourcePath);resources-instinct3amoled
+instinct3solar45mm.resourcePath  = $(instinct3solar45mm.resourcePath);resources-instinct3solar

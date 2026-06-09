@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<resources>
+    <font id="HebrewSmall"  filename="HebrewSmall.fnt"  />
+    <font id="HebrewMedium" filename="HebrewMedium.fnt" />
+    <font id="HebrewLarge"  filename="HebrewLarge.fnt"  />
+
+    <!-- Glance-scoped copies (same bitmaps) so the glance process can load them. -->
+    <font id="HebrewGlanceSmall"  filename="HebrewSmall.fnt"  scope="glance" />
+    <font id="HebrewGlanceMedium" filename="HebrewMedium.fnt" scope="glance" />
+</resources>

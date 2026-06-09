@@ -1,0 +1,15 @@
+# Signing keys — never commit
+developer_key.der
+developer_key.pem
+
+# Build artifacts
+bin/
+build/
+gen/
+mir/
+internal-mir/
+*.prg
+*.prg.debug.xml
+
+# Python
+__pycache__/
