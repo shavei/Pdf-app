@@ -70,9 +70,9 @@ The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row
 ## Status — DONE (all 4 devices visually signed off by user)
 fr165m ✅ · AMOLED 45mm ✅ · AMOLED 50mm ✅ · Solar ✅ — glance + widget, correct Hebrew date + day-of-week, per-device fonts tuned to user sign-off.
 
-## Store submission (current: v1.1.0)
-- **v1.0.0** uploaded earlier, **Pending** review on apps.garmin.com/developer.
-- **v1.1.0** (`manifest.xml`) = date/day-of-week correctness fixes + larger per-device fonts + unified glance bitmap path. Re-upload `bin\HebrewCalendar.iq` (~98KB, 5 targets) as the update.
+## Store status — PUBLISHED ✅ (v1.1.0 LIVE, ~2026-06-11)
+- **v1.1.0 is live** on the Connect IQ Store (date/day-of-week correctness fixes + larger per-device fonts + unified glance bitmap path). Free widget, no permissions.
+- To ship an update: bump `manifest.xml` version → `monkeyc -e -r -o bin\HebrewCalendar.iq ...` → dashboard "Upload New Version".
 - Earlier prep (commit `df45d6c`): removed unused `Positioning` permission; deleted dead `Zmanim.mc`/`JewishCalendar.mc`; new Hebrew-calendar launcher icon (calendar page + א, PNGs 54/60/62px).
 - **Backups:** `developer_key.der` + old icons/files in `C:\Users\yosef\Desktop\garmin app-backups\`. Dev key is irreplaceable.
 - **Listing copy:** `STORE_LISTING.md` (English + Hebrew). Still user-supplied at upload: screenshots per device family, category (Widget/Tools).
