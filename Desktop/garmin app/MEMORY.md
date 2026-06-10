@@ -70,6 +70,13 @@ The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row
 ## Status — DONE (all 4 devices visually signed off by user)
 fr165m ✅ · AMOLED 45mm ✅ · AMOLED 50mm ✅ · Solar ✅ — glance + widget, correct Hebrew date + day-of-week, per-device fonts tuned to user sign-off.
 
+## NEXT: add 10 more watch models (planned)
+Expand from 4 shipping devices to 14. Profiles already downloaded; Devices folder pruned to these 14 (deleting profiles is reversible via SDK Manager).
+- **Shipping (4):** instinct3solar45mm, instinct3amoled45mm, instinct3amoled50mm, fr165m.
+- **To ADD (10):** fenix7, fenix847mm, fr965, fr265, fr255, fr955, venu3, venu2, vivoactive5, epix2.
+- Steps: add `<iq:product>` lines to `manifest.xml`; map each screen to a font bucket (MIP fenix7/fr255/fr955 vs AMOLED round rest), new generator if needed; verify sub-screen layout only fires on sub-screen devices; build + screenshot each; bump version → rebuild `.iq` → upload.
+- SDK stays on **9.1.0** (builds all 14).
+
 ## Store status — PUBLISHED ✅ (v1.1.0 LIVE, ~2026-06-11)
 - **v1.1.0 is live** on the Connect IQ Store (date/day-of-week correctness fixes + larger per-device fonts + unified glance bitmap path). Free widget, no permissions.
 - To ship an update: bump `manifest.xml` version → `monkeyc -e -r -o bin\HebrewCalendar.iq ...` → dashboard "Upload New Version".
