@@ -33,8 +33,8 @@ class HebrewCalendarView extends WatchUi.View {
             var lh = dc.getFontHeight(fLarge);
             var mh = dc.getFontHeight(fMedium);
 
-            // GPS circle sits at ~y=52, r=27 — start content below it
-            var contentTop = 52 + 27 + 10; // ≈89
+            // GPS circle sits at ~y=52, r=27 — start content just below it
+            var contentTop = 52 + 27 + 4; // ≈83 (nudged up slightly)
             var y1 = contentTop + lh / 2;
             var y2 = y1 + lh / 2 + 10 + mh / 2;
 

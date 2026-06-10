@@ -79,7 +79,7 @@ print("Generating Solar Hebrew fonts (NotoSansHebrew)...")
 generate_fnt("HebrewSmall",  18, out)  # titles, labels
 generate_fnt("HebrewMedium", 24, out)  # content
 generate_fnt("HebrewLarge",  28, out)  # date display (30 clips כ"ט מרחשוון on the round 176px edge)
-# Glance fonts — keep the original sizes (glance layout is confirmed good).
-generate_fnt("HebrewGlanceSmall",  16, out)
-generate_fnt("HebrewGlanceMedium", 20, out)
+# Glance fonts — enlarged for readability on the Solar glance strip.
+generate_fnt("HebrewGlanceSmall",  23, out)
+generate_fnt("HebrewGlanceMedium", 29, out)
 print("Done!")
