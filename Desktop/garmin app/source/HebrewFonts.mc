@@ -29,14 +29,9 @@ class HebrewFonts {
 
     (:glance)
     private static function _glanceGet(idx as Number, rezFont as ResourceId) as FontDef {
-        if (Graphics has :getVectorFont) {
-            var px = _sizes()[idx];
-            var vf = Graphics.getVectorFont({:face => HEBREW_FACES, :size => px});
-            if (vf != null) {
-                return vf;
-            }
-        }
-        // Fall back to glance-scoped bitmap font (getVectorFont may return Latin-only)
+        // Always use the bundled glance-scoped bitmap fonts so per-device sizes are
+        // honored consistently. (Vector fonts render at a fixed small size on fr165m
+        // and return Latin-only '?' glyphs on AMOLED, so we don't use them.)
         return WatchUi.loadResource(rezFont) as Graphics.FontReference;
     }
 }
