@@ -4,7 +4,8 @@
     <font id="HebrewMedium" filename="HebrewMedium.fnt" />
     <font id="HebrewLarge"  filename="HebrewLarge.fnt"  />
 
-    <!-- Glance-scoped copies (same bitmaps) so the glance process can load them. -->
-    <font id="HebrewGlanceSmall"  filename="HebrewSmall.fnt"  scope="glance" />
-    <font id="HebrewGlanceMedium" filename="HebrewMedium.fnt" scope="glance" />
+    <!-- Glance-scoped fonts — separate smaller bitmaps so the glance keeps its layout
+         while the widget fonts above are larger. -->
+    <font id="HebrewGlanceSmall"  filename="HebrewGlanceSmall.fnt"  scope="glance" />
+    <font id="HebrewGlanceMedium" filename="HebrewGlanceMedium.fnt" scope="glance" />
 </resources>

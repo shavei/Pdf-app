@@ -27,7 +27,8 @@ class HebrewDate {
 
     function initialize(gregMoment as Time.Moment) {
         var info = Gregorian.info(gregMoment, Time.FORMAT_SHORT);
-        dayOfWeek = info.day_of_week;
+        // Gregorian.Info.day_of_week is 1-based (Sunday=1); DOW_LETTERS is 0-based.
+        dayOfWeek = info.day_of_week - 1;
         var jd = gregorianToJD(info.year, info.month, info.day);
         fromJD(jd);
     }
@@ -44,38 +45,31 @@ class HebrewDate {
         return d + (153 * mm + 2) / 5 + 365 * yy + yy / 4 - yy / 100 + yy / 400 - 32045;
     }
 
-    // Julian Day of 1 Tishri of Hebrew year y
-    // Uses standard molad algorithm with postponement rules
+    // Days from the Hebrew epoch to 1 Tishri of year y, with the molad-zaken and
+    // lo-ADU-rosh postponements folded into a single dechiya test
+    // (Reingold & Dershowitz, "Calendrical Calculations").
+    static function hebrewElapsedDays(y as Number) as Number {
+        var m = (235 * y - 234) / 19;          // months elapsed
+        var parts = 12084 + 13753 * m;          // molad in halakim
+        var day = 29 * m + parts / 25920;
+        // Combined molad-zaken + lo-ADU-rosh: delay one day when (3*(day+1)) mod 7 < 3.
+        if ((3 * (day + 1)) % 7 < 3) {
+            day++;
+        }
+        return day;
+    }
+
+    // Julian Day of 1 Tishri of Hebrew year y. Adds the two year-length dechiyot
+    // (GaTaRaD and BeTUTaKPaT) so Cheshvan/Kislev lengths come out correct.
     static function hebrewNewYear(y as Number) as Number {
-        // Months elapsed since Hebrew epoch (molad of Tishri year 1)
-        var m = (235 * y - 234) / 19;
-
-        // Molad: 12084 halakim + 13753 halakim per month
-        // Use floats to avoid 32-bit overflow (13753 * 71551 ~ 984M is fine,
-        // but we do this in pieces to be safe)
-        var parts = 12084 + 13753 * m;
-
-        // Day offset from JD 347997
-        var day = m * 29 + parts / 25920;
-
-        // Day of week (0=Sun, 1=Mon, ... 6=Sat)
-        // JD 347997 = Saturday (day 6), so:
-        var dow = (day + 2) % 7; // 0=Sun
-
-        // Apply postponement rules (dechiyot)
-        // Rule 1: Molad Zaken — if molad >= 18h (parts % 25920 >= 19440), postpone
-        var partsMod = parts - (parts / 25920) * 25920;
-        if (partsMod >= 19440) {
-            day++;
-            dow = (dow + 1) % 7;
+        var n1 = hebrewElapsedDays(y);
+        var corr = 0;
+        if (hebrewElapsedDays(y + 1) - n1 == 356) {        // GaTaRaD
+            corr = 2;
+        } else if (n1 - hebrewElapsedDays(y - 1) == 382) {  // BeTUTaKPaT
+            corr = 1;
         }
-
-        // Rule 2: Lo ADU Rosh — no RH on Sun(0), Wed(3), Fri(5)
-        if (dow == 0 or dow == 3 or dow == 5) {
-            day++;
-        }
-
-        return 347997 + day;
+        return 347998 + n1 + corr;
     }
 
     // Convert Julian Day to Hebrew date

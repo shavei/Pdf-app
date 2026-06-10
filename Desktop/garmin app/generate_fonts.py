@@ -75,7 +75,11 @@ def generate_fnt(name, size_px, out_dir):
 
 out = r"C:\Users\yosef\Desktop\garmin app\resources-instinct3solar\fonts"
 print("Generating Solar Hebrew fonts (NotoSansHebrew)...")
-generate_fnt("HebrewSmall",  16, out)  # titles, labels
-generate_fnt("HebrewMedium", 20, out)  # content
-generate_fnt("HebrewLarge",  24, out)  # date display
+# Widget fonts — bumped for readability on the 176px screen.
+generate_fnt("HebrewSmall",  18, out)  # titles, labels
+generate_fnt("HebrewMedium", 24, out)  # content
+generate_fnt("HebrewLarge",  28, out)  # date display (30 clips כ"ט מרחשוון on the round 176px edge)
+# Glance fonts — keep the original sizes (glance layout is confirmed good).
+generate_fnt("HebrewGlanceSmall",  16, out)
+generate_fnt("HebrewGlanceMedium", 20, out)
 print("Done!")
