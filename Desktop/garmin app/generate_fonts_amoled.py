@@ -78,7 +78,10 @@ def generate_fnt(name, size_px, out_dir):
 
 out = r"C:\Users\yosef\Desktop\garmin app\resources-instinct3amoled\fonts"
 print("Generating AMOLED Hebrew fonts (NotoSansHebrew)...")
-generate_fnt("HebrewSmall",  30, out)   # titles, labels
-generate_fnt("HebrewMedium", 42, out)   # content
-generate_fnt("HebrewLarge",  56, out)   # date display
+generate_fnt("HebrewSmall",  34, out)   # titles, labels
+generate_fnt("HebrewMedium", 48, out)   # content
+generate_fnt("HebrewLarge",  62, out)   # date display
+# Dedicated, larger glance fonts (the AMOLED glance strip has room to spare).
+generate_fnt("HebrewGlanceSmall",  36, out)
+generate_fnt("HebrewGlanceMedium", 46, out)
 print("Done!")
