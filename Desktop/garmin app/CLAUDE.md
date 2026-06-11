@@ -11,6 +11,15 @@ For any Connect IQ / Monkey C API question, use the offline docs mirror in
 `.claude/skills/connectiq-docs/references/` (Toybox API, language guides, core topics,
 per-device specs — SDK 9.1.0) instead of fetching developer.garmin.com.
 
+## Standing instruction: keep the notes current yourself
+
+The user will NEVER ask you to update documentation/memory. Whenever something durable
+changes in a session — bug fixed, version shipped, device added, design decision,
+workflow learned — update the right file(s) on your own before the session ends:
+this CLAUDE.md (build/architecture facts), [MEMORY.md](MEMORY.md) (history/status/gotchas),
+or the skills in `.claude/skills/` (workflow changes). Then tell the user in one line
+that the notes were updated.
+
 ## Build & run
 
 SDK 9.1.0 is on PATH (`monkeyc`, `monkeydo`). Developer key is `developer_key.der` in the
