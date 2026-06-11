@@ -43,12 +43,14 @@ sandboxed monkeydo writes to a %TEMP% the real simulator can't read; the new bui
 Simulator screenshot/click helpers: `bin\capture.ps1`, `bin\click.ps1`, `bin\runshot.ps1`
 (monkeydo → tap glance → tap → capture). fr255 has no touch — click the chrome START button.
 In the sim, open the widget from the glance: click the display once (focus), then send ENTER.
+On fr55 the sim boots to a black watchface — click the display, send {DOWN} to reach the
+glance carousel, then {ENTER} for the widget.
 
-## Target devices (15)
+## Target devices (16)
 
 `instinct3solar45mm` `instinct3amoled45mm` `instinct3amoled50mm` `instinct2` `fr165m`
-`fenix7` `fr255` `fr955` (MIP 260) · `fenix847mm` `fr965` `venu3` (AMOLED 454) ·
-`fr265` `epix2` `venu2` `vivoactive5` (AMOLED 390/416)
+`fenix7` `fr255` `fr955` (MIP 260) · `fr55` (MIP 208) · `fenix847mm` `fr965` `venu3`
+(AMOLED 454) · `fr265` `epix2` `venu2` `vivoactive5` (AMOLED 390/416)
 
 Retail editions (quatix, tactix, Solar/Tactical variants, etc.) are auto-covered by these
 ids — never add them as new products. See MEMORY.md for the full mapping and for the list

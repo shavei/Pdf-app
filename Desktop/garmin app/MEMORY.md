@@ -7,7 +7,7 @@
 - SDK: `C:\Users\yosef\AppData\Roaming\Garmin\ConnectIQ\Sdks\connectiq-sdk-win-9.1.0-2026-03-09-6a872a80b` (`monkeyc`/`monkeydo` are on PATH)
 - Developer key: **`developer_key.der` in the project root** (NOT in the Garmin AppData dir — that path does not exist)
 - Build output: `bin\` folder inside project
-- Target devices (15): `instinct3solar45mm`, `instinct3amoled45mm`, `instinct3amoled50mm`, `fr165m`, `fenix7`, `fenix847mm`, `fr965`, `fr265`, `fr255`, `fr955`, `venu3`, `venu2`, `vivoactive5`, `epix2`, `instinct2`
+- Target devices (16): `instinct3solar45mm`, `instinct3amoled45mm`, `instinct3amoled50mm`, `fr165m`, `fenix7`, `fenix847mm`, `fr965`, `fr265`, `fr255`, `fr955`, `venu3`, `venu2`, `vivoactive5`, `epix2`, `instinct2`, `fr55`
 
 ## Quick Build & Run Commands
 ```powershell
@@ -45,11 +45,12 @@ Hebrew renders via **bitmap `.fnt`/`.png` fonts** generated from `NotoSansHebrew
   - `generate_fonts_fr165m.py` → `resources-fr165m/fonts` — fr165m widget **34/46/58**, glance **40/50** (Large capped 58 for the 360px edge).
   - `generate_fonts_mip260.py` → `resources-mip260/fonts` — MIP 260px (fenix7/fr255/fr955) widget **24/32/42**, glance **26/33**. ALSO writes `resources-glance63/fonts` — glance **21/23** for fenix7 only, whose glance content area is just **63px tall** (fr255/fr955 get 93px); appended after the bucket in monkey.jungle so its glance font IDs override. 21/23 is the MAX that fits the glance layout: lineHeight(Small) ≤ 30 (top line vs y=0) and LH(Small)+LH(Medium) ≤ 62 (year-line bottom vs y=63); NotoSansHebrew LH ≈ size+9 in this range.
   - `generate_fonts_amoled454.py` → `resources-amoled454/fonts` — AMOLED 454px (fenix847mm/fr965/venu3) widget **38/52/68**, glance **40/50**.
+  - `generate_fonts_mip208.py` → `resources-mip208/fonts` — fr55 (MIP 208px) widget **20/26/34**, glance **20/26**. fr55's glance contentArea is **144x75** (narrower than fr255's 176): glance Small 20 is the max where the longest date line (כ״ט אדר א׳ = 104px) fits right of the day letter; widget = mip260 sizes × 208/260.
 
 ## Resource layout
-- Font buckets (same font IDs, different bitmap sizes): `resources-instinct3solar` (176 MIP: Instinct 3 Solar + Instinct 2 — same semioctagon class, same 62px icon), `resources-mip260` (fenix7/fr255/fr955), `resources-fr165m` (390), `resources-instinct3amoled` (390/416: both Instinct 3 AMOLED + fr265/epix2/venu2/vivoactive5), `resources-amoled454` (fenix847mm/fr965/venu3).
+- Font buckets (same font IDs, different bitmap sizes): `resources-instinct3solar` (176 MIP: Instinct 3 Solar + Instinct 2 — same semioctagon class, same 62px icon), `resources-mip260` (fenix7/fr255/fr955), `resources-fr165m` (390), `resources-instinct3amoled` (390/416: both Instinct 3 AMOLED + fr265/epix2/venu2/vivoactive5), `resources-amoled454` (fenix847mm/fr965/venu3), `resources-mip208` (fr55).
 - `monkey.jungle` sets per-device `resourcePath`; later paths override earlier (used for icon-size overlays `resources-icon56` → vivoactive5, `resources-icon70` → venu2/venu3).
-- Launcher icons: `generate_icons.py` renders the calendar+א icon (PIL redraw, NotoSansHebrew א glyph) at 40/56/65/70px. Existing 54/60/62px PNGs untouched.
+- Launcher icons: `generate_icons.py` renders the calendar+א icon (PIL redraw, NotoSansHebrew א glyph) at 35/40/56/65/70px. Existing 54/60/62px PNGs untouched.
 
 ## Platform limitation (can't fix — told the user)
 The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row) is Garmin's **system-drawn launcher icon**; a custom GlanceView has no API to hide/replace it. (Drawing into the Solar sub-screen from the glance drew a stray circle over content — reverted.) The WIDGET *can* use `WatchUi.getSubscreen()`, which is why the Solar widget shows the day letter in that circle.
@@ -80,12 +81,15 @@ The store auto-expands each CIQ device id into all retail editions on the same p
 
 Genuinely SEPARATE ids (different screens — these WOULD be new work if requested): instinct2s (163px), instinct2x, fenix7s (240px), fenix7x (280px), fenix7pro*, fr265s (360px), venu2s (360px), venu2plus, venu3s (390px), epix2pro42/47/51, fenix843mm, fr165 (non-Music).
 
-## WIP — fr55 (Forerunner 55, MIP 208x208): wired + compiles, NOT sim-verified
+## fr55 (Forerunner 55, MIP 208x208) — added + SIM-VERIFIED ✅ (2026-06-11), not yet shipped
 `generate_fonts_mip208.py` (widget 20/26/34, glance 20/26 — sized for fr55's 144x75 glance
-area), `resources-mip208/` (generated fonts, 35px launcher icon), fr55 added to
-`manifest.xml` + `monkey.jungle`, `monkeyc -d fr55` BUILD SUCCESSFUL (2026-06-11).
-Remaining: sim-verify glance + widget on fr55 (no touch — use chrome buttons), then ship
-as ≥ 1.4.0. fr55 is NOT in the live store version (1.3.0 = 15 devices).
+area), `resources-mip208/` (generated fonts + 35px launcher icon), fr55 in `manifest.xml`
++ `monkey.jungle`. All 16 devices compile. Sim-verified glance + widget (screenshots
+`bin\shots\fr55_glance.png` / `fr55_widget.png`); glance 17.5/27.9KB, widget 24.0/59.9KB —
+fr55 has the smallest limits of the fleet (32KB glance / 64KB widget), both fine. fr55 is
+non-touch: open glance carousel = click display once (focus) + send {DOWN}, open widget =
+{ENTER}. fr55 is NOT in the live store version (1.3.0 = 15 devices) — ships with ≥ 1.4.0.
+Awaiting the user's own visual check before release.
 
 ## Status — 15 devices, ALL USER-VERIFIED ✅ (2026-06-11)
 - User manually checked glance+widget on all 11 new devices: all good. Only fix needed: fenix7 glance was cut off (63px-tall glance area) → `resources-glance63` smaller glance fonts, re-verified.

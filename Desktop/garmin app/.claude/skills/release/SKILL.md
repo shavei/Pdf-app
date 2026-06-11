@@ -1,6 +1,6 @@
 ---
 name: release
-description: Prepare a Connect IQ store release of the Hebrew Calendar widget - bump the manifest version, build all 15 devices as a check, package the signed .iq, and walk through the upload checklist. Use when the user wants to ship, publish, or upload a new version.
+description: Prepare a Connect IQ store release of the Hebrew Calendar widget - bump the manifest version, build all 16 devices as a check, package the signed .iq, and walk through the upload checklist. Use when the user wants to ship, publish, or upload a new version.
 ---
 
 # Store Release
@@ -14,9 +14,9 @@ Project root: `C:\Users\yosef\Desktop\garmin app`. Store history & rules: MEMORY
    (1.3.0 → 1.4.0) unless the user named a version. Confirm it's strictly greater than
    the live store version.
 
-2. **Pre-flight build check** — compile all 15 devices; any failure stops the release:
+2. **Pre-flight build check** — compile all 16 devices; any failure stops the release:
    instinct3solar45mm instinct3amoled45mm instinct3amoled50mm instinct2 fr165m fenix7
-   fr255 fr955 fenix847mm fr965 venu3 fr265 epix2 venu2 vivoactive5
+   fr255 fr955 fr55 fenix847mm fr965 venu3 fr265 epix2 venu2 vivoactive5
    ```powershell
    monkeyc -o "bin\check-$d.prg" -f monkey.jungle -y "developer_key.der" -d $d
    ```
