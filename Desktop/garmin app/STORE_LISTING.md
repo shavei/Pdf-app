@@ -33,7 +33,7 @@ Features:
 • Glance support — your Hebrew date without opening anything
 • Lightweight and battery-friendly: no GPS, no internet, no permissions
 
-Supported watches: Instinct 2 (incl. Solar / Dual Power / dēzl Edition), Instinct 3 (Solar 45mm, AMOLED 45mm & 50mm), Forerunner 165 Music, Forerunner 255, 265, 955 and 965, fenix 7, fenix 8 (47mm), epix (Gen 2), Venu 2, Venu 3, and vivoactive 5.
+Supported watches: Instinct 2 (incl. Solar / Dual Power / dēzl Edition), Instinct 3 (Solar 45mm, AMOLED 45mm & 50mm), Forerunner 55, Forerunner 165 Music, Forerunner 255, 265, 955 and 965, fenix 7, fenix 8 (47mm), epix (Gen 2), Venu 2, Venu 3, and vivoactive 5.
 
 ### Hebrew
 לוח עברי מציג את התאריך העברי של היום ישירות על השעון.
@@ -47,9 +47,19 @@ Supported watches: Instinct 2 (incl. Solar / Dual Power / dēzl Edition), Instin
 • תמיכה ב-Glance — התאריך העברי בלי לפתוח כלום
 • קל ונטול הרשאות: ללא GPS, ללא אינטרנט, ללא הרשאות
 
-שעונים נתמכים: Instinct 2 (כולל Solar / Dual Power / dēzl)‏, Instinct 3 (Solar 45 מ"מ, AMOLED ‏45/50 מ"מ)‏, Forerunner 165 Music‏, Forerunner 255 / 265 / 955 / 965‏, fenix 7‏, fenix 8 (47 מ"מ)‏, epix (Gen 2)‏, Venu 2‏, Venu 3 ו-vivoactive 5.
+שעונים נתמכים: Instinct 2 (כולל Solar / Dual Power / dēzl)‏, Instinct 3 (Solar 45 מ"מ, AMOLED ‏45/50 מ"מ)‏, Forerunner 55‏, Forerunner 165 Music‏, Forerunner 255 / 265 / 955 / 965‏, fenix 7‏, fenix 8 (47 מ"מ)‏, epix (Gen 2)‏, Venu 2‏, Venu 3 ו-vivoactive 5.
 
 ---
+
+## What's new (v1.4.0 — 2026-06-11)
+
+**EN:**
+Added support for the Forerunner 55, with text sizes and a launcher icon tuned for its screen.
+
+**HE:**
+נוספה תמיכה ב-Forerunner 55, עם גדלי טקסט ואייקון מותאמים למסך שלו.
+
+**Notes for the reviewer:** v1.4.0 only adds support for the Forerunner 55 (per-device fonts and launcher icon); app behavior is unchanged from the approved version.
 
 ## What's new (v1.2.0 — published as v1.3.0 on 2026-06-11)
 
