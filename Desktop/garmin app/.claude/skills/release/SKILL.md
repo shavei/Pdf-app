@@ -6,12 +6,12 @@ description: Prepare a Connect IQ store release of the Hebrew Calendar widget - 
 # Store Release
 
 Project root: `C:\Users\yosef\Desktop\garmin app`. Store history & rules: MEMORY.md.
-**v1.3.0 is live — the store requires every new version to be higher (next ≥ 1.4.0).**
+**v1.4.0 is live — the store requires every new version to be higher (next ≥ 1.5.0).**
 
 ## Steps
 
 1. **Pick the version.** Read `version=` from `manifest.xml`. Default: bump the minor
-   (1.3.0 → 1.4.0) unless the user named a version. Confirm it's strictly greater than
+   (1.4.0 → 1.5.0) unless the user named a version. Confirm it's strictly greater than
    the live store version.
 
 2. **Pre-flight build check** — compile all 16 devices; any failure stops the release:

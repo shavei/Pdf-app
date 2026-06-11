@@ -81,15 +81,14 @@ The store auto-expands each CIQ device id into all retail editions on the same p
 
 Genuinely SEPARATE ids (different screens — these WOULD be new work if requested): instinct2s (163px), instinct2x, fenix7s (240px), fenix7x (280px), fenix7pro*, fr265s (360px), venu2s (360px), venu2plus, venu3s (390px), epix2pro42/47/51, fenix843mm, fr165 (non-Music).
 
-## fr55 (Forerunner 55, MIP 208x208) — added + SIM-VERIFIED ✅ (2026-06-11), not yet shipped
+## fr55 (Forerunner 55, MIP 208x208) — added + SIM-VERIFIED ✅, shipped in v1.4.0
 `generate_fonts_mip208.py` (widget 20/26/34, glance 20/26 — sized for fr55's 144x75 glance
 area), `resources-mip208/` (generated fonts + 35px launcher icon), fr55 in `manifest.xml`
 + `monkey.jungle`. All 16 devices compile. Sim-verified glance + widget (screenshots
-`bin\shots\fr55_glance.png` / `fr55_widget.png`); glance 17.5/27.9KB, widget 24.0/59.9KB —
-fr55 has the smallest limits of the fleet (32KB glance / 64KB widget), both fine. fr55 is
-non-touch: open glance carousel = click display once (focus) + send {DOWN}, open widget =
-{ENTER}. fr55 is NOT in the live store version (1.3.0 = 15 devices) — ships with ≥ 1.4.0.
-Awaiting the user's own visual check before release.
+`bin\shots\fr55_glance.png` / `fr55_widget.png`), user signed off on the screenshots;
+glance 17.5/27.9KB, widget 24.0/59.9KB — fr55 has the smallest limits of the fleet
+(32KB glance / 64KB widget), both fine. fr55 is non-touch: open glance carousel = click
+display once (focus) + send {DOWN}, open widget = {ENTER}.
 
 ## Status — 15 devices, ALL USER-VERIFIED ✅ (2026-06-11)
 - User manually checked glance+widget on all 11 new devices: all good. Only fix needed: fenix7 glance was cut off (63px-tall glance area) → `resources-glance63` smaller glance fonts, re-verified.
@@ -101,9 +100,10 @@ Awaiting the user's own visual check before release.
 - All new devices have 64KB glance memory (glance uses ~12.5KB) — no memory issues.
 - Sim screenshot workflow: `bin\capture.ps1` (PrintWindow), `bin\click.ps1`, `bin\runshot.ps1` (monkeydo → tap glance → tap again → capture). fr255 has no touch — click the chrome START button instead.
 
-## Store status — PUBLISHED ✅ (v1.3.0 LIVE, 2026-06-11, 15 devices)
-- The 15-device update is **live as v1.3.0 (internal build 4)**. The first submit attempt errored client-side but actually registered v1.2.0 (internal 3); the retry required a higher version → published as 1.3.0. Local manifest synced to 1.3.0; **next release must be ≥ 1.4.0**.
-- Store page: 4.5★, 2 reviews at publish time. Listing assets: cover `bin\store_images\cover_500.png`, hero `hero_1440x720.png`, screenshots `1_*.jpg`–`6_*.jpg` (made by `bin\make_store_images.py`, `make_cover.py`, `make_hero.py`).
+## Store status — PUBLISHED ✅ (v1.4.0 LIVE, 2026-06-11, 16 devices)
+- **v1.4.0 (internal build 5) live 2026-06-11**: added Forerunner 55. **Next release must be ≥ 1.5.0.**
+- History: v1.3.0 (internal 4) = the 15-device update, same day. (Its first submit attempt errored client-side but actually consumed v1.2.0/internal 3 — that's why version numbers skip.)
+- Store page: 4.7★, 3 reviews (latest: "עובד👍" on v1.3.0). Listing assets: cover `bin\store_images\cover_500.png`, hero `hero_1440x720.png`, screenshots `1_*.jpg`–`6_*.jpg` (made by `bin\make_store_images.py`, `make_cover.py`, `make_hero.py`).
 - To ship an update: bump `manifest.xml` version → `monkeyc -e -r -o bin\HebrewCalendar.iq ...` → dashboard "Upload New Version".
 - Earlier prep (commit `df45d6c`): removed unused `Positioning` permission; deleted dead `Zmanim.mc`/`JewishCalendar.mc`; new Hebrew-calendar launcher icon (calendar page + א, PNGs 54/60/62px).
 - **Backups:** `developer_key.der` + old icons/files in `C:\Users\yosef\Desktop\garmin app-backups\`. Dev key is irreplaceable.
