@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Start-Sleep *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(git status *)",
+      "PowerShell(git log *)",
+      "PowerShell(git diff *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-Command *)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
+    ]
+  }
+}
