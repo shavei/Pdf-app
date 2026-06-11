@@ -9,7 +9,7 @@ Paste these into apps.garmin.com/developer/upload when submitting.
 - **Hebrew (on-device):** לוח עברי
 
 ## Category
-Widget → Tools / Productivity
+Widget → Lifestyle (matches the live v1.1.0 listing — keep as is)
 
 ---
 
@@ -33,7 +33,7 @@ Features:
 • Glance support — your Hebrew date without opening anything
 • Lightweight and battery-friendly: no GPS, no internet, no permissions
 
-Supported watches: Instinct 2 (incl. Solar/Dual Power), Instinct 3 (Solar and AMOLED), Forerunner 165/255/265/955/965, fenix 7, fenix 8, epix (Gen 2), Venu 2, Venu 3, and vivoactive 5.
+Supported watches: Instinct 2 (incl. Solar / Dual Power / dēzl Edition), Instinct 3 (Solar 45mm, AMOLED 45mm & 50mm), Forerunner 165 Music, Forerunner 255, 265, 955 and 965, fenix 7, fenix 8 (47mm), epix (Gen 2), Venu 2, Venu 3, and vivoactive 5.
 
 ### Hebrew
 לוח עברי מציג את התאריך העברי של היום ישירות על השעון.
@@ -47,13 +47,17 @@ Supported watches: Instinct 2 (incl. Solar/Dual Power), Instinct 3 (Solar and AM
 • תמיכה ב-Glance — התאריך העברי בלי לפתוח כלום
 • קל ונטול הרשאות: ללא GPS, ללא אינטרנט, ללא הרשאות
 
-שעונים נתמכים: Instinct 2 (כולל Solar/Dual Power)‏, Instinct 3 (Solar ו-AMOLED)‏, Forerunner 165/255/265/955/965‏, fenix 7‏, fenix 8‏, epix (Gen 2)‏, Venu 2‏, Venu 3 ו-vivoactive 5.
+שעונים נתמכים: Instinct 2 (כולל Solar / Dual Power / dēzl)‏, Instinct 3 (Solar 45 מ"מ, AMOLED ‏45/50 מ"מ)‏, Forerunner 165 Music‏, Forerunner 255 / 265 / 955 / 965‏, fenix 7‏, fenix 8 (47 מ"מ)‏, epix (Gen 2)‏, Venu 2‏, Venu 3 ו-vivoactive 5.
 
 ---
 
 ## What's new (v1.2.0)
-- Support for 11 more watches: Instinct 2 (incl. Solar/Dual Power), fenix 7, fenix 8 (47mm), epix (Gen 2), Forerunner 255/265/955/965, Venu 2, Venu 3, and vivoactive 5.
-- Per-device font sizes and launcher icons for the new models.
+
+**EN:**
+Now on 11 more watches! Added support for Instinct 2 (incl. Solar / Dual Power / dēzl Edition), fenix 7, fenix 8 (47mm), epix (Gen 2), Forerunner 255, 265, 955 and 965, Venu 2, Venu 3, and vivoactive 5 — with text and icons tuned for every screen.
+
+**HE:**
+עכשיו על עוד 11 שעונים! נוספה תמיכה ב-Instinct 2 (כולל Solar / Dual Power / dēzl)‏, fenix 7‏, fenix 8 (47 מ"מ)‏, epix (Gen 2)‏, Forerunner 255 / 265 / 955 / 965‏, Venu 2‏, Venu 3 ו-vivoactive 5 — עם גדלי טקסט ואייקונים מותאמים לכל מסך.
 
 (v1.1.0: accurate Hebrew date and day-of-week on all watches; larger, clearer text. v1.0.0 was the initial release.)
 
@@ -64,3 +68,6 @@ None. The app uses no GPS, sensors, internet, or stored data.
 Single-screen widget that displays the current Hebrew calendar date. All text is Hebrew
 (right-to-left). Day-of-week is shown as a Hebrew letter (א=Sunday … ז=Saturday). No
 network or location features.
+
+v1.2.0 only adds support for 11 more watch models (per-device fonts and launcher
+icons); app behavior is unchanged from the approved v1.1.0.
