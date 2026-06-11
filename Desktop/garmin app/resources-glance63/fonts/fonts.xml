@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<resources>
+    <!-- Smaller glance fonts for devices with a short (63px) glance content
+         area (fenix7). Overrides the bucket's glance fonts; widget fonts
+         come from the font bucket listed before this dir in monkey.jungle. -->
+    <font id="HebrewGlanceSmall"  filename="HebrewGlanceSmall.fnt"  scope="glance" />
+    <font id="HebrewGlanceMedium" filename="HebrewGlanceMedium.fnt" scope="glance" />
+</resources>

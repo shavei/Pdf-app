@@ -85,4 +85,10 @@ generate_fnt("HebrewLarge",  42, out)   # date display
 # Glance-scoped fonts for the glance strip.
 generate_fnt("HebrewGlanceSmall",  26, out)
 generate_fnt("HebrewGlanceMedium", 33, out)
+
+# fenix7 glance content area is only 63px tall (fr255/fr955 get 93px),
+# so it needs smaller glance fonts; two stacked lines must fit in 63px.
+out63 = r"C:\Users\yosef\Desktop\garmin app\resources-glance63\fonts"
+generate_fnt("HebrewGlanceSmall",  20, out63)
+generate_fnt("HebrewGlanceMedium", 26, out63)
 print("Done!")

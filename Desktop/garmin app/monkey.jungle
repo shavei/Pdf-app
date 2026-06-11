@@ -9,7 +9,8 @@ instinct3solar45mm.resourcePath  = $(instinct3solar45mm.resourcePath);resources-
 instinct2.resourcePath           = $(instinct2.resourcePath);resources-instinct3solar
 
 # MIP round 260x260 (fenix7, fr255, fr955) — own font sizes + 40px icon
-fenix7.resourcePath = $(fenix7.resourcePath);resources-mip260
+# fenix7's glance content area is only 63px tall -> smaller glance fonts
+fenix7.resourcePath = $(fenix7.resourcePath);resources-mip260;resources-glance63
 fr255.resourcePath  = $(fr255.resourcePath);resources-mip260
 fr955.resourcePath  = $(fr955.resourcePath);resources-mip260
 
