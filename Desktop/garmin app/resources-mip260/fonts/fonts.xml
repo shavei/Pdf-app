@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<resources>
+    <!-- MIP-260-sized Hebrew bitmap fonts (fenix 7 / FR255 / FR955) -->
+    <font id="HebrewSmall"  filename="HebrewSmall.fnt"  />
+    <font id="HebrewMedium" filename="HebrewMedium.fnt" />
+    <font id="HebrewLarge"  filename="HebrewLarge.fnt"  />
+
+    <!-- Glance-scoped fonts for the glance strip. -->
+    <font id="HebrewGlanceSmall"  filename="HebrewGlanceSmall.fnt"  scope="glance" />
+    <font id="HebrewGlanceMedium" filename="HebrewGlanceMedium.fnt" scope="glance" />
+</resources>

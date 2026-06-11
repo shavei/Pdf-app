@@ -7,7 +7,7 @@
 - SDK: `C:\Users\yosef\AppData\Roaming\Garmin\ConnectIQ\Sdks\connectiq-sdk-win-9.1.0-2026-03-09-6a872a80b` (`monkeyc`/`monkeydo` are on PATH)
 - Developer key: **`developer_key.der` in the project root** (NOT in the Garmin AppData dir — that path does not exist)
 - Build output: `bin\` folder inside project
-- Target devices: `instinct3solar45mm`, `instinct3amoled45mm`, `instinct3amoled50mm`, `fr165m`
+- Target devices (14): `instinct3solar45mm`, `instinct3amoled45mm`, `instinct3amoled50mm`, `fr165m`, `fenix7`, `fenix847mm`, `fr965`, `fr265`, `fr255`, `fr955`, `venu3`, `venu2`, `vivoactive5`, `epix2`
 
 ## Quick Build & Run Commands
 ```powershell
@@ -43,10 +43,13 @@ Hebrew renders via **bitmap `.fnt`/`.png` fonts** generated from `NotoSansHebrew
   - `generate_fonts.py` → `resources-instinct3solar/fonts` — Solar widget **18/24/28**, glance **23/29** (Large 28 so כ"ט מרחשוון clears the round 176px edge).
   - `generate_fonts_amoled.py` → `resources-instinct3amoled/fonts` — AMOLED widget **34/48/62**, glance **36/46**.
   - `generate_fonts_fr165m.py` → `resources-fr165m/fonts` — fr165m widget **34/46/58**, glance **40/50** (Large capped 58 for the 360px edge).
+  - `generate_fonts_mip260.py` → `resources-mip260/fonts` — MIP 260px (fenix7/fr255/fr955) widget **24/32/42**, glance **26/33**.
+  - `generate_fonts_amoled454.py` → `resources-amoled454/fonts` — AMOLED 454px (fenix847mm/fr965/venu3) widget **38/52/68**, glance **40/50**.
 
 ## Resource layout
-- Each device has its OWN `resources-<device>/fonts/fonts.xml` (same font IDs, different bitmap sizes): `resources-instinct3solar`, `resources-instinct3amoled`, `resources-fr165m`.
-- `monkey.jungle` sets per-device `resourcePath` (e.g. `fr165m.resourcePath += resources-fr165m`).
+- Font buckets (same font IDs, different bitmap sizes): `resources-instinct3solar` (176 MIP), `resources-mip260` (fenix7/fr255/fr955), `resources-fr165m` (390), `resources-instinct3amoled` (390/416: both Instinct 3 AMOLED + fr265/epix2/venu2/vivoactive5), `resources-amoled454` (fenix847mm/fr965/venu3).
+- `monkey.jungle` sets per-device `resourcePath`; later paths override earlier (used for icon-size overlays `resources-icon56` → vivoactive5, `resources-icon70` → venu2/venu3).
+- Launcher icons: `generate_icons.py` renders the calendar+א icon (PIL redraw, NotoSansHebrew א glyph) at 40/56/65/70px. Existing 54/60/62px PNGs untouched.
 
 ## Platform limitation (can't fix — told the user)
 The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row) is Garmin's **system-drawn launcher icon**; a custom GlanceView has no API to hide/replace it. (Drawing into the Solar sub-screen from the glance drew a stray circle over content — reverted.) The WIDGET *can* use `WatchUi.getSubscreen()`, which is why the Solar widget shows the day letter in that circle.
@@ -67,18 +70,16 @@ The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row
 | `manifest.xml` | App ID, target devices, version |
 | `monkey.jungle` | Build config, per-device resource paths |
 
-## Status — DONE (all 4 devices visually signed off by user)
-fr165m ✅ · AMOLED 45mm ✅ · AMOLED 50mm ✅ · Solar ✅ — glance + widget, correct Hebrew date + day-of-week, per-device fonts tuned to user sign-off.
+## Status — 14 devices (2026-06-11)
+- Original 4 (signed off in v1.1.0): fr165m ✅ · AMOLED 45mm ✅ · AMOLED 50mm ✅ · Solar ✅.
+- 10 added in v1.2.0, all sim-verified (glance + widget screenshots in `bin\shots\`): fenix7 ✅, fr255 ✅, fr955 ✅ (MIP 260 bucket) · fenix847mm ✅, fr965 ✅, venu3 ✅ (AMOLED 454 bucket) · fr265 ✅, epix2 ✅, venu2 ✅ (416), vivoactive5 ✅ (390) on the instinct3amoled bucket.
+- Sub-screen (Solar circle) layout safe: only fires via `DeviceInfo.isSolar()` = screenW ≤ 176; smallest new device is 260.
+- All new devices have 64KB glance memory (glance uses ~12.5KB) — no memory issues.
+- Sim screenshot workflow: `bin\capture.ps1` (PrintWindow), `bin\click.ps1`, `bin\runshot.ps1` (monkeydo → tap glance → tap again → capture). fr255 has no touch — click the chrome START button instead.
 
-## NEXT: add 10 more watch models (planned)
-Expand from 4 shipping devices to 14. Profiles already downloaded; Devices folder pruned to these 14 (deleting profiles is reversible via SDK Manager).
-- **Shipping (4):** instinct3solar45mm, instinct3amoled45mm, instinct3amoled50mm, fr165m.
-- **To ADD (10):** fenix7, fenix847mm, fr965, fr265, fr255, fr955, venu3, venu2, vivoactive5, epix2.
-- Steps: add `<iq:product>` lines to `manifest.xml`; map each screen to a font bucket (MIP fenix7/fr255/fr955 vs AMOLED round rest), new generator if needed; verify sub-screen layout only fires on sub-screen devices; build + screenshot each; bump version → rebuild `.iq` → upload.
-- SDK stays on **9.1.0** (builds all 14).
-
-## Store status — PUBLISHED ✅ (v1.1.0 LIVE, ~2026-06-11)
-- **v1.1.0 is live** on the Connect IQ Store (date/day-of-week correctness fixes + larger per-device fonts + unified glance bitmap path). Free widget, no permissions.
+## Store status — v1.1.0 LIVE; v1.2.0 PACKAGE READY (not yet uploaded)
+- **v1.1.0 is live** on the Connect IQ Store (4 devices). Free widget, no permissions.
+- **v1.2.0** (14 devices) built 2026-06-11: `bin\HebrewCalendar.iq` (~395KB, "21 of 21 devices" incl. regional variants). Upload via dashboard "Upload New Version"; listing copy updated in `STORE_LISTING.md`.
 - To ship an update: bump `manifest.xml` version → `monkeyc -e -r -o bin\HebrewCalendar.iq ...` → dashboard "Upload New Version".
 - Earlier prep (commit `df45d6c`): removed unused `Positioning` permission; deleted dead `Zmanim.mc`/`JewishCalendar.mc`; new Hebrew-calendar launcher icon (calendar page + א, PNGs 54/60/62px).
 - **Backups:** `developer_key.der` + old icons/files in `C:\Users\yosef\Desktop\garmin app-backups\`. Dev key is irreplaceable.

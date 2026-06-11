@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<resources>
+    <!-- AMOLED-454-sized Hebrew bitmap fonts (fenix 8 47mm / FR965 / Venu 3) -->
+    <font id="HebrewSmall"  filename="HebrewSmall.fnt"  />
+    <font id="HebrewMedium" filename="HebrewMedium.fnt" />
+    <font id="HebrewLarge"  filename="HebrewLarge.fnt"  />
+
+    <!-- Dedicated larger glance-scoped fonts for the AMOLED glance strip. -->
+    <font id="HebrewGlanceSmall"  filename="HebrewGlanceSmall.fnt"  scope="glance" />
+    <font id="HebrewGlanceMedium" filename="HebrewGlanceMedium.fnt" scope="glance" />
+</resources>

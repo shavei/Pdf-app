@@ -5,3 +5,19 @@ fr165m.resourcePath             = $(fr165m.resourcePath);resources-fr165m
 instinct3amoled45mm.resourcePath = $(instinct3amoled45mm.resourcePath);resources-instinct3amoled
 instinct3amoled50mm.resourcePath = $(instinct3amoled50mm.resourcePath);resources-instinct3amoled
 instinct3solar45mm.resourcePath  = $(instinct3solar45mm.resourcePath);resources-instinct3solar
+
+# MIP round 260x260 (fenix7, fr255, fr955) — own font sizes + 40px icon
+fenix7.resourcePath = $(fenix7.resourcePath);resources-mip260
+fr255.resourcePath  = $(fr255.resourcePath);resources-mip260
+fr955.resourcePath  = $(fr955.resourcePath);resources-mip260
+
+# AMOLED round 454x454 (fenix8 47mm, fr965, venu3) — own font sizes + 65px icon
+fenix847mm.resourcePath = $(fenix847mm.resourcePath);resources-amoled454
+fr965.resourcePath      = $(fr965.resourcePath);resources-amoled454
+venu3.resourcePath      = $(venu3.resourcePath);resources-amoled454;resources-icon70
+
+# AMOLED round 390/416 — reuse instinct3amoled fonts; icon overrides where needed
+fr265.resourcePath       = $(fr265.resourcePath);resources-instinct3amoled
+epix2.resourcePath       = $(epix2.resourcePath);resources-instinct3amoled
+venu2.resourcePath       = $(venu2.resourcePath);resources-instinct3amoled;resources-icon70
+vivoactive5.resourcePath = $(vivoactive5.resourcePath);resources-instinct3amoled;resources-icon56

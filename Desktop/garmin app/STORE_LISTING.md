@@ -33,7 +33,7 @@ Features:
 • Glance support — your Hebrew date without opening anything
 • Lightweight and battery-friendly: no GPS, no internet, no permissions
 
-Designed for Instinct 3 (Solar and AMOLED) and Forerunner 165.
+Supported watches: Instinct 3 (Solar and AMOLED), Forerunner 165/255/265/955/965, fenix 7, fenix 8, epix (Gen 2), Venu 2, Venu 3, and vivoactive 5.
 
 ### Hebrew
 לוח עברי מציג את התאריך העברי של היום ישירות על השעון.
@@ -47,15 +47,15 @@ Designed for Instinct 3 (Solar and AMOLED) and Forerunner 165.
 • תמיכה ב-Glance — התאריך העברי בלי לפתוח כלום
 • קל ונטול הרשאות: ללא GPS, ללא אינטרנט, ללא הרשאות
 
-מותאם ל-Instinct 3 (Solar ו-AMOLED) ו-Forerunner 165.
+שעונים נתמכים: Instinct 3 (Solar ו-AMOLED)‏, Forerunner 165/255/265/955/965‏, fenix 7‏, fenix 8‏, epix (Gen 2)‏, Venu 2‏, Venu 3 ו-vivoactive 5.
 
 ---
 
-## What's new (v1.1.0)
-- Accurate Hebrew date and day-of-week on all watches.
-- Larger, clearer text on every device (widget and glance).
+## What's new (v1.2.0)
+- Support for 10 more watches: fenix 7, fenix 8 (47mm), epix (Gen 2), Forerunner 255/265/955/965, Venu 2, Venu 3, and vivoactive 5.
+- Per-device font sizes and launcher icons for the new models.
 
-(v1.0.0 was the initial release.)
+(v1.1.0: accurate Hebrew date and day-of-week on all watches; larger, clearer text. v1.0.0 was the initial release.)
 
 ## Permissions
 None. The app uses no GPS, sensors, internet, or stored data.

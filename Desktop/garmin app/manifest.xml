@@ -1,11 +1,21 @@
 <?xml version="1.0"?>
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
-  <iq:application entry="HebrewCalendarApp" id="a3d5f8c2-1b4e-4a7f-9c0d-2e6b8f3a5c1d" minSdkVersion="3.2.0" name="@Strings.AppName" type="widget" version="1.1.0" launcherIcon="@Drawables.LauncherIcon">
+  <iq:application entry="HebrewCalendarApp" id="a3d5f8c2-1b4e-4a7f-9c0d-2e6b8f3a5c1d" minSdkVersion="3.2.0" name="@Strings.AppName" type="widget" version="1.2.0" launcherIcon="@Drawables.LauncherIcon">
     <iq:products>
+      <iq:product id="epix2"/>
+      <iq:product id="fenix7"/>
+      <iq:product id="fenix847mm"/>
       <iq:product id="fr165m"/>
+      <iq:product id="fr255"/>
+      <iq:product id="fr265"/>
+      <iq:product id="fr955"/>
+      <iq:product id="fr965"/>
       <iq:product id="instinct3amoled45mm"/>
       <iq:product id="instinct3amoled50mm"/>
       <iq:product id="instinct3solar45mm"/>
+      <iq:product id="venu2"/>
+      <iq:product id="venu3"/>
+      <iq:product id="vivoactive5"/>
     </iq:products>
     <iq:languages>
       <iq:language>heb</iq:language>
