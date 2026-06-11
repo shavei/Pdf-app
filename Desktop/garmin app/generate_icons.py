@@ -3,8 +3,8 @@ Render the launcher icon (calendar page + aleph) at the exact per-device
 launcher-icon sizes. PIL re-draw of resources/drawables/launcher_icon.svg
 (no SVG rasterizer available on this machine), supersampled then downscaled.
 
-Sizes: 40 (fenix7/fr255/fr955), 56 (vivoactive5), 65 (fenix8 47mm/fr965),
-70 (venu2/venu3).
+Sizes: 35 (fr55), 40 (fenix7/fr255/fr955), 56 (vivoactive5),
+65 (fenix8 47mm/fr965), 70 (venu2/venu3).
 """
 
 from PIL import Image, ImageDraw, ImageFont
@@ -48,6 +48,7 @@ gy = 14 * SS - gh / 2 - bbox[1]
 d.text((gx, gy), "א", font=font, fill=BLACK)
 
 TARGETS = {
+    35: os.path.join(BASE, "resources-mip208", "drawables"),
     40: os.path.join(BASE, "resources-mip260", "drawables"),
     56: os.path.join(BASE, "resources-icon56", "drawables"),
     65: os.path.join(BASE, "resources-amoled454", "drawables"),

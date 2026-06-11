@@ -80,12 +80,12 @@ The store auto-expands each CIQ device id into all retail editions on the same p
 
 Genuinely SEPARATE ids (different screens — these WOULD be new work if requested): instinct2s (163px), instinct2x, fenix7s (240px), fenix7x (280px), fenix7pro*, fr265s (360px), venu2s (360px), venu2plus, venu3s (390px), epix2pro42/47/51, fenix843mm, fr165 (non-Music).
 
-## WIP — fr55 (Forerunner 55, MIP 208x208) bucket STARTED, NOT FINISHED
+## WIP — fr55 (Forerunner 55, MIP 208x208): wired + compiles, NOT sim-verified
 `generate_fonts_mip208.py` (widget 20/26/34, glance 20/26 — sized for fr55's 144x75 glance
-area) + `resources-mip208/` (fonts.xml, drawables.xml) exist. Still TODO: run the generator
-(no .fnt/.png yet), add `launcher_icon.png` (~50px-class), add fr55 to `manifest.xml` and
-`monkey.jungle`, sim-verify glance+widget. fr55 is NOT live; next release after adding it
-must be ≥ 1.4.0.
+area), `resources-mip208/` (generated fonts, 35px launcher icon), fr55 added to
+`manifest.xml` + `monkey.jungle`, `monkeyc -d fr55` BUILD SUCCESSFUL (2026-06-11).
+Remaining: sim-verify glance + widget on fr55 (no touch — use chrome buttons), then ship
+as ≥ 1.4.0. fr55 is NOT in the live store version (1.3.0 = 15 devices).
 
 ## Status — 15 devices, ALL USER-VERIFIED ✅ (2026-06-11)
 - User manually checked glance+widget on all 11 new devices: all good. Only fix needed: fenix7 glance was cut off (63px-tall glance area) → `resources-glance63` smaller glance fonts, re-verified.
