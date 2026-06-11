@@ -80,9 +80,9 @@ The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row
 - All new devices have 64KB glance memory (glance uses ~12.5KB) — no memory issues.
 - Sim screenshot workflow: `bin\capture.ps1` (PrintWindow), `bin\click.ps1`, `bin\runshot.ps1` (monkeydo → tap glance → tap again → capture). fr255 has no touch — click the chrome START button instead.
 
-## Store status — v1.1.0 LIVE; v1.2.0 PACKAGE READY (not yet uploaded)
-- **v1.1.0 is live** on the Connect IQ Store (4 devices). Free widget, no permissions.
-- **v1.2.0** (15 devices) built 2026-06-11: `bin\HebrewCalendar.iq` (~428KB, "23 of 23 devices" incl. regional variants). Upload via dashboard "Upload New Version"; listing copy updated in `STORE_LISTING.md`.
+## Store status — PUBLISHED ✅ (v1.3.0 LIVE, 2026-06-11, 15 devices)
+- The 15-device update is **live as v1.3.0 (internal build 4)**. The first submit attempt errored client-side but actually registered v1.2.0 (internal 3); the retry required a higher version → published as 1.3.0. Local manifest synced to 1.3.0; **next release must be ≥ 1.4.0**.
+- Store page: 4.5★, 2 reviews at publish time. Listing assets: cover `bin\store_images\cover_500.png`, hero `hero_1440x720.png`, screenshots `1_*.jpg`–`6_*.jpg` (made by `bin\make_store_images.py`, `make_cover.py`, `make_hero.py`).
 - To ship an update: bump `manifest.xml` version → `monkeyc -e -r -o bin\HebrewCalendar.iq ...` → dashboard "Upload New Version".
 - Earlier prep (commit `df45d6c`): removed unused `Positioning` permission; deleted dead `Zmanim.mc`/`JewishCalendar.mc`; new Hebrew-calendar launcher icon (calendar page + א, PNGs 54/60/62px).
 - **Backups:** `developer_key.der` + old icons/files in `C:\Users\yosef\Desktop\garmin app-backups\`. Dev key is irreplaceable.

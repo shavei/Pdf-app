@@ -51,7 +51,7 @@ Supported watches: Instinct 2 (incl. Solar / Dual Power / dēzl Edition), Instin
 
 ---
 
-## What's new (v1.2.0)
+## What's new (v1.2.0 — published as v1.3.0 on 2026-06-11)
 
 **EN:**
 Now on 11 more watches! Added support for Instinct 2 (incl. Solar / Dual Power / dēzl Edition), fenix 7, fenix 8 (47mm), epix (Gen 2), Forerunner 255, 265, 955 and 965, Venu 2, Venu 3, and vivoactive 5 — with text and icons tuned for every screen.
