@@ -14,6 +14,11 @@ class HebrewCalendarApp extends Application.AppBase {
     function onStop(state as Lang.Dictionary?) as Void {
     }
 
+    // Settings edited in the Connect IQ phone app while the widget is open
+    function onSettingsChanged() as Void {
+        WatchUi.requestUpdate();
+    }
+
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         var view = new HebrewCalendarView();
         var delegate = new HebrewCalendarDelegate(view);

@@ -20,4 +20,19 @@ class HebrewCalendarDelegate extends WatchUi.BehaviorDelegate {
         WatchUi.popView(WatchUi.SLIDE_RIGHT);
         return true;
     }
+
+    // Select button / screen tap -> parasha page
+    function onSelect() as Boolean {
+        WatchUi.pushView(new ParashaView(), new ParashaDelegate(), WatchUi.SLIDE_LEFT);
+        return true;
+    }
+
+    // Swipe left (RTL "next") -> parasha page
+    function onSwipe(e as WatchUi.SwipeEvent) as Boolean {
+        if (e.getDirection() == WatchUi.SWIPE_LEFT) {
+            WatchUi.pushView(new ParashaView(), new ParashaDelegate(), WatchUi.SLIDE_LEFT);
+            return true;
+        }
+        return false;
+    }
 }

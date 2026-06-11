@@ -1,4 +1,17 @@
 <?xml version="1.0"?>
 <strings>
     <string id="AppName">לוח עברי</string>
+    <!-- App-settings labels (shown in the Connect IQ phone app) -->
+    <string id="SetSchedule">Parasha schedule · לוח פרשות</string>
+    <string id="SetIsrael">Israel · ישראל</string>
+    <string id="SetDiaspora">Diaspora · חו״ל</string>
+    <string id="SetColor">Text color · צבע טקסט</string>
+    <string id="ColWhite">White · לבן</string>
+    <string id="ColYellow">Yellow · צהוב</string>
+    <string id="ColOrange">Orange · כתום</string>
+    <string id="ColRed">Red · אדום</string>
+    <string id="ColPink">Pink · ורוד</string>
+    <string id="ColGreen">Green · ירוק</string>
+    <string id="ColBlue">Blue · כחול</string>
+    <string id="ColPurple">Purple · סגול</string>
 </strings>

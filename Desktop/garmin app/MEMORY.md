@@ -100,6 +100,42 @@ display once (focus) + send {DOWN}, open widget = {ENTER}.
 - All new devices have 64KB glance memory (glance uses ~12.5KB) — no memory issues.
 - Sim screenshot workflow: `bin\capture.ps1` (PrintWindow), `bin\click.ps1`, `bin\runshot.ps1` (monkeydo → tap glance → tap again → capture). fr255 has no touch — click the chrome START button instead.
 
+## v1.5.0 in progress (2026-06-12) — parasha page + settings, NOT yet released
+Built on branch `garmin-hebrew-widget` after a store review asked for customizability:
+- **Page 2 = parasha** (`ParashaView.mc` + `Parasha.mc`): פרשת השבוע + name; festival
+  Shabbatot (no portion) show the festival name with header שבת. Enter: select/tap/swipe-left;
+  exit: back/select/swipe-right. Page dots on both pages (Solar inactive dot = white outline).
+- **Algorithm** ported from pyluach (`_gentable`): virtual deque [51,52,0..51] walked
+  Shabbat-by-Shabbat from RH; 6 doubling rules (NB Matot = index 41 — initial port had 40,
+  caught by verification); Israel reads on diaspora 2nd days (Tishrei 23/Nisan 22/Sivan 7).
+  Verified twice: `verify_parsha.py` → 0/25,568 days vs pyluach 2020-2090 (pip install
+  pyluach; PYTHONIOENCODING=utf-8 for Hebrew prints) + `bin\tmp\crosscheck_hebcal.py` →
+  0/418 Shabbatot vs hebcal.com REST 2026-2029, BOTH schedules. Old deleted JewishCalendar.mc
+  was junk (weekOfYear%54, Purim in Nisan) — never resurrect it.
+- **Settings** (`resources/settings/`, `AppSettings.mc`): israelSchedule number 1/0 (lists
+  can't bind booleans — compile error "For input string"), textColor number (palette-safe
+  Graphics constants). Defaults: Israel, white. Instinct forced white. onSettingsChanged →
+  requestUpdate.
+- **Maqaf gotcha (CRITICAL):** ASCII `-` between Hebrew words gets bidi-substituted to
+  maqaf U+05BE at render → missing-glyph box unless fonts include `־`. All 6 generators
+  + all buckets regenerated with maqaf in CHARS (2026-06-12).
+- **Sim gotcha — stored app settings:** the sim persists `GARMIN\APPS\SETTINGS\<DEV>.SET`
+  across monkeydo installs AND applies stale values across device profiles; it re-saves
+  from memory on exit. To test new property defaults: STOP the sim, delete the .SET files,
+  restart. Cost an hour of debugging "properties not updating".
+- **Sim gotcha — instinct3amoled45mm navigation:** tap/ENTER/GPS-chrome clicks would NOT
+  open the widget from the glance in this session (stock v1.4.0 build also affected —
+  not a code bug). epix2 runshot flow works; instinct3amoled was originally verified
+  manually in v1.1.0. Unresolved; use epix2 for AMOLED sim checks.
+- **Unit tests work well:** `monkeyc --unit-test` + `monkeydo bin\test.prg <dev> /t` —
+  output flushes because the runner exits (regular monkeydo buffers stdout forever).
+  ParashaTest.mc covers weekly/doubled/festival/Haazinu/settings.
+- **Verified in sim (epix2):** both pages, Israel קרח vs diaspora שלח (real divergence
+  week!), yellow color end-to-end, doubled אחרי מות־קדושים auto-fit. All 16 devices compile.
+- **STILL TO VERIFY before release:** Solar/instinct layout of page 2 (custom code path,
+  non-touch sim navigation blocked), fr255 (chrome START), fr55 memory headroom, venu3
+  swipe. Version bump to ≥1.5.0 + store listing update pending.
+
 ## Store status — PUBLISHED ✅ (v1.4.0 LIVE, 2026-06-11, 16 devices)
 - **v1.4.0 (internal build 5) live 2026-06-11**: added Forerunner 55. **Next release must be ≥ 1.5.0.**
 - History: v1.3.0 (internal 4) = the 15-device update, same day. (Its first submit attempt errored client-side but actually consumed v1.2.0/internal 3 — that's why version numbers skip.)

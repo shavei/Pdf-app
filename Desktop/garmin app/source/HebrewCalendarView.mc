@@ -28,6 +28,11 @@ class HebrewCalendarView extends WatchUi.View {
         var cx = w / 2;
         var solar = DeviceInfo.isSolar();
 
+        // User-selected text color; with the default (white) keep the stock
+        // look including the accent-colored day letter.
+        var color  = AppSettings.textColor();
+        var accent = (color == Graphics.COLOR_WHITE) ? DeviceInfo.colorAccent() : color;
+
         if (solar) {
             // Measure actual font heights so spacing is always correct
             var lh = dc.getFontHeight(fLarge);
@@ -57,7 +62,7 @@ class HebrewCalendarView extends WatchUi.View {
             dc.drawText(mirCX, gpsCY, fMedium, hebrewDate.getDayOfWeekLetter(),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, y1, fLarge,
                 hebrewDate.getDayGematria() + " " + hebrewDate.getMonthName(),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
@@ -71,14 +76,14 @@ class HebrewCalendarView extends WatchUi.View {
 
             // Day letter — small, near top
             var yDow = (h * 20) / 100;
-            dc.setColor(DeviceInfo.colorAccent(), Graphics.COLOR_TRANSPARENT);
+            dc.setColor(accent, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, yDow, fMedium,
                 hebrewDate.getDayOfWeekLetter(),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
             // Day + month
             var y1 = (h * 46) / 100;
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, y1, fLarge,
                 hebrewDate.getDayGematria() + " " + hebrewDate.getMonthName(),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
@@ -89,5 +94,7 @@ class HebrewCalendarView extends WatchUi.View {
             dc.drawText(cx, y2, fMedium, hebrewDate.getYearGematria(),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         }
+
+        ParashaView.drawDots(dc, 0);
     }
 }

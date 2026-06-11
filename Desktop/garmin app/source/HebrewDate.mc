@@ -22,6 +22,7 @@ class HebrewDate {
     var year       as Number  = 5785;
     var isLeapYear as Boolean = false;
     var dayOfWeek  as Number  = 0; // 0=Sun, 1=Mon, ... 6=Sat
+    var jd         as Number  = 0; // Julian Day of this date (used by Parasha)
 
     static var DOW_LETTERS = ["א", "ב", "ג", "ד", "ה", "ו", "ז"] as Array<String>;
 
@@ -29,7 +30,7 @@ class HebrewDate {
         var info = Gregorian.info(gregMoment, Time.FORMAT_SHORT);
         // Gregorian.Info.day_of_week is 1-based (Sunday=1); DOW_LETTERS is 0-based.
         dayOfWeek = info.day_of_week - 1;
-        var jd = gregorianToJD(info.year, info.month, info.day);
+        jd = gregorianToJD(info.year, info.month, info.day);
         fromJD(jd);
     }
 

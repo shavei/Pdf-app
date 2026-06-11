@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<settings>
+    <setting propertyKey="@Properties.israelSchedule" title="@Strings.SetSchedule">
+        <settingConfig type="list">
+            <listEntry value="1">@Strings.SetIsrael</listEntry>
+            <listEntry value="0">@Strings.SetDiaspora</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.textColor" title="@Strings.SetColor">
+        <settingConfig type="list">
+            <listEntry value="16777215">@Strings.ColWhite</listEntry>
+            <listEntry value="16755200">@Strings.ColYellow</listEntry>
+            <listEntry value="16733440">@Strings.ColOrange</listEntry>
+            <listEntry value="16711680">@Strings.ColRed</listEntry>
+            <listEntry value="16711935">@Strings.ColPink</listEntry>
+            <listEntry value="65280">@Strings.ColGreen</listEntry>
+            <listEntry value="43775">@Strings.ColBlue</listEntry>
+            <listEntry value="11141375">@Strings.ColPurple</listEntry>
+        </settingConfig>
+    </setting>
+</settings>

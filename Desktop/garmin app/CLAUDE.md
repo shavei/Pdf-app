@@ -62,6 +62,12 @@ of genuinely separate ids (different screens).
   fixed tiny size on fr165m. Fonts are generated from NotoSansHebrew by the
   `generate_fonts*.py` scripts; `.fnt` lineHeight/base MUST come from `font.getmetrics()`
   or final letters (ן ך ף ץ ק) clip.
+- **Join doubled parshiyot with maqaf `־` (U+05BE), never ASCII `-`.** Garmin's RTL
+  shaper substitutes a hyphen between Hebrew words with maqaf at draw time — if the
+  fonts lack that glyph you get a missing-glyph box. All generators carry `־` in CHARS.
+- **Parasha math in `source/Parasha.mc`** (port of pyluach's algorithm) is verified
+  0 mismatches vs pyluach (every day 2020–2090) AND hebcal.com (2026–2029), both
+  Israel and diaspora — rerun `verify_parsha.py` after any change. Don't "simplify".
 - **Glance fonts must be `scope="glance"`** in fonts.xml — the glance process cannot access
   normal `Rez` symbols.
 - Per-device font buckets are wired in [monkey.jungle](monkey.jungle) via `resourcePath`;
@@ -74,9 +80,18 @@ of genuinely separate ids (different screens).
 
 | File | Role |
 |---|---|
-| `source/HebrewCalendarApp.mc` | Entry: widget view + `(:glance)` glance view |
-| `source/HebrewCalendarView.mc` | Widget screen (Solar uses sub-screen circle for day letter) |
+| `source/HebrewCalendarApp.mc` | Entry: widget view + `(:glance)` glance view + onSettingsChanged |
+| `source/HebrewCalendarView.mc` | Widget page 1: date (Solar uses sub-screen circle for day letter) |
+| `source/ParashaView.mc` | Widget page 2: weekly parasha / festival fallback + ParashaDelegate |
+| `source/Parasha.mc` | Parasha-of-the-week algorithm (verified; see Rules) |
+| `source/AppSettings.mc` | App-settings access (israelSchedule, textColor) |
+| `source/ParashaTest.mc` | `(:test)` unit tests — `monkeyc --unit-test` + `monkeydo ... /t` |
 | `source/HebrewCalendarGlanceView.mc` | Glance: day letter left, RTL date right |
 | `source/HebrewFonts.mc` | Bitmap font loading (glance + widget) |
-| `source/HebrewDate.mc` | Hebrew calendar math + DOW letters |
+| `source/HebrewDate.mc` | Hebrew calendar math + DOW letters (exposes `jd`) |
 | `source/DeviceInfo.mc` | Device/layout helpers (`isSolar` = screenW ≤ 176) |
+| `resources/settings/` | properties.xml + settings.xml (Israel/diaspora, text color) |
+
+Navigation: page 1 → page 2 via select/tap or swipe-left; page 2 pops on
+back/select/swipe-right. Color setting applies everywhere except Instinct (2-color MIP);
+the day-letter accent uses the chosen color when it isn't white.

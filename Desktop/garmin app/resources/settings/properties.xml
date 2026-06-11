@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<properties>
+    <!-- 1 = Israel schedule, 0 = diaspora (number: settings lists can't bind booleans) -->
+    <property id="israelSchedule" type="number">1</property>
+    <!-- Graphics color value; default white. Values restricted to the
+         device-palette-safe Graphics.COLOR_* constants via settings.xml. -->
+    <property id="textColor" type="number">16777215</property>
+</properties>
