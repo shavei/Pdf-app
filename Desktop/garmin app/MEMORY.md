@@ -7,7 +7,7 @@
 - SDK: `C:\Users\yosef\AppData\Roaming\Garmin\ConnectIQ\Sdks\connectiq-sdk-win-9.1.0-2026-03-09-6a872a80b` (`monkeyc`/`monkeydo` are on PATH)
 - Developer key: **`developer_key.der` in the project root** (NOT in the Garmin AppData dir — that path does not exist)
 - Build output: `bin\` folder inside project
-- Target devices (14): `instinct3solar45mm`, `instinct3amoled45mm`, `instinct3amoled50mm`, `fr165m`, `fenix7`, `fenix847mm`, `fr965`, `fr265`, `fr255`, `fr955`, `venu3`, `venu2`, `vivoactive5`, `epix2`
+- Target devices (15): `instinct3solar45mm`, `instinct3amoled45mm`, `instinct3amoled50mm`, `fr165m`, `fenix7`, `fenix847mm`, `fr965`, `fr265`, `fr255`, `fr955`, `venu3`, `venu2`, `vivoactive5`, `epix2`, `instinct2`
 
 ## Quick Build & Run Commands
 ```powershell
@@ -47,7 +47,7 @@ Hebrew renders via **bitmap `.fnt`/`.png` fonts** generated from `NotoSansHebrew
   - `generate_fonts_amoled454.py` → `resources-amoled454/fonts` — AMOLED 454px (fenix847mm/fr965/venu3) widget **38/52/68**, glance **40/50**.
 
 ## Resource layout
-- Font buckets (same font IDs, different bitmap sizes): `resources-instinct3solar` (176 MIP), `resources-mip260` (fenix7/fr255/fr955), `resources-fr165m` (390), `resources-instinct3amoled` (390/416: both Instinct 3 AMOLED + fr265/epix2/venu2/vivoactive5), `resources-amoled454` (fenix847mm/fr965/venu3).
+- Font buckets (same font IDs, different bitmap sizes): `resources-instinct3solar` (176 MIP: Instinct 3 Solar + Instinct 2 — same semioctagon class, same 62px icon), `resources-mip260` (fenix7/fr255/fr955), `resources-fr165m` (390), `resources-instinct3amoled` (390/416: both Instinct 3 AMOLED + fr265/epix2/venu2/vivoactive5), `resources-amoled454` (fenix847mm/fr965/venu3).
 - `monkey.jungle` sets per-device `resourcePath`; later paths override earlier (used for icon-size overlays `resources-icon56` → vivoactive5, `resources-icon70` → venu2/venu3).
 - Launcher icons: `generate_icons.py` renders the calendar+א icon (PIL redraw, NotoSansHebrew א glyph) at 40/56/65/70px. Existing 54/60/62px PNGs untouched.
 
@@ -70,7 +70,8 @@ The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row
 | `manifest.xml` | App ID, target devices, version |
 | `monkey.jungle` | Build config, per-device resource paths |
 
-## Status — 14 devices (2026-06-11)
+## Status — 15 devices (2026-06-11)
+- instinct2 ✅ added after the batch of 10 (same bucket/layout as Instinct 3 Solar incl. sub-screen circle; glance 18/27.9KB OK). Sim: open widget from glance = click display once (focus) then send ENTER.
 - Original 4 (signed off in v1.1.0): fr165m ✅ · AMOLED 45mm ✅ · AMOLED 50mm ✅ · Solar ✅.
 - 10 added in v1.2.0, all sim-verified (glance + widget screenshots in `bin\shots\`): fenix7 ✅, fr255 ✅, fr955 ✅ (MIP 260 bucket) · fenix847mm ✅, fr965 ✅, venu3 ✅ (AMOLED 454 bucket) · fr265 ✅, epix2 ✅, venu2 ✅ (416), vivoactive5 ✅ (390) on the instinct3amoled bucket.
 - Sub-screen (Solar circle) layout safe: only fires via `DeviceInfo.isSolar()` = screenW ≤ 176; smallest new device is 260.
@@ -79,7 +80,7 @@ The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row
 
 ## Store status — v1.1.0 LIVE; v1.2.0 PACKAGE READY (not yet uploaded)
 - **v1.1.0 is live** on the Connect IQ Store (4 devices). Free widget, no permissions.
-- **v1.2.0** (14 devices) built 2026-06-11: `bin\HebrewCalendar.iq` (~395KB, "21 of 21 devices" incl. regional variants). Upload via dashboard "Upload New Version"; listing copy updated in `STORE_LISTING.md`.
+- **v1.2.0** (15 devices) built 2026-06-11: `bin\HebrewCalendar.iq` (~428KB, "23 of 23 devices" incl. regional variants). Upload via dashboard "Upload New Version"; listing copy updated in `STORE_LISTING.md`.
 - To ship an update: bump `manifest.xml` version → `monkeyc -e -r -o bin\HebrewCalendar.iq ...` → dashboard "Upload New Version".
 - Earlier prep (commit `df45d6c`): removed unused `Positioning` permission; deleted dead `Zmanim.mc`/`JewishCalendar.mc`; new Hebrew-calendar launcher icon (calendar page + א, PNGs 54/60/62px).
 - **Backups:** `developer_key.der` + old icons/files in `C:\Users\yosef\Desktop\garmin app-backups\`. Dev key is irreplaceable.

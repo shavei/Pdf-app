@@ -5,6 +5,8 @@ fr165m.resourcePath             = $(fr165m.resourcePath);resources-fr165m
 instinct3amoled45mm.resourcePath = $(instinct3amoled45mm.resourcePath);resources-instinct3amoled
 instinct3amoled50mm.resourcePath = $(instinct3amoled50mm.resourcePath);resources-instinct3amoled
 instinct3solar45mm.resourcePath  = $(instinct3solar45mm.resourcePath);resources-instinct3solar
+# Instinct 2 family: same 176x176 MIP semioctagon class as Instinct 3 Solar
+instinct2.resourcePath           = $(instinct2.resourcePath);resources-instinct3solar
 
 # MIP round 260x260 (fenix7, fr255, fr955) — own font sizes + 40px icon
 fenix7.resourcePath = $(fenix7.resourcePath);resources-mip260
