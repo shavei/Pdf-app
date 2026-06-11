@@ -88,7 +88,10 @@ generate_fnt("HebrewGlanceMedium", 33, out)
 
 # fenix7 glance content area is only 63px tall (fr255/fr955 get 93px),
 # so it needs smaller glance fonts; two stacked lines must fit in 63px.
+# Max sizes for the glance layout (cy=31): lineHeight(Small) <= 30 keeps the
+# top line on-screen, lineHeight(Small)+lineHeight(Medium) <= 62 keeps the
+# year line on-screen -> 21px (LH 30) + 23px (LH 32).
 out63 = r"C:\Users\yosef\Desktop\garmin app\resources-glance63\fonts"
-generate_fnt("HebrewGlanceSmall",  20, out63)
-generate_fnt("HebrewGlanceMedium", 26, out63)
+generate_fnt("HebrewGlanceSmall",  21, out63)
+generate_fnt("HebrewGlanceMedium", 23, out63)
 print("Done!")
