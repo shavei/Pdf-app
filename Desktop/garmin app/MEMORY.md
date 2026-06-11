@@ -70,6 +70,16 @@ The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row
 | `manifest.xml` | App ID, target devices, version |
 | `monkey.jungle` | Build config, per-device resource paths |
 
+## Retail editions ALREADY COVERED — never add these as "new" devices
+The store auto-expands each CIQ device id into all retail editions on the same platform (same screen + same binary). These are **already live** via our 15 ids — do NOT download profiles or add products for them:
+- `instinct2` covers: Instinct 2 Camo / dēzl / Surf / Tactical / Solar / Dual Power / ONE PIECE editions.
+- `fenix7` covers: fenix 7 Sapphire / Solar / Dual Power, **quatix 7** (+ Sapphire).
+- `fenix847mm` covers: fenix 8 AMOLED **51mm**, **tactix 8** 47/51mm (+ Cerakote), **quatix 8** 47/51mm.
+- `epix2` covers: Porsche Epix 2. · `venu2` covers: Mercedes-Benz Venu 2. · `vivoactive5` covers: GarminActive 5.
+- `fr955` covers: FR955 Solar / Dual Power. · Instinct 3 ids cover the Tactical editions.
+
+Genuinely SEPARATE ids (different screens — these WOULD be new work if requested): instinct2s (163px), instinct2x, fenix7s (240px), fenix7x (280px), fenix7pro*, fr265s (360px), venu2s (360px), venu2plus, venu3s (390px), epix2pro42/47/51, fenix843mm, fr165 (non-Music).
+
 ## Status — 15 devices, ALL USER-VERIFIED ✅ (2026-06-11)
 - User manually checked glance+widget on all 11 new devices: all good. Only fix needed: fenix7 glance was cut off (63px-tall glance area) → `resources-glance63` smaller glance fonts, re-verified.
 - Glance geometry lives in each device's `simulator.json` → `glance.contentArea` (e.g. fenix7 171x63 vs fr255 176x93) — check this when adding MIP devices.
