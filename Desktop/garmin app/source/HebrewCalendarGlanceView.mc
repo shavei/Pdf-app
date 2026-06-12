@@ -3,6 +3,21 @@ import Toybox.Lang;
 import Toybox.Time;
 import Toybox.WatchUi;
 
+// Right-edge inset for the glance date lines, resolved at compile time via
+// monkey.jungle excludeAnnotations (runtime System.getDeviceSettings() in the
+// glance gets the app REMOVED as unsupported on tiered-glance 3.4 devices —
+// fr55/instinct2). Round screens inset so the carousel's high band doesn't
+// clip the date's first chars; Instinct keeps the flush-right look.
+(:glance, :roundGlance)
+module GlanceShape {
+    function insetPct() as Lang.Number { return 20; }
+}
+
+(:glance, :flatGlance)
+module GlanceShape {
+    function insetPct() as Lang.Number { return 0; }
+}
+
 (:glance)
 class HebrewCalendarGlanceView extends WatchUi.GlanceView {
 
@@ -40,7 +55,15 @@ class HebrewCalendarGlanceView extends WatchUi.GlanceView {
         // Day + month on top line, year dimmer below
         var mh   = dc.getFontHeight(fMedium);
         var sh   = dc.getFontHeight(fSmall);
-        var xR   = w - pad;
+        // Cap the inset so the date never collides with the day letter on
+        // the longest dates (כ״ט אדר א׳) — binds on the 176px-wide MIP
+        // glance areas (fenix7/fr255/fr955).
+        var inset    = (w * GlanceShape.insetPct()) / 100;
+        var maxInset = (w - pad - dc.getTextWidthInPixels(dayMonth, fSmall))
+                     - (pad + dc.getTextWidthInPixels(dowLetter, fMedium) + 4);
+        if (maxInset < 0) { maxInset = 0; }
+        if (inset > maxInset) { inset = maxInset; }
+        var xR   = w - pad - inset;
         var yTop = cy - sh / 2 - 1;
         var yBot = cy + mh / 2 + 1;
 

@@ -138,6 +138,29 @@ Built on branch `garmin-hebrew-widget` after a store review asked for customizab
   watch-app trick (below) + real widget flow on epix2/instinct3amoled45/instinct3solar45/
   instinct2. Remaining before release: version bump ≥1.5.0 + store listing update.
 
+## Layout fixes (2026-06-12, user-requested) — parasha lowered + glance date inset
+- **Parasha page (non-Solar): header y=28%h, name y=53%h** (was 22/48 — header clipped on
+  fr55's round top edge, user pasted the screenshot). Solar branch untouched. Don't raise.
+- **Glance date inset (round screens):** the glance carousel's band can sit high on screen
+  (top slot, and on fr265/fr955/fr165m-class firmware even when focused) where the round
+  edge CLIPS the first 1-2 chars of the right-aligned date (כ״ז סיוון → ז סיוון; v1.4.0
+  live has this). Fix: date+year right-aligned at `w - pad - inset`, inset = 20% of dc
+  width, capped so the longest date (כ״ט אדר א׳) never collides with the day letter
+  (cap binds on the 176px MIP glance areas). Year alone never clipped, but both lines
+  share xR for alignment.
+- **CRITICAL — no System calls in glance code:** `System.getDeviceSettings()` inside the
+  glance view got the app **silently rejected at install ("Unsupported app was removed"
+  in CIQ_LOG.YML)** on tiered-glance CIQ 3.4 devices (fr55, instinct2) — the glance
+  showed the broken-app icon / garbled watchface. Shape selection is done at COMPILE
+  time instead: `GlanceShape.insetPct()` has `(:glance,:roundGlance)` and
+  `(:glance,:flatGlance)` variants; monkey.jungle sets `base.excludeAnnotations =
+  flatGlance` and overrides `instinct2`/`instinct3solar45mm` to exclude `roundGlance`
+  (flush-right kept there). Instinct 3 AMOLED is a true round display → roundGlance.
+- **Instinct subscreen in the sim masks glance content** (date start vanishes under the
+  top-right circle on instinct2/instinct3solar glance) — on REAL hardware the subscreen
+  region is normal display pixels (sim-only rendering quirk). Don't "fix" it.
+- CIQ_LOG.YML (crash/install log): `%TEMP%\com.garmin.connectiq\GARMIN\APPS\LOGS\`.
+
 ## WATCHDOG BUG (fixed 2026-06-12) — instinct2 "Code Executed Too Long"
 First Parasha.mc port crashed instinct2 (CIQ 3.4.2, strict watchdog): every Shabbat-walk
 step recomputed month lengths via hebrewDaysInMonth → hebrewNewYear (3 molad calcs each),
@@ -162,6 +185,17 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
    comment out getGlanceView → monkeydo auto-launches the app full-screen, no glance
    navigation needed at all. ENTER pushes page 2. RESTORE type="widget" + glance after.
    (CIQ 5.x sims show glances even for watch-apps, hence also removing getGlanceView.)
+5. **Touch devices: a "focus click" on the display IS A TAP** → fires onSelect → pushes
+   page 2. This silently swapped date/parasha screenshots on 11 devices (ENTER then POPS
+   from the parasha page, capturing date as "parasha"). For touch devices capture the
+   date page with NO clicks (fresh launch), then ONE tap = parasha page. For non-touch,
+   click display (focus) + {ENTER} — the first ENTER after a click is often eaten:
+   ALWAYS verify the capture and resend click+ENTER (script `bin\retake_v15.ps1`).
+6. **Glance carousel band position varies** per device firmware: some sims show the
+   glance in a high "top slot" (clipped by the round edge), one {DOWN} (sometimes two,
+   fr55) moves it to the focused mid-screen band. fr265-class never moves — band is
+   fixed high (that's why the glance inset exists). If the sim display wedges (black
+   screen / frozen frame ignoring keys): kill + restart simulator.exe.
 
 ## Store status — PUBLISHED ✅ (v1.4.0 LIVE, 2026-06-11, 16 devices)
 - **v1.4.0 (internal build 5) live 2026-06-11**: added Forerunner 55. **Next release must be ≥ 1.5.0.**

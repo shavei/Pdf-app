@@ -1,5 +1,12 @@
 project.manifest = manifest.xml
 
+# Glance date inset: round screens build the :roundGlance variant (drop
+# :flatGlance); the semi-octagon MIP Instincts keep flush-right (drop
+# :roundGlance). Instinct 3 AMOLED is a true round display -> roundGlance.
+base.excludeAnnotations               = flatGlance
+instinct2.excludeAnnotations          = roundGlance
+instinct3solar45mm.excludeAnnotations = roundGlance
+
 # Per-device resource overrides
 fr165m.resourcePath             = $(fr165m.resourcePath);resources-fr165m
 instinct3amoled45mm.resourcePath = $(instinct3amoled45mm.resourcePath);resources-instinct3amoled

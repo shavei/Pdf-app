@@ -77,6 +77,14 @@ of genuinely separate ids (different screens).
   Israel and diaspora — rerun `verify_parsha.py` after any change. Don't "simplify".
 - **Glance fonts must be `scope="glance"`** in fonts.xml — the glance process cannot access
   normal `Rez` symbols.
+- **No runtime `System.*` calls in glance code** — tiered-glance CIQ 3.4 devices (fr55,
+  instinct2) reject the whole app at install ("Unsupported app was removed"). Shape
+  decisions are compile-time: `GlanceShape` has `(:glance,:roundGlance)` /
+  `(:glance,:flatGlance)` variants picked via `excludeAnnotations` in monkey.jungle
+  (semi-octagon MIP Instincts = flat/flush-right; everything else incl. Instinct 3
+  AMOLED = round, 20%-width date inset capped against day-letter collision).
+- **Parasha page (non-Solar): header at 28%h, name at 53%h** — lower values clip the
+  header on fr55's round top edge (user-reported). Solar branch has its own layout.
 - Per-device font buckets are wired in [monkey.jungle](monkey.jungle) via `resourcePath`;
   later paths override earlier (icon overlays, fenix7's 63px-glance fonts).
 - Hebrew date math in `source/HebrewDate.mc` is Reingold–Dershowitz with all four dechiyot,

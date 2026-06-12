@@ -60,12 +60,14 @@ class ParashaView extends WatchUi.View {
 
             _drawNameFit(dc, name, cx, 135, w - 20, color);
         } else {
-            var yHdr = (h * 22) / 100;
+            // 28%/53% (not higher): at 22% the header clipped on the round
+            // top edge of small screens — user-reported on fr55
+            var yHdr = (h * 28) / 100;
             dc.setColor(DeviceInfo.colorDim(), Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, yHdr, fMedium, header,
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            _drawNameFit(dc, name, cx, (h * 48) / 100, w - 24, color);
+            _drawNameFit(dc, name, cx, (h * 53) / 100, w - 24, color);
         }
 
         drawDots(dc, 1);
