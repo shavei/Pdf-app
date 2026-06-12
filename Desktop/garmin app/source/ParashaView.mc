@@ -29,8 +29,11 @@ class ParashaView extends WatchUi.View {
         var hebrewDate = new HebrewDate(Time.now());
         var israel = AppSettings.israelSchedule();
         var color  = AppSettings.textColor();
-        var name   = Parasha.displayName(hebrewDate.jd, israel);
-        var header = Parasha.hasParasha(hebrewDate.jd, israel) ? "פרשת השבוע" : "שבת";
+        // One walk per render — instinct2's watchdog is tight (see Parasha.mc)
+        var reading = Parasha.forShabbat(hebrewDate.jd, israel);
+        var name    = (reading != null)
+            ? Parasha.joinNames(reading) : Parasha.festivalName(hebrewDate.jd);
+        var header  = (reading != null) ? "פרשת השבוע" : "שבת";
 
         if (DeviceInfo.isSolar()) {
             // Day-of-week letter in the subscreen circle — same as the date page

@@ -132,9 +132,36 @@ Built on branch `garmin-hebrew-widget` after a store review asked for customizab
   ParashaTest.mc covers weekly/doubled/festival/Haazinu/settings.
 - **Verified in sim (epix2):** both pages, Israel קרח vs diaspora שלח (real divergence
   week!), yellow color end-to-end, doubled אחרי מות־קדושים auto-fit. All 16 devices compile.
-- **STILL TO VERIFY before release:** Solar/instinct layout of page 2 (custom code path,
-  non-touch sim navigation blocked), fr255 (chrome START), fr55 memory headroom, venu3
-  swipe. Version bump to ≥1.5.0 + store listing update pending.
+- **ALL 16 DEVICES SIM-VERIFIED (2026-06-12):** parasha page rendered correctly on every
+  device (epix2, instinct3amoled45/50, instinct3solar45, instinct2, fr55, fr255, fr955,
+  fenix7, fr165m, venu2, venu3, vivoactive5, fr265, fenix847mm, fr965). Verified via the
+  watch-app trick (below) + real widget flow on epix2/instinct3amoled45/instinct3solar45/
+  instinct2. Remaining before release: version bump ≥1.5.0 + store listing update.
+
+## WATCHDOG BUG (fixed 2026-06-12) — instinct2 "Code Executed Too Long"
+First Parasha.mc port crashed instinct2 (CIQ 3.4.2, strict watchdog): every Shabbat-walk
+step recomputed month lengths via hebrewDaysInMonth → hebrewNewYear (3 molad calcs each),
+and ParashaView called the full walk TWICE (hasParasha + displayName). Fix: year month
+lengths prefix-summed ONCE into `starts`, walk is day-of-year arithmetic only, and the
+view calls forShabbat() once (joinNames/festivalName for display). Re-verified after the
+rewrite: 0 mismatches vs pyluach (2020-2090) + hebcal (2026-2029). RULE: any Parasha.mc
+change must keep the single-walk pattern and rerun verify_parsha.py.
+
+## Sim navigation — SOLVED (the "widget won't open" mystery)
+1. **Simulation > App Lock Enabled is CHECKED by default per device profile** and
+   silently blocks opening apps from the glance (affects stock builds too!). Uncheck it
+   (menu at window-relative ~(163,51), item at bottom of dropdown) before glance testing.
+2. Instinct/non-touch: display taps are touch events (ignored); use keyboard. Recipe:
+   click display once (focus) → {DOWN} (focus glance in carousel) → {ENTER} (open) →
+   {ENTER} (page 2). Keys DO work — if nothing happens, the wrong carousel item is
+   focused or App Lock is on.
+3. **capture.ps1 (PrintWindow) can return STALE frames** for the watch viewport after sim
+   restarts — verify screen state with a real screen grab (Windows-MCP Screenshot) when
+   results look frozen.
+4. **Fast all-device verification trick:** temporarily set manifest type="watch-app" AND
+   comment out getGlanceView → monkeydo auto-launches the app full-screen, no glance
+   navigation needed at all. ENTER pushes page 2. RESTORE type="widget" + glance after.
+   (CIQ 5.x sims show glances even for watch-apps, hence also removing getGlanceView.)
 
 ## Store status — PUBLISHED ✅ (v1.4.0 LIVE, 2026-06-11, 16 devices)
 - **v1.4.0 (internal build 5) live 2026-06-11**: added Forerunner 55. **Next release must be ≥ 1.5.0.**

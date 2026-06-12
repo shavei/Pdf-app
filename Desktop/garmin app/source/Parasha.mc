@@ -6,6 +6,10 @@ import Toybox.Lang;
 // Hashana, with six doubling rules and a festival-skip test.
 // Verified by verify_parsha.py: 0 mismatches vs pyluach (every day 2020-2090)
 // and vs hebcal.com (every Shabbat 2026-2029), Israel AND diaspora schedules.
+//
+// PERF (don't regress): instinct2's watchdog kills onUpdate if this is slow.
+// hebrewNewYear is expensive, so the year's month lengths are prefix-summed
+// ONCE into `starts` and the Shabbat walk uses plain arithmetic only.
 // NOT (:glance) — widget memory only; the glance never shows the parasha.
 class Parasha {
 
@@ -42,6 +46,18 @@ class Parasha {
             : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as Array<Number>;
     }
 
+    // Days in month mo given the year length — no hebrewNewYear recomputation
+    // (the expensive part of HebrewDate.hebrewDaysInMonth).
+    private static function _monthLen(mo as Number, yearLen as Number) as Number {
+        if (mo == 2) { return (yearLen == 355 or yearLen == 385) ? 30 : 29; } // חשון
+        if (mo == 3) { return (yearLen == 353 or yearLen == 383) ? 29 : 30; } // כסלו
+        // 30-day months: תשרי שבט אדר א ניסן סיוון אב
+        if (mo == 1 or mo == 5 or mo == 13 or mo == 7 or mo == 9 or mo == 11) {
+            return 30;
+        }
+        return 29; // טבת אדר אדר ב אייר תמוז אלול
+    }
+
     // Hebrew year containing jd
     private static function _yearOf(jd as Number) as Number {
         var yr = ((jd - 347997).toFloat() / 365.2468).toNumber() + 1;
@@ -50,32 +66,38 @@ class Parasha {
         return yr;
     }
 
-    // JD of Hebrew date (y, m, d), Tishrei-based month numbering
-    private static function _jdOf(y as Number, m as Number, d as Number,
-                                  order as Array<Number>) as Number {
-        var jd = HebrewDate.hebrewNewYear(y);
-        for (var i = 0; i < order.size(); i++) {
-            var mo = order[i] as Number;
-            if (mo == m) { break; }
-            jd += HebrewDate.hebrewDaysInMonth(mo, y);
+    // Day-of-year (0-based from 1 Tishrei) of the start of order[i],
+    // computed once per year: starts[i] = sum of lengths of months before i.
+    private static function _monthStarts(order as Array<Number>,
+                                         yearLen as Number) as Array<Number> {
+        var n = order.size();
+        var starts = new [n] as Array<Number>;
+        var acc = 0;
+        for (var i = 0; i < n; i++) {
+            starts[i] = acc;
+            acc += _monthLen(order[i] as Number, yearLen);
         }
-        return jd + d - 1;
+        return starts;
     }
 
-    // [month, day] of jd within known year y
-    private static function _monthDay(jd as Number, y as Number,
-                                      order as Array<Number>) as Array<Number> {
-        var doy = jd - HebrewDate.hebrewNewYear(y);
-        var elapsed = 0;
+    // [month, day] for a 0-based day-of-year, via the cached starts table
+    private static function _monthDayOf(doy as Number, order as Array<Number>,
+                                        starts as Array<Number>) as Array<Number> {
+        var i = order.size() - 1;
+        while (i > 0 and (starts[i] as Number) > doy) { i--; }
+        return [order[i] as Number, doy - (starts[i] as Number) + 1];
+    }
+
+    // Day-of-year of Hebrew date (m, d) via the starts table
+    private static function _doyOf(m as Number, d as Number,
+                                   order as Array<Number>,
+                                   starts as Array<Number>) as Number {
         for (var i = 0; i < order.size(); i++) {
-            var mo = order[i] as Number;
-            var ml = HebrewDate.hebrewDaysInMonth(mo, y);
-            if (doy < elapsed + ml) {
-                return [mo, doy - elapsed + 1];
+            if ((order[i] as Number) == m) {
+                return (starts[i] as Number) + d - 1;
             }
-            elapsed += ml;
         }
-        return [1, 1];
+        return 0;
     }
 
     // Festival Shabbat with no weekly portion? Israel still reads on the
@@ -99,41 +121,47 @@ class Parasha {
     static function forShabbat(jdAny as Number, israel as Boolean) as Array<Number>? {
         var shab = _shabbatOnOrAfter(jdAny);
         var y = _yearOf(shab);
+
+        // All year constants computed once — the walk below is cheap arithmetic.
+        var rh = HebrewDate.hebrewNewYear(y);
+        var yearLen = HebrewDate.hebrewNewYear(y + 1) - rh;
         var leap = HebrewDate.isHebrewLeapYear(y);
         var order = _monthOrder(leap);
+        var starts = _monthStarts(order, yearLen);
 
-        var rh = HebrewDate.hebrewNewYear(y);
-        var pesachDow = _dow(_jdOf(y, 7, 15, order));
-        var erevPesach = _jdOf(y, 7, 14, order);
-        var av9 = _jdOf(y, 11, 9, order);
-        var nextRhLate = _dow(HebrewDate.hebrewNewYear(y + 1)) >= 4;
+        var pesachDoy = _doyOf(7, 15, order, starts);          // ניסן ט"ו
+        var pesachDow = _dow(rh + pesachDoy);
+        var erevPesachDoy = pesachDoy - 1;
+        var av9Doy = _doyOf(11, 9, order, starts);
+        var nextRhLate = _dow(rh + yearLen) >= 4;              // next RH Thu/Sat
 
-        var cur = _shabbatOnOrAfter(rh);
+        var shabDoy = shab - rh;
+        var curDoy = _shabbatOnOrAfter(rh) - rh;
         // RH on Thu/Sat: נצבים-וילך was doubled before RH, Shabbat Shuva reads האזינו
         var idx = (_dow(rh) >= 4) ? 1 : 0;
 
-        while (cur <= shab) {
-            var md = _monthDay(cur, y, order);
+        while (curDoy <= shabDoy) {
+            var md = _monthDayOf(curDoy, order, starts);
             if (_parshaless(md[0] as Number, md[1] as Number, israel)) {
-                if (cur == shab) { return null; }
+                if (curDoy == shabDoy) { return null; }
             } else {
                 var p = _seq(idx);
                 idx++;
                 var dbl =
-                    (p == 21 and (erevPesach - cur) / 7 < 3)            // ויקהל-פקודי
+                    (p == 21 and (erevPesachDoy - curDoy) / 7 < 3)      // ויקהל-פקודי
                     or ((p == 26 or p == 28) and !leap)                 // תזריע-מצורע, אחרי-קדושים
                     or (p == 31 and !leap
                         and (!israel or pesachDow != 6))                // בהר-בחוקותי
                     or (p == 38 and !israel and pesachDow == 4)         // חקת-בלק
-                    or (p == 41 and (av9 - cur) / 7 < 2)                // מטות-מסעי
+                    or (p == 41 and (av9Doy - curDoy) / 7 < 2)          // מטות-מסעי
                     or (p == 50 and nextRhLate);                        // נצבים-וילך
-                if (cur == shab) {
+                if (curDoy == shabDoy) {
                     if (dbl) { return [p, _seq(idx)]; }
                     return [p];
                 }
                 if (dbl) { idx++; }
             }
-            cur += 7;
+            curDoy += 7;
         }
         return null; // unreachable: shab is always visited
     }
@@ -142,32 +170,30 @@ class Parasha {
     static function festivalName(jdAny as Number) as String {
         var shab = _shabbatOnOrAfter(jdAny);
         var y = _yearOf(shab);
+        var rh = HebrewDate.hebrewNewYear(y);
+        var yearLen = HebrewDate.hebrewNewYear(y + 1) - rh;
         var order = _monthOrder(HebrewDate.isHebrewLeapYear(y));
-        var md = _monthDay(shab, y, order);
+        var starts = _monthStarts(order, yearLen);
+        var md = _monthDayOf(shab - rh, order, starts);
         var m = md[0] as Number;
         var d = md[1] as Number;
 
         if (m == 1) {
-            if (d <= 2)             { return "ראש השנה"; }
-            if (d == 10)            { return "יום כיפור"; }
+            if (d <= 2)              { return "ראש השנה"; }
+            if (d == 10)             { return "יום כיפור"; }
             if (d >= 15 and d <= 21) { return "סוכות"; }
-            if (d == 22)            { return "שמיני עצרת"; }
-            if (d == 23)            { return "שמחת תורה"; }
+            if (d == 22)             { return "שמיני עצרת"; }
+            if (d == 23)             { return "שמחת תורה"; }
         }
         if (m == 7) { return "פסח"; }
         if (m == 9) { return "שבועות"; }
         return "";
     }
 
-    // Display string for the Shabbat reading: parasha name (doubles joined
-    // with a maqaf — the ASCII hyphen gets bidi-substituted to maqaf by the
-    // renderer, so the fonts carry U+05BE and we use it directly), or the
-    // festival name on a parasha-less Shabbat.
-    static function displayName(jd as Number, israel as Boolean) as String {
-        var r = forShabbat(jd, israel);
-        if (r == null) {
-            return festivalName(jd);
-        }
+    // Join 1-2 parasha indices with a maqaf (the ASCII hyphen gets
+    // bidi-substituted to maqaf by the renderer, so the fonts carry U+05BE
+    // and we use it directly).
+    static function joinNames(r as Array<Number>) as String {
         var s = NAMES[r[0] as Number] as String;
         if (r.size() > 1) {
             s = s + "־" + (NAMES[r[1] as Number] as String);
@@ -175,8 +201,14 @@ class Parasha {
         return s;
     }
 
-    // True when the Shabbat on-or-after jd has a weekly portion.
-    static function hasParasha(jd as Number, israel as Boolean) as Boolean {
-        return forShabbat(jd, israel) != null;
+    // Display string for the Shabbat reading. NOTE: runs the full walk —
+    // views that also need has/hasn't-parasha should call forShabbat once
+    // and use joinNames/festivalName instead of calling this twice.
+    static function displayName(jd as Number, israel as Boolean) as String {
+        var r = forShabbat(jd, israel);
+        if (r == null) {
+            return festivalName(jd);
+        }
+        return joinNames(r);
     }
 }

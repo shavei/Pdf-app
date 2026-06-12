@@ -46,6 +46,13 @@ In the sim, open the widget from the glance: click the display once (focus), the
 On fr55 the sim boots to a black watchface — click the display, send {DOWN} to reach the
 glance carousel, then {ENTER} for the widget.
 
+**Sim gotchas (cost hours — see MEMORY.md "Sim navigation — SOLVED"):** the sim's
+`Simulation > App Lock Enabled` is on by default per device profile and silently blocks
+opening apps from the glance; `capture.ps1` can return stale frames after sim restarts
+(verify with a real screen grab); for bulk device verification, temporarily build as
+`type="watch-app"` with getGlanceView commented out — the app then auto-launches
+full-screen on monkeydo with no glance navigation.
+
 ## Target devices (16)
 
 `instinct3solar45mm` `instinct3amoled45mm` `instinct3amoled50mm` `instinct2` `fr165m`

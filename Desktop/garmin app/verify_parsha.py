@@ -114,44 +114,80 @@ def _parshaless(m, d, israel):
         return True
     return False
 
+def _month_len(mo, year_len):
+    """Days in month given the year length (no hebrew_new_year recompute)."""
+    if mo == 2:  return 30 if year_len in (355, 385) else 29
+    if mo == 3:  return 29 if year_len in (353, 383) else 30
+    if mo in (1, 5, 13, 7, 9, 11):  return 30
+    return 29
+
+def _month_starts(order, year_len):
+    starts, acc = [], 0
+    for mo in order:
+        starts.append(acc)
+        acc += _month_len(mo, year_len)
+    return starts
+
+def _month_day_of(doy, order, starts):
+    i = len(order) - 1
+    while i > 0 and starts[i] > doy:
+        i -= 1
+    return (order[i], doy - starts[i] + 1)
+
+def _doy_of(m, d, order, starts):
+    for i, mo in enumerate(order):
+        if mo == m:
+            return starts[i] + d - 1
+    return 0
+
 def parsha_for_jd(jd, israel):
-    """Parasha read on the Shabbat on-or-after jd: list of 1-2 indices, or None."""
+    """Parasha read on the Shabbat on-or-after jd: list of 1-2 indices, or None.
+
+    Mirrors the OPTIMIZED Parasha.mc: year constants prefix-summed once,
+    walk uses day-of-year arithmetic only (instinct2 watchdog fix).
+    """
     shab = shabbat_on_or_after(jd)
     y, _, _ = jd_to_hebrew(shab)
 
     rh = hebrew_new_year(y)
+    year_len = hebrew_new_year(y + 1) - rh
     leap = is_leap(y)
-    pesach_dow = dow(hebrew_to_jd(y, 7, 15))
-    erev_pesach = hebrew_to_jd(y, 7, 14)
-    av9 = hebrew_to_jd(y, 11, 9)
-    next_rh_late = dow(hebrew_new_year(y + 1)) >= 4   # next RH on Thu/Sat
+    order = month_order(y)
+    starts = _month_starts(order, year_len)
 
-    cur = shabbat_on_or_after(rh)
+    pesach_doy = _doy_of(7, 15, order, starts)
+    pesach_dow = dow(rh + pesach_doy)
+    erev_pesach_doy = pesach_doy - 1
+    av9_doy = _doy_of(11, 9, order, starts)
+    next_rh_late = dow(rh + year_len) >= 4   # next RH on Thu/Sat
+
+    shab_doy = shab - rh
+    cur_doy = shabbat_on_or_after(rh) - rh
     idx = 1 if dow(rh) >= 4 else 0   # RH Thu/Sat: Shabbat Shuva reads Haazinu
 
-    while cur <= shab:
-        _, m, d = jd_to_hebrew(cur)
+    while cur_doy <= shab_doy:
+        m, d = _month_day_of(cur_doy, order, starts)
         if _parshaless(m, d, israel):
-            if cur == shab:
+            if cur_doy == shab_doy:
                 return None
         else:
             p = _seq(idx)
             idx += 1
             double = (
-                (p == 21 and (erev_pesach - cur) // 7 < 3)
+                (p == 21 and (erev_pesach_doy - cur_doy) // 7 < 3)
                 or (p in (26, 28) and not leap)
                 or (p == 31 and not leap and (not israel or pesach_dow != 6))
                 or (p == 38 and not israel and pesach_dow == 4)
-                or (p == 41 and (av9 - cur) // 7 < 2)
+                or (p == 41 and (av9_doy - cur_doy) // 7 < 2)
                 or (p == 50 and next_rh_late)
             )
             if double:
-                if cur == shab:
+                if cur_doy == shab_doy:
                     return [p, _seq(idx)]
                 idx += 1
-            if cur == shab:
+            if cur_doy == shab_doy:
                 return [p]
-        cur += 7
+        cur_doy += 7
     return None  # unreachable
 
 # ---------------------------------------------------------------- verification
