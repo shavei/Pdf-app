@@ -4,6 +4,8 @@ import Toybox.Lang;
 // Port of pyluach.parshios (Dr. Irv Bromberg's algorithm): a virtual reading
 // sequence [וילך, האזינו, בראשית..וילך] walked Shabbat-by-Shabbat from Rosh
 // Hashana, with six doubling rules and a festival-skip test.
+// pyluach (c) 2014 Meir S. List, MIT License — see CREDITS.md for the full
+// notice and the Hebcal verification credit.
 // Verified by verify_parsha.py: 0 mismatches vs pyluach (every day 2020-2090)
 // and vs hebcal.com (every Shabbat 2026-2029), Israel AND diaspora schedules.
 //

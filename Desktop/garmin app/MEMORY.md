@@ -199,6 +199,15 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
    screen / frozen frame ignoring keys): kill + restart simulator.exe.
 
 ## Store status — PUBLISHED ✅ (v1.4.0 LIVE, 2026-06-11, 16 devices)
+- **v1.5.0 packaged 2026-06-14, NOT yet uploaded** (commit `4bdffd7`): manifest bumped,
+  `bin\HebrewCalendar.iq` built (613KB, 26 variants), gallery refreshed to show the parasha
+  page (`store_images` now `1_instinct2_date` `2_fenix7_date` `3_venu3_parasha`
+  `4_fr965_parasha` `5_fr955_parasha` `6_fenix7_glance` + new hero), what's-new drafted.
+  Awaiting the user's manual dashboard upload.
+- **Attribution (CREDITS.md):** the parasha algorithm in `Parasha.mc` is a port of **pyluach**
+  (© 2014 Meir S. List, MIT) — MIT notice reproduced in CREDITS.md, credited in Parasha.mc
+  header + the store full description. **Hebcal** (CC BY 4.0) was only a verification reference;
+  no Hebcal data/API ships. Keep these credits if the parasha code stays.
 - **v1.4.0 (internal build 5) live 2026-06-11**: added Forerunner 55. **Next release must be ≥ 1.5.0.**
 - History: v1.3.0 (internal 4) = the 15-device update, same day. (Its first submit attempt errored client-side but actually consumed v1.2.0/internal 3 — that's why version numbers skip.)
 - Store page: 4.7★, 3 reviews (latest: "עובד👍" on v1.3.0). Listing assets: cover `bin\store_images\cover_500.png`, hero `hero_1440x720.png`, screenshots `1_*.jpg`–`6_*.jpg` (made by `bin\make_store_images.py`, `make_cover.py`, `make_hero.py`).
