@@ -51,6 +51,16 @@ Supported watches: Instinct 2 (incl. Solar / Dual Power / dēzl Edition), Instin
 
 ---
 
+## What's new (v1.5.0 — 2026-06-14)
+
+**EN:**
+New weekly Torah portion page! Swipe or tap from the date to see this week's parasha (with festival names on holidays). Plus new settings: choose the Israel or Diaspora reading schedule, and pick your text color. Also sharper layout — the glance date no longer clips on round watches.
+
+**HE:**
+דף פרשת השבוע החדש! החליקו או הקישו מהתאריך כדי לראות את פרשת השבוע (ובחגים — שם החג). בנוסף, הגדרות חדשות: בחירת לוח הקריאה (ארץ ישראל או חו"ל) ובחירת צבע הטקסט. גם הפריסה שופרה — התאריך ב-Glance כבר לא נחתך בשעונים העגולים.
+
+**Notes for the reviewer:** v1.5.0 adds a second widget page (weekly parasha / festival), two app settings (Israel-vs-Diaspora schedule and text color), and layout fixes. No new permissions; still no GPS/internet. Parasha schedule is computed on-device and verified against pyluach and hebcal.com for both schedules.
+
 ## What's new (v1.4.0 — 2026-06-11)
 
 **EN:**
