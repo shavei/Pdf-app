@@ -99,6 +99,7 @@ display once (focus) + send {DOWN}, open widget = {ENTER}.
 - Sub-screen (Solar circle) layout safe: only fires via `DeviceInfo.isSolar()` = screenW ≤ 176; smallest new device is 260.
 - All new devices have 64KB glance memory (glance uses ~12.5KB) — no memory issues.
 - Sim screenshot workflow: `bin\capture.ps1` (PrintWindow), `bin\click.ps1`, `bin\runshot.ps1` (monkeydo → tap glance → tap again → capture). fr255 has no touch — click the chrome START button instead.
+- **Reviewing all devices at a glance: open `bin\shots\v15\index.html`** — it's the sorted grid of every device's glance/date/parasha shots, the canonical place to eyeball the whole fleet (e.g. before a release or after a layout change). Regenerate the shots with `bin\retake_v15.ps1`; old loose shots are archived in `bin\shots\archive\`.
 
 ## v1.5.0 in progress (2026-06-12) — parasha page + settings, NOT yet released
 Built on branch `garmin-hebrew-widget` after a store review asked for customizability:
