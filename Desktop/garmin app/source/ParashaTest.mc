@@ -1,5 +1,7 @@
 import Toybox.Lang;
 import Toybox.Test;
+import Toybox.Time;
+import Toybox.Time.Gregorian;
 
 // Temporary unit tests for Parasha (run with monkeyc --unit-test + monkeydo -t).
 // Expected values come from verify_parsha.py (pyluach + hebcal verified).
@@ -51,6 +53,49 @@ function testAppSettings(logger as Test.Logger) as Boolean {
     Test.assert(AppSettings.israelSchedule());
     Test.assertEqual(AppSettings.textColor(), 0xFFFFFF);
     return true;
+}
+
+// Omer count: 16 Nisan (1) .. 5 Sivan (49); Nisan=7, Iyar=8, Sivan=9.
+(:test)
+function testOmerDay(logger as Test.Logger) as Boolean {
+    Test.assertEqual(HebrewDate.omerDay(7, 16), 1);   // 16 Nisan
+    Test.assertEqual(HebrewDate.omerDay(7, 30), 15);  // 30 Nisan
+    Test.assertEqual(HebrewDate.omerDay(8, 1), 16);   // 1 Iyar
+    Test.assertEqual(HebrewDate.omerDay(8, 18), 33);  // Lag BaOmer
+    Test.assertEqual(HebrewDate.omerDay(8, 29), 44);  // 29 Iyar
+    Test.assertEqual(HebrewDate.omerDay(9, 5), 49);   // 5 Sivan
+    Test.assertEqual(HebrewDate.omerDay(9, 6), 0);    // Shavuot — no count
+    Test.assertEqual(HebrewDate.omerDay(7, 15), 0);   // Pesach — before count
+    Test.assertEqual(HebrewDate.omerDay(1, 1), 0);    // Tishri — out of season
+    Test.assertEqual(HebrewEvents.omerName(33), "ל״ג בעומר");
+    return true;
+}
+
+// Helper: build HebrewDate for a Gregorian civil date (noon-safe).
+function _hebFor(y as Number, m as Number, d as Number) as HebrewDate {
+    return new HebrewDate(Gregorian.moment(
+        {:year => y, :month => m, :day => d, :hour => 12}));
+}
+
+// nextEvent — soonest of upcoming holidays vs Rosh Chodesh. Expected values
+// from pyluach (see tools/verify); Rosh Chodesh is always within ~30 days.
+(:test)
+function testNextEvent(logger as Test.Logger) as Boolean {
+    _assertEvent("2026-09-10", _hebFor(2026, 9, 10), "ראש השנה", 2, logger);     // Elul 28
+    _assertEvent("2026-12-01", _hebFor(2026, 12, 1), "חנוכה", 4, logger);        // Kislev 21
+    _assertEvent("2026-07-20", _hebFor(2026, 7, 20), "תשעה באב", 3, logger);     // Av 6
+    _assertEvent("2026-08-10", _hebFor(2026, 8, 10), "ראש חודש אלול", 3, logger);// Av 27
+    _assertEvent("2026-06-14", _hebFor(2026, 6, 14), "ראש חודש תמוז", 1, logger);// Sivan 29
+    return true;
+}
+
+function _assertEvent(tag as String, hd as HebrewDate, name as String,
+                      days as Number, logger as Test.Logger) as Void {
+    var ev = HebrewEvents.nextEvent(hd);
+    Test.assert(ev != null);
+    logger.debug(tag + " -> " + (ev[0] as String) + " in " + (ev[1] as Number));
+    Test.assertEqual(ev[0] as String, name);
+    Test.assertEqual(ev[1] as Number, days);
 }
 
 (:test)

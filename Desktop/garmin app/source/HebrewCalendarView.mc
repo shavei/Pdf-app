@@ -95,6 +95,6 @@ class HebrewCalendarView extends WatchUi.View {
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
-        ParashaView.drawDots(dc, 0);
+        ParashaView.drawDots(dc, 0, DeviceInfo.isSolar() ? 3 : 2);
     }
 }

@@ -167,10 +167,30 @@ class HebrewDate {
     }
 
     function getMonthName() as String {
-        if (isLeapYear and month == 13) { return MONTH_NAMES[12] as String; }
-        if (isLeapYear and month == 14) { return MONTH_NAMES[13] as String; }
-        if (month >= 1 and month <= 12) { return MONTH_NAMES[month - 1] as String; }
+        return monthNameOf(month, isLeapYear);
+    }
+
+    // Month name for any (month, leap) pair — usable without an instance
+    // (e.g. naming an upcoming month for the Rosh Chodesh teaser).
+    static function monthNameOf(m as Number, leap as Boolean) as String {
+        if (leap and m == 13) { return MONTH_NAMES[12] as String; }
+        if (leap and m == 14) { return MONTH_NAMES[13] as String; }
+        if (m >= 1 and m <= 12) { return MONTH_NAMES[m - 1] as String; }
         return "";
+    }
+
+    // Day of the Omer for this date, 1..49, or 0 when not in the count.
+    // The Omer runs 16 Nisan (day 1) through 5 Sivan (day 49); 6 Sivan is
+    // Shavuot, with no count. Month numbering: Nisan=7, Iyar=8, Sivan=9.
+    function getOmerDay() as Number {
+        return omerDay(month, day);
+    }
+
+    static function omerDay(m as Number, d as Number) as Number {
+        if (m == 7 and d >= 16) { return d - 15; }  // Nisan 16..30 -> 1..15
+        if (m == 8)             { return 15 + d; }   // Iyar  1..29  -> 16..44
+        if (m == 9 and d <= 5)  { return 44 + d; }   // Sivan 1..5   -> 45..49
+        return 0;
     }
 
     function getFullDateString() as String {

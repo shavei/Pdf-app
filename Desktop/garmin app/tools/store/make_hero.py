@@ -108,7 +108,7 @@ draw_centered("Hebrew Calendar", FONT_EN_SB, 47, 536, (90, 92, 98))
 rule_w = 250
 d.rounded_rectangle([S(cx_left - rule_w / 2), S(612), S(cx_left + rule_w / 2), S(615)],
                     radius=S(2), fill=(206, 210, 216))
-draw_centered("GLANCE  ·  WIDGET  ·  WEEKLY PARASHA", FONT_EN_SB, 22, 632,
+draw_centered("PARASHA  ·  OMER  ·  HOLIDAYS", FONT_EN_SB, 22, 632,
               (132, 135, 142))
 
 # ---------------------------------------------------------------- downscale synthetic layer
@@ -128,9 +128,9 @@ def place(name, target_h, x, y):
 # fit the right zone (x 565..~1400) with a gap and a right margin.
 big_h = 560
 big_x = 565
-w1 = place("2_fr965_parasha.png", big_h, big_x, (H - big_h) // 2)
+w1 = place("2_epix2_omer.png", big_h, big_x, (H - big_h) // 2)
 small_h = 408
-place("3_instinct2_date.png", small_h, big_x + w1 + 28, H - small_h - 70)
+place("1_venu3_date.png", small_h, big_x + w1 + 28, H - small_h - 70)
 
 # ---------------------------------------------------------------- save
 hero.convert("RGB").save(OUT, "PNG", optimize=True)

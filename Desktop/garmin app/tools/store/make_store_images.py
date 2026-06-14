@@ -26,14 +26,14 @@ MAX_BYTES = 150 * 1024
 CARD_W, CARD_H = 640, 800
 BOX_W, BOX_H = int(CARD_W * 0.84), int(CARD_H * 0.82)
 
-# 5-image gallery, max device + content variety: date / parasha / glance across
-# AMOLED, MIP and Instinct families. Lead with a bright AMOLED date page.
+# 5-image gallery (Garmin max), feature-forward for v1.6.0: date, then the new
+# Omer / next-event surfaces across AMOLED, MIP and Instinct families, then glance.
 PICKS = [
-    ("venu3_widget_date.png",      "1_venu3_date.jpg"),
-    ("fr965_widget_parasha.png",   "2_fr965_parasha.jpg"),
-    ("instinct2_widget_date.png",  "3_instinct2_date.jpg"),
-    ("fenix7_widget_parasha.png",  "4_fenix7_parasha.jpg"),
-    ("fr265_glance.png",           "5_fr265_glance.jpg"),
+    ("venu3_widget_date.png",          "1_venu3_date.jpg"),
+    ("epix2_widget_omer.png",          "2_epix2_omer.jpg"),
+    ("fr55_widget_event.png",          "3_fr55_event.jpg"),
+    ("instinct3solar_omer_page.png",   "4_solar_omer.jpg"),
+    ("fr265_glance.png",               "5_fr265_glance.jpg"),
 ]
 
 

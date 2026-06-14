@@ -36,7 +36,9 @@ class ParashaView extends WatchUi.View {
         var header  = (reading != null) ? "פרשת השבוע" : "שבת";
 
         if (DeviceInfo.isSolar()) {
-            // Day-of-week letter in the subscreen circle — same as the date page
+            // Day-of-week letter in the subscreen circle — same as the date page.
+            // The Omer / next-event line gets its OWN page (page 3) on this 176px
+            // 2-color screen — there is no room for a 3rd line under the circle.
             var gpsR  = 27;
             var gpsCX = 120;
             var gpsCY = 52;
@@ -58,7 +60,7 @@ class ParashaView extends WatchUi.View {
             dc.drawText(cx, 96, fSmall, header,
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            _drawNameFit(dc, name, cx, 135, w - 20, color);
+            _drawNameFit(dc, name, cx, 135, w - 20, color, 0);
         } else {
             // 28%/53% (not higher): at 22% the header clipped on the round
             // top edge of small screens — user-reported on fr55
@@ -67,21 +69,37 @@ class ParashaView extends WatchUi.View {
             dc.drawText(cx, yHdr, fMedium, header,
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            _drawNameFit(dc, name, cx, (h * 53) / 100, w - 24, color);
+            _drawNameFit(dc, name, cx, (h * 53) / 100, w - 24, color, 0);
+
+            // Non-solar has room: append the contextual line under the name.
+            // Omer in season, else the soonest holiday / Rosh Chodesh + countdown.
+            var omer = hebrewDate.getOmerDay();
+            if (omer > 0) {
+                _drawExtra(dc, HebrewEvents.omerName(omer), null, null,
+                    cx, (h * 76) / 100, w - 24, true);
+            } else {
+                var ev = HebrewEvents.nextEvent(hebrewDate);
+                if (ev != null) {
+                    _drawExtra(dc, null, ev[0] as String,
+                        HebrewEvents.countdownText(ev[1] as Number),
+                        cx, (h * 76) / 100, w - 24, true);
+                }
+            }
         }
 
-        drawDots(dc, 1);
+        drawDots(dc, 1, DeviceInfo.isSolar() ? 3 : 2);
     }
 
     // Draw the parasha name vcentered at (cx, cy), picking the largest font
     // that fits maxW; doubled portions fall back to two lines split at the hyphen.
     private function _drawNameFit(dc as Graphics.Dc, name as String,
                                   cx as Number, cy as Number,
-                                  maxW as Number, color as Number) as Void {
+                                  maxW as Number, color as Number,
+                                  startIdx as Number) as Void {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
 
         var fonts = [fLarge, fMedium, fSmall] as Array<FontDef>;
-        for (var i = 0; i < fonts.size(); i++) {
+        for (var i = startIdx; i < fonts.size(); i++) {
             if (dc.getTextWidthInPixels(name, fonts[i]) <= maxW) {
                 dc.drawText(cx, cy, fonts[i], name,
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
@@ -106,14 +124,53 @@ class ParashaView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
-    // Page-indicator dots shared by both widget pages. active: 0 = date, 1 = parasha.
-    static function drawDots(dc as Graphics.Dc, active as Number) as Void {
+    // Draw the contextual line (Omer, or next-event name + countdown) centered
+    // at (cx, cy) in the highlight color. `single` is a one-line string (Omer);
+    // otherwise `name`/`count` are drawn together, wrapping to two lines when
+    // twoLines is set and the combined string is too wide (else count dropped).
+    // cy is clamped up so nothing collides with the page-indicator dots.
+    private function _drawExtra(dc as Graphics.Dc, single as String?,
+                               name as String?, count as String?,
+                               cx as Number, cy as Number,
+                               maxW as Number, twoLines as Boolean) as Void {
+        if (single == null and name == null) { return; }
+        dc.setColor(DeviceInfo.colorHighlight(), Graphics.COLOR_TRANSPARENT);
+        var lh = dc.getFontHeight(fSmall);
+        var bottom = DeviceInfo.dotsY() - 6;
+
+        if (single != null) {
+            if (cy + lh / 2 > bottom) { cy = bottom - lh / 2; }
+            dc.drawText(cx, cy, fSmall, single,
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            return;
+        }
+
+        var combined = name + " " + count;
+        var fits = dc.getTextWidthInPixels(combined, fSmall) <= maxW;
+        if (fits or !twoLines) {
+            var s = fits ? combined : name;
+            if (cy + lh / 2 > bottom) { cy = bottom - lh / 2; }
+            dc.drawText(cx, cy, fSmall, s,
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            return;
+        }
+
+        if (cy + lh > bottom) { cy = bottom - lh; }
+        dc.drawText(cx, cy - lh / 2, fSmall, name,
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(cx, cy + lh / 2, fSmall, count,
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    // Page-indicator dots shared by the widget pages. active = current page;
+    // count = total pages (2 normally, 3 on Solar with its Omer/events page).
+    static function drawDots(dc as Graphics.Dc, active as Number, count as Number) as Void {
         var cx = DeviceInfo.centerX();
         var y  = DeviceInfo.dotsY();
         var sp = DeviceInfo.dotsSpacing();
         var r  = DeviceInfo.dotsRadius();
-        for (var i = 0; i < 2; i++) {
-            var x = cx - sp / 2 + i * sp;
+        for (var i = 0; i < count; i++) {
+            var x = cx - (sp * (count - 1)) / 2 + i * sp;
             if (i == active) {
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 dc.fillCircle(x, y, r);
@@ -129,8 +186,9 @@ class ParashaView extends WatchUi.View {
     }
 }
 
-// Input handling on the parasha page: back/select/swipe-right all return
-// to the date page.
+// Input handling on the parasha page. Back/swipe-right return to the date page.
+// Select/swipe-left: on Solar this advances to the Omer/events page (page 3);
+// elsewhere page 2 is the last page, so select just returns to the date page.
 class ParashaDelegate extends WatchUi.BehaviorDelegate {
 
     function initialize() {
@@ -143,13 +201,21 @@ class ParashaDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        WatchUi.popView(WatchUi.SLIDE_RIGHT);
+        if (DeviceInfo.isSolar()) {
+            WatchUi.pushView(new OmerView(), new OmerDelegate(), WatchUi.SLIDE_LEFT);
+        } else {
+            WatchUi.popView(WatchUi.SLIDE_RIGHT);
+        }
         return true;
     }
 
     function onSwipe(e as WatchUi.SwipeEvent) as Boolean {
         if (e.getDirection() == WatchUi.SWIPE_RIGHT) {
             WatchUi.popView(WatchUi.SLIDE_RIGHT);
+            return true;
+        }
+        if (e.getDirection() == WatchUi.SWIPE_LEFT and DeviceInfo.isSolar()) {
+            WatchUi.pushView(new OmerView(), new OmerDelegate(), WatchUi.SLIDE_LEFT);
             return true;
         }
         return false;

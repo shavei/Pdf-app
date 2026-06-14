@@ -105,7 +105,7 @@ per-device `resources-*` variant dirs. Everything else is sorted into:
 | `source/` `resources/` `resources-*/` | App code + per-device resource buckets (the build) |
 | `tools/fonts/` | `generate_fonts*.py`, `generate_icons.py` (regenerate bitmap fonts/icons into `resources-*`) |
 | `tools/verify/` | `verify_parsha.py`, `crosscheck_hebcal.py` + `hebcal_fixtures/` (offline parasha checks) |
-| `tools/sim/` | Simulator helpers: `capture.ps1` `click.ps1` `runshot.ps1` `retake_v15.ps1` `make_v15_shots.ps1` `scap.ps1` `sendkey.ps1` |
+| `tools/sim/` | Simulator helpers: `capture.ps1` `capture2.ps1` (robust largest-window grab) `openshot.ps1` (tap glance band + capture) `click.ps1` `runshot.ps1` `retake_v15.ps1` `make_v15_shots.ps1` `scap.ps1` `sendkey.ps1` |
 | `tools/store/` | Listing-image generators: `make_cover.py` `make_hero.py` `make_store_images.py` |
 | `bin/` (gitignored) | Build output (`*.prg`, `HebrewCalendar.iq`), `shots/v15/`, `store_images/` |
 
@@ -115,16 +115,28 @@ per-device `resources-*` variant dirs. Everything else is sorted into:
 |---|---|
 | `source/HebrewCalendarApp.mc` | Entry: widget view + `(:glance)` glance view + onSettingsChanged |
 | `source/HebrewCalendarView.mc` | Widget page 1: date (Solar uses sub-screen circle for day letter) |
-| `source/ParashaView.mc` | Widget page 2: weekly parasha / festival fallback + ParashaDelegate |
+| `source/ParashaView.mc` | Widget page 2: weekly parasha / festival fallback + ParashaDelegate. Non-Solar also draws the contextual line (Omer / next event) under the name |
+| `source/OmerView.mc` | Widget page 3 — **SOLAR ONLY**: Omer in season, else next holiday / Rosh Chodesh. + OmerDelegate |
+| `source/HebrewEvents.mc` | Omer name + next-holiday / Rosh-Chodesh countdown math (pure date math; NOT glance) |
 | `source/Parasha.mc` | Parasha-of-the-week algorithm (verified; see Rules) |
 | `source/AppSettings.mc` | App-settings access (israelSchedule, textColor) |
-| `source/ParashaTest.mc` | `(:test)` unit tests — `monkeyc --unit-test` + `monkeydo ... -t` |
+| `source/ParashaTest.mc` | `(:test)` unit tests (parasha + Omer + nextEvent) — `monkeyc --unit-test`; flag is `/t` in PowerShell, `-t` in Bash |
 | `source/HebrewCalendarGlanceView.mc` | Glance: day letter left, RTL date right |
 | `source/HebrewFonts.mc` | Bitmap font loading (glance + widget) |
-| `source/HebrewDate.mc` | Hebrew calendar math + DOW letters (exposes `jd`) |
+| `source/HebrewDate.mc` | Hebrew calendar math + DOW letters (exposes `jd`); `omerDay`/`monthNameOf` |
 | `source/DeviceInfo.mc` | Device/layout helpers (`isSolar` = screenW ≤ 176) |
 | `resources/settings/` | properties.xml + settings.xml (Israel/diaspora, text color) |
 
-Navigation: page 1 → page 2 via select/tap or swipe-left; page 2 pops on
-back/select/swipe-right. Color setting applies everywhere except Instinct (2-color MIP);
-the day-letter accent uses the chosen color when it isn't white.
+Navigation: page 1 → page 2 via select/tap or swipe-left; back/swipe-right goes back.
+On **Solar/Instinct 2 only** there is a page 3 (`OmerView`): page 2 select/swipe-left pushes
+it; elsewhere page 2 is the last page (select returns to page 1). `ParashaView.drawDots`
+takes a page count — 2 normally, 3 on Solar. Color setting applies everywhere except
+Instinct (2-color MIP); the day-letter accent uses the chosen color when it isn't white.
+
+**Omer / next-event line (Rules):** the contextual line shows the Omer (16 Nisan–5 Sivan,
+gematria + בעומר) in season, else the soonest of the major holidays vs the next Rosh Chodesh
+(always ≤ ~30 days) with a gematria countdown (היום / מחר / בעוד … ימים). Countdowns use
+**gematria, not Arabic digits**, to stay all-Hebrew and on-brand (the fonts DO carry 0-9, but
+we don't use them). Non-Solar draws this under the parasha name; Solar can't fit a 3rd line at
+176px so it lives on page 3. Event math in `HebrewEvents.mc` is unit-tested (`testOmerDay`,
+`testNextEvent`) against pyluach fixtures — keep the tests green after any change.

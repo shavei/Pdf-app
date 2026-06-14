@@ -141,6 +141,50 @@ Built on branch `garmin-hebrew-widget` after a store review asked for customizab
   watch-app trick (below) + real widget flow on epix2/instinct3amoled45/instinct3solar45/
   instinct2. Remaining before release: version bump ≥1.5.0 + store listing update.
 
+## v1.6.0 in progress (2026-06-14) — Omer / next-holiday / Rosh Chodesh, NOT released
+Built on branch `showcase-site`. Three pure-math calendar features (no location/permission):
+- **Omer counter** (`HebrewDate.omerDay`/`getOmerDay`): 16 Nisan(day1)..5 Sivan(day49),
+  gematria + `בעומר` (e.g. `ל״ג בעומר`). Months Nisan=7/Iyar=8/Sivan=9.
+- **Next holiday + Rosh Chodesh** (`source/HebrewEvents.mc`, new): `nextEvent(hd)` returns
+  [name, daysUntil] = soonest of 10 major holidays (RH/YK/Sukkot/Chanuka/Tu-Bishvat/Purim/
+  Pesach/Lag-BaOmer/Shavuot/Tisha-BAv; Purim = Adar II in leap years) vs next Rosh Chodesh
+  (always ≤30 days: onset is 30-d days away for any month). `countdownText`: היום/מחר/
+  בעוד יומיים/בעוד <gematria> ימים. Holiday jd via per-year rh+doy (cheap month-length sums,
+  watchdog-safe). Verified vs **pyluach** fixtures (see `testNextEvent` for the dates).
+- **Countdowns use GEMATRIA not Arabic digits** to stay all-Hebrew (the bitmap fonts DO
+  contain 0-9 + maqaf already — confirmed in the committed `.fnt` — but we don't render digits).
+- **UX:** Non-Solar shows the line under the parasha name on page 2 (Omer in season, else
+  next event; 2-line wrap via `_drawExtra`, clamped above the dots). **Solar/Instinct 2
+  (176px 2-color) can't fit a 3rd line under the GPS circle → it gets a dedicated page 3
+  (`OmerView.mc`, new)** — user's explicit choice ("3 separate pages, solar only").
+  `drawDots(dc, active, count)` now takes a count (2 normally, 3 on Solar); ParashaDelegate
+  pushes OmerView on Solar select/swipe-left.
+- Unit tests added (`ParashaTest.mc`): `testOmerDay`, `testNextEvent`. All 7 pass; all 16 compile.
+- **Sim-verified (2026-06-14):** epix2 omer+event, fr55 event (2-line fits 208px), Solar
+  page2 (clean) + page3 omer + page3 event. Shots + `index.html` in `bin\shots\feat\`.
+- Remaining before release: version bump (→1.6.0, but v1.5.0 must clear review first),
+  store listing/gallery update. NOTE: glance is unchanged (still date only).
+
+## Sim screenshot workflow — UPDATED (2026-06-14, learned the hard way)
+- **The sim opens a widget to its GLANCE over the watchface, NOT the widget page.** After
+  `monkeydo` you see the Hebrew date on a watchface ring — that's the glance, the app loaded
+  fine. Don't mistake it for "stale build / getInitialView ignored" (burned ~30 min on this).
+  To reach the widget: tap the glance band (~50% x, ~43% y of the window) on touch devices,
+  or use the watch-app trick.
+- **Watch-app trick = most reliable for screenshots** (esp. non-touch Solar/Instinct/fr55,
+  which won't open the widget from the glance via keyboard). Set manifest `type="watch-app"`,
+  **COMMENT OUT `getGlanceView` entirely** (returning `null` shows a `?` placeholder glance on
+  CIQ 5.2), set `getInitialView` to the page you want + a fixed `Time.Gregorian.moment({...})`
+  date, build, monkeydo → launches that page FULLSCREEN, capture directly. REVERT all of it after.
+- New helpers: `tools\sim\capture2.ps1` (PrintWindow of the LARGEST visible sim window —
+  robust vs the stale 249x43 grabs the old `capture.ps1` returned), `tools\sim\openshot.ps1`
+  (focus sim + tap glance band + capture, for touch devices).
+- **`monkeydo -t` vs `/t` is shell-dependent:** PowerShell needs `/t` (`-t` prints usage),
+  Bash needs `-t` (`/t` = ILLEGAL ARGUMENT). (Supersedes the old "-t not /t" doc note.)
+- The sim wedges/garbles (torn glyphs, watchface bleed-through) after heavy monkeydo cycling,
+  esp. fr55 — kill `simulator.exe` + restart to clear. Verify suspicious captures with a real
+  desktop screenshot (PrintWindow can return frozen frames).
+
 ## Layout fixes (2026-06-12, user-requested) — parasha lowered + glance date inset
 - **Parasha page (non-Solar): header y=28%h, name y=53%h** (was 22/48 — header clipped on
   fr55's round top edge, user pasted the screenshot). Solar branch untouched. Don't raise.
@@ -203,12 +247,12 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
 ## Store status — PUBLISHED ✅ (v1.4.0 LIVE, 2026-06-11, 16 devices)
 - **Garmin developer account email: `yosefnider@gmail.com`** (NOT the user's general
   shilomeir@gmail.com). Store review verdicts and Connect IQ dashboard mail go here.
-- **v1.5.0 UPLOADED 2026-06-14, awaiting Garmin review** (commit `4bdffd7`): manifest bumped,
-  `bin\HebrewCalendar.iq` (613KB, 26 variants), gallery refreshed to show the parasha
-  page (`store_images` now `1_instinct2_date` `2_fenix7_date` `3_venu3_parasha`
-  `4_fr965_parasha` `5_fr955_parasha` `6_fenix7_glance` + new hero), what's-new from
-  STORE_LISTING.md. User submitted via dashboard; verdict comes by email. Once live, change
-  this to "v1.5.0 LIVE" + date.
+- **v1.5.0 LIVE ✅ 2026-06-13** (internal build 6) — parasha page + settings shipped.
+  Dashboard confirms: Latest Release 2026-06-13, v1.5.0 (Internal: 6), still 4.7★/3 reviews,
+  10+ downloads. **Next release must be ≥ 1.6.0.** (Built from commit `4bdffd7`: manifest
+  bumped, `bin\HebrewCalendar.iq` 613KB/26 variants, gallery `1_instinct2_date`
+  `2_fenix7_date` `3_venu3_parasha` `4_fr965_parasha` `5_fr955_parasha` `6_fenix7_glance`
+  + hero, what's-new from STORE_LISTING.md.)
 - **Attribution (CREDITS.md):** the parasha algorithm in `Parasha.mc` is a port of **pyluach**
   (© 2014 Meir S. List, MIT) — MIT notice reproduced in CREDITS.md, credited in Parasha.mc
   header + the store full description. **Hebcal** (CC BY 4.0) was only a verification reference;
