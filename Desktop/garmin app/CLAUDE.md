@@ -72,9 +72,11 @@ of genuinely separate ids (different screens).
 - **Join doubled parshiyot with maqaf `־` (U+05BE), never ASCII `-`.** Garmin's RTL
   shaper substitutes a hyphen between Hebrew words with maqaf at draw time — if the
   fonts lack that glyph you get a missing-glyph box. All generators carry `־` in CHARS.
-- **Parasha math in `source/Parasha.mc`** (port of pyluach's algorithm) is verified
-  0 mismatches vs pyluach (every day 2020–2090) AND hebcal.com (2026–2029), both
-  Israel and diaspora — rerun `verify_parsha.py` after any change. Don't "simplify".
+- **Parasha math in `source/Parasha.mc`** (port of pyluach's algorithm — attribution in
+  [CREDITS.md](CREDITS.md)) is verified 0 mismatches vs pyluach (every day 2020–2090) AND
+  hebcal.com (2026–2029), both Israel and diaspora — after any change rerun BOTH
+  `verify_parsha.py` (vs pyluach) and `crosscheck_hebcal.py` (vs the saved hebcal feeds in
+  `hebcal_fixtures/`, offline). Don't "simplify".
 - **Glance fonts must be `scope="glance"`** in fonts.xml — the glance process cannot access
   normal `Rez` symbols.
 - **No runtime `System.*` calls in glance code** — tiered-glance CIQ 3.4 devices (fr55,
