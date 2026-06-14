@@ -129,8 +129,9 @@ Built on branch `garmin-hebrew-widget` after a store review asked for customizab
   open the widget from the glance in this session (stock v1.4.0 build also affected —
   not a code bug). epix2 runshot flow works; instinct3amoled was originally verified
   manually in v1.1.0. Unresolved; use epix2 for AMOLED sim checks.
-- **Unit tests work well:** `monkeyc --unit-test` + `monkeydo bin\test.prg <dev> /t` —
-  output flushes because the runner exits (regular monkeydo buffers stdout forever).
+- **Unit tests work well:** `monkeyc --unit-test` + `monkeydo bin\test.prg <dev> -t` —
+  the test flag is `-t` (NOT `/t`; `/t` gives "ILLEGAL ARGUMENT"). The simulator must
+  already be fully booted before monkeydo connects, or it hangs with no output.
   ParashaTest.mc covers weekly/doubled/festival/Haazinu/settings.
 - **Verified in sim (epix2):** both pages, Israel קרח vs diaspora שלח (real divergence
   week!), yellow color end-to-end, doubled אחרי מות־קדושים auto-fit. All 16 devices compile.

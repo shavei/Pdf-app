@@ -118,7 +118,7 @@ per-device `resources-*` variant dirs. Everything else is sorted into:
 | `source/ParashaView.mc` | Widget page 2: weekly parasha / festival fallback + ParashaDelegate |
 | `source/Parasha.mc` | Parasha-of-the-week algorithm (verified; see Rules) |
 | `source/AppSettings.mc` | App-settings access (israelSchedule, textColor) |
-| `source/ParashaTest.mc` | `(:test)` unit tests — `monkeyc --unit-test` + `monkeydo ... /t` |
+| `source/ParashaTest.mc` | `(:test)` unit tests — `monkeyc --unit-test` + `monkeydo ... -t` |
 | `source/HebrewCalendarGlanceView.mc` | Glance: day letter left, RTL date right |
 | `source/HebrewFonts.mc` | Bitmap font loading (glance + widget) |
 | `source/HebrewDate.mc` | Hebrew calendar math + DOW letters (exposes `jd`) |
