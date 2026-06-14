@@ -199,6 +199,8 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
    screen / frozen frame ignoring keys): kill + restart simulator.exe.
 
 ## Store status — PUBLISHED ✅ (v1.4.0 LIVE, 2026-06-11, 16 devices)
+- **Garmin developer account email: `yosefnider@gmail.com`** (NOT the user's general
+  shilomeir@gmail.com). Store review verdicts and Connect IQ dashboard mail go here.
 - **v1.5.0 UPLOADED 2026-06-14, awaiting Garmin review** (commit `4bdffd7`): manifest bumped,
   `bin\HebrewCalendar.iq` (613KB, 26 variants), gallery refreshed to show the parasha
   page (`store_images` now `1_instinct2_date` `2_fenix7_date` `3_venu3_parasha`
