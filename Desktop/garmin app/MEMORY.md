@@ -169,6 +169,17 @@ Built on branch `showcase-site`. Three pure-math calendar features (no location/
   EN+HE, full description, reviewer notes). Glance unchanged (date only). **User still needs to
   Upload New Version on the dashboard** (yosefnider@gmail.com account). Once live → mark LIVE.
 
+## Round-screen clip bug (fixed 2026-06-14) — chord-aware text width
+The contextual line at ~76%h on the parasha page CLIPPED both bezel edges on round
+watches (user caught on fr165m: `ראש חודש תמוז מחר` ran off-screen). Cause: the fit/wrap
+check compared against full width (`w-24`), but a round screen's usable width NARROWS toward
+top/bottom — a medium single line "fit" the full-width test, drew on one line, and overflowed
+the bezel. (Missed in screenshots because my test dates gave either a short Omer line or a
+long countdown that wrapped — never the medium single-line case.) Fix: `DeviceInfo.usableWidthAtY(y)`
+returns the chord width at that row (square screen → `2·√(r²−dy²)−pad`; non-square → full);
+`_drawExtra` caps maxW to it so medium lines wrap instead of clipping. Line also raised 76%→74%.
+RULE: any text drawn low/high on a round screen must budget width with `usableWidthAtY`, not `w-…`.
+
 ## Sim screenshot workflow — UPDATED (2026-06-14, learned the hard way)
 - **The sim opens a widget to its GLANCE over the watchface, NOT the widget page.** After
   `monkeydo` you see the Hebrew date on a watchface ring — that's the glance, the app loaded

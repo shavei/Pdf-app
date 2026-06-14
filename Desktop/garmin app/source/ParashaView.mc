@@ -76,13 +76,13 @@ class ParashaView extends WatchUi.View {
             var omer = hebrewDate.getOmerDay();
             if (omer > 0) {
                 _drawExtra(dc, HebrewEvents.omerName(omer), null, null,
-                    cx, (h * 76) / 100, w - 24, true);
+                    cx, (h * 74) / 100, w - 24, true);
             } else {
                 var ev = HebrewEvents.nextEvent(hebrewDate);
                 if (ev != null) {
                     _drawExtra(dc, null, ev[0] as String,
                         HebrewEvents.countdownText(ev[1] as Number),
-                        cx, (h * 76) / 100, w - 24, true);
+                        cx, (h * 74) / 100, w - 24, true);
                 }
             }
         }
@@ -137,6 +137,11 @@ class ParashaView extends WatchUi.View {
         dc.setColor(DeviceInfo.colorHighlight(), Graphics.COLOR_TRANSPARENT);
         var lh = dc.getFontHeight(fSmall);
         var bottom = DeviceInfo.dotsY() - 6;
+
+        // Round screens narrow toward the bottom — cap the width to the actual
+        // chord at this row so a medium line wraps instead of clipping the bezel.
+        var chordW = DeviceInfo.usableWidthAtY(cy);
+        if (chordW < maxW) { maxW = chordW; }
 
         if (single != null) {
             if (cy + lh / 2 > bottom) { cy = bottom - lh / 2; }

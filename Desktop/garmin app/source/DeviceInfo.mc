@@ -89,6 +89,24 @@ class DeviceInfo {
         return System.getDeviceSettings().screenWidth / 2;
     }
 
+    // Chord-aware usable text width at vertical position y. Round screens
+    // narrow toward the top/bottom, so a line low on the page has far less
+    // room than the full width — measuring against full width there clips the
+    // text on the bezel (e.g. the parasha-page contextual line at ~76%h).
+    static function usableWidthAtY(y as Number) as Number {
+        var ds = System.getDeviceSettings();
+        var w = ds.screenWidth;
+        var h = ds.screenHeight;
+        var pad = 12;
+        if (w != h) { return w - 2 * pad; }   // non-square: treat as rectangular
+        var r  = w / 2.0;
+        var dy = y - h / 2.0;
+        if (dy < 0) { dy = -dy; }
+        var inside = r * r - dy * dy;
+        if (inside <= 1) { return 2 * pad; }
+        return (2.0 * Math.sqrt(inside)).toNumber() - 2 * pad;
+    }
+
     // Scroll step in pixels per button press
     static function scrollStep() as Number {
         return isSolar() ? 18 : 30;
