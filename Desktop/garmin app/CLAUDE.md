@@ -40,8 +40,9 @@ monkeyc -e -r -o "bin\HebrewCalendar.iq" -f monkey.jungle -y "developer_key.der"
 **CRITICAL: all `monkeydo`/simulator commands need `dangerouslyDisableSandbox: true`** —
 sandboxed monkeydo writes to a %TEMP% the real simulator can't read; the new build never loads.
 
-Simulator screenshot/click helpers: `bin\capture.ps1`, `bin\click.ps1`, `bin\runshot.ps1`
-(monkeydo → tap glance → tap → capture). fr255 has no touch — click the chrome START button.
+Simulator screenshot/click helpers: `tools\sim\capture.ps1`, `tools\sim\click.ps1`,
+`tools\sim\runshot.ps1` (monkeydo → tap glance → tap → capture). fr255 has no touch — click
+the chrome START button.
 In the sim, open the widget from the glance: click the display once (focus), then send ENTER.
 On fr55 the sim boots to a black watchface — click the display, send {DOWN} to reach the
 glance carousel, then {ENTER} for the widget.
@@ -67,7 +68,7 @@ of genuinely separate ids (different screens).
 
 - **Bitmap fonts only.** Never use `getVectorFont` — Latin-only `?` diamonds on AMOLED,
   fixed tiny size on fr165m. Fonts are generated from NotoSansHebrew by the
-  `generate_fonts*.py` scripts; `.fnt` lineHeight/base MUST come from `font.getmetrics()`
+  `tools/fonts/generate_fonts*.py` scripts; `.fnt` lineHeight/base MUST come from `font.getmetrics()`
   or final letters (ן ך ף ץ ק) clip.
 - **Join doubled parshiyot with maqaf `־` (U+05BE), never ASCII `-`.** Garmin's RTL
   shaper substitutes a hyphen between Hebrew words with maqaf at draw time — if the
@@ -75,8 +76,8 @@ of genuinely separate ids (different screens).
 - **Parasha math in `source/Parasha.mc`** (port of pyluach's algorithm — attribution in
   [CREDITS.md](CREDITS.md)) is verified 0 mismatches vs pyluach (every day 2020–2090) AND
   hebcal.com (2026–2029), both Israel and diaspora — after any change rerun BOTH
-  `verify_parsha.py` (vs pyluach) and `crosscheck_hebcal.py` (vs the saved hebcal feeds in
-  `hebcal_fixtures/`, offline). Don't "simplify".
+  `tools/verify/verify_parsha.py` (vs pyluach) and `tools/verify/crosscheck_hebcal.py` (vs the
+  saved hebcal feeds in `tools/verify/hebcal_fixtures/`, offline). Don't "simplify".
 - **Glance fonts must be `scope="glance"`** in fonts.xml — the glance process cannot access
   normal `Rez` symbols.
 - **No runtime `System.*` calls in glance code** — tiered-glance CIQ 3.4 devices (fr55,
@@ -92,6 +93,21 @@ of genuinely separate ids (different screens).
 - Hebrew date math in `source/HebrewDate.mc` is Reingold–Dershowitz with all four dechiyot,
   verified 0 mismatches over 50 years vs pyluach. Don't "simplify" it.
 - The glance's calendar icon is system-drawn and cannot be hidden/replaced (platform limit).
+
+## Repo layout
+
+Build-critical files stay at the project root where the SDK expects them:
+`manifest.xml`, `monkey.jungle`, `developer_key.der`, `source/`, `resources/` (base) and the
+per-device `resources-*` variant dirs. Everything else is sorted into:
+
+| Dir | Contents |
+|---|---|
+| `source/` `resources/` `resources-*/` | App code + per-device resource buckets (the build) |
+| `tools/fonts/` | `generate_fonts*.py`, `generate_icons.py` (regenerate bitmap fonts/icons into `resources-*`) |
+| `tools/verify/` | `verify_parsha.py`, `crosscheck_hebcal.py` + `hebcal_fixtures/` (offline parasha checks) |
+| `tools/sim/` | Simulator helpers: `capture.ps1` `click.ps1` `runshot.ps1` `retake_v15.ps1` `make_v15_shots.ps1` `scap.ps1` `sendkey.ps1` |
+| `tools/store/` | Listing-image generators: `make_cover.py` `make_hero.py` `make_store_images.py` |
+| `bin/` (gitignored) | Build output (`*.prg`, `HebrewCalendar.iq`), `shots/v15/`, `store_images/` |
 
 ## Source map
 

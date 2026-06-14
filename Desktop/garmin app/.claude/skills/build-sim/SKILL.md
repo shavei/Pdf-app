@@ -12,7 +12,7 @@ Project root: `C:\Users\yosef\Desktop\garmin app` (run everything from there).
   wording: "solar" → instinct3solar45mm, "amoled 50" → instinct3amoled50mm, "fenix 7" →
   fenix7, "fenix 8" → fenix847mm, "venu 3" → venu3, "forerunner 55" → fr55, etc.
 - `all` — compile every device (no simulator) to verify nothing broke.
-- `shot` — after launching, capture a screenshot via `bin\runshot.ps1` / `bin\capture.ps1`.
+- `shot` — after launching, capture a screenshot via `tools\sim\runshot.ps1` / `tools\sim\capture.ps1`.
 
 Devices: instinct3solar45mm instinct3amoled45mm instinct3amoled50mm instinct2 fr165m
 fenix7 fr255 fr955 fr55 fenix847mm fr965 venu3 fr265 epix2 venu2 vivoactive5
@@ -41,8 +41,8 @@ fenix7 fr255 fr955 fr55 fenix847mm fr965 venu3 fr265 epix2 venu2 vivoactive5
    `monkeydo` blocks while streaming app output — run it in the background, then check output
    for runtime errors/crashes after a few seconds.
 
-4. **If `shot`**: use `bin\runshot.ps1` (monkeydo → tap glance → tap again → capture) or
-   `bin\capture.ps1` for a plain capture. To open the widget from the glance manually:
+4. **If `shot`**: use `tools\sim\runshot.ps1` (monkeydo → tap glance → tap again → capture) or
+   `tools\sim\capture.ps1` for a plain capture. To open the widget from the glance manually:
    click the display once (focus), then send ENTER. fr255 has no touch — click the chrome
    START button instead. fr55 boots to a black watchface: click the display, send {DOWN}
    to reach the glance carousel, then {ENTER} to open the widget.

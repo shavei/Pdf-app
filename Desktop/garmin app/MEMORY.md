@@ -98,8 +98,8 @@ display once (focus) + send {DOWN}, open widget = {ENTER}.
 - 10 added in v1.2.0, all sim-verified (glance + widget screenshots in `bin\shots\`): fenix7 ✅, fr255 ✅, fr955 ✅ (MIP 260 bucket) · fenix847mm ✅, fr965 ✅, venu3 ✅ (AMOLED 454 bucket) · fr265 ✅, epix2 ✅, venu2 ✅ (416), vivoactive5 ✅ (390) on the instinct3amoled bucket.
 - Sub-screen (Solar circle) layout safe: only fires via `DeviceInfo.isSolar()` = screenW ≤ 176; smallest new device is 260.
 - All new devices have 64KB glance memory (glance uses ~12.5KB) — no memory issues.
-- Sim screenshot workflow: `bin\capture.ps1` (PrintWindow), `bin\click.ps1`, `bin\runshot.ps1` (monkeydo → tap glance → tap again → capture). fr255 has no touch — click the chrome START button instead.
-- **Reviewing all devices at a glance: open `bin\shots\v15\index.html`** — it's the sorted grid of every device's glance/date/parasha shots, the canonical place to eyeball the whole fleet (e.g. before a release or after a layout change). Regenerate the shots with `bin\retake_v15.ps1`; old loose shots are archived in `bin\shots\archive\`.
+- Sim screenshot workflow: `tools\sim\capture.ps1` (PrintWindow), `tools\sim\click.ps1`, `tools\sim\runshot.ps1` (monkeydo → tap glance → tap again → capture). fr255 has no touch — click the chrome START button instead.
+- **Reviewing all devices at a glance: open `bin\shots\v15\index.html`** — it's the sorted grid of every device's glance/date/parasha shots, the canonical place to eyeball the whole fleet (e.g. before a release or after a layout change). Regenerate the shots with `tools\sim\retake_v15.ps1`. (Build output + screenshots live in the gitignored `bin\`; dev scripts live in tracked `tools\`.)
 
 ## v1.5.0 in progress (2026-06-12) — parasha page + settings, NOT yet released
 Built on branch `garmin-hebrew-widget` after a store review asked for customizability:
@@ -109,9 +109,10 @@ Built on branch `garmin-hebrew-widget` after a store review asked for customizab
 - **Algorithm** ported from pyluach (`_gentable`): virtual deque [51,52,0..51] walked
   Shabbat-by-Shabbat from RH; 6 doubling rules (NB Matot = index 41 — initial port had 40,
   caught by verification); Israel reads on diaspora 2nd days (Tishrei 23/Nisan 22/Sivan 7).
-  Verified twice: `verify_parsha.py` → 0/25,568 days vs pyluach 2020-2090 (pip install
-  pyluach; PYTHONIOENCODING=utf-8 for Hebrew prints) + `bin\tmp\crosscheck_hebcal.py` →
-  0/418 Shabbatot vs hebcal.com REST 2026-2029, BOTH schedules. Old deleted JewishCalendar.mc
+  Verified twice: `tools/verify/verify_parsha.py` → 0/25,568 days vs pyluach 2020-2090 (pip
+  install pyluach; PYTHONIOENCODING=utf-8 for Hebrew prints) + `tools/verify/crosscheck_hebcal.py`
+  → 0/418 Shabbatot vs hebcal.com (saved offline feeds in `tools/verify/hebcal_fixtures/`),
+  2026-2029, BOTH schedules. Old deleted JewishCalendar.mc
   was junk (weekOfYear%54, Purim in Nisan) — never resurrect it.
 - **Settings** (`resources/settings/`, `AppSettings.mc`): israelSchedule number 1/0 (lists
   can't bind booleans — compile error "For input string"), textColor number (palette-safe
@@ -191,7 +192,7 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
    from the parasha page, capturing date as "parasha"). For touch devices capture the
    date page with NO clicks (fresh launch), then ONE tap = parasha page. For non-touch,
    click display (focus) + {ENTER} — the first ENTER after a click is often eaten:
-   ALWAYS verify the capture and resend click+ENTER (script `bin\retake_v15.ps1`).
+   ALWAYS verify the capture and resend click+ENTER (script `tools\sim\retake_v15.ps1`).
 6. **Glance carousel band position varies** per device firmware: some sims show the
    glance in a high "top slot" (clipped by the round edge), one {DOWN} (sometimes two,
    fr55) moves it to the focused mid-screen band. fr265-class never moves — band is
@@ -213,7 +214,7 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
   no Hebcal data/API ships. Keep these credits if the parasha code stays.
 - **v1.4.0 (internal build 5) live 2026-06-11**: added Forerunner 55. **Next release must be ≥ 1.5.0.**
 - History: v1.3.0 (internal 4) = the 15-device update, same day. (Its first submit attempt errored client-side but actually consumed v1.2.0/internal 3 — that's why version numbers skip.)
-- Store page: 4.7★, 3 reviews (latest: "עובד👍" on v1.3.0). Listing assets: cover `bin\store_images\cover_500.png`, hero `hero_1440x720.png`, screenshots `1_*.jpg`–`6_*.jpg` (made by `bin\make_store_images.py`, `make_cover.py`, `make_hero.py`).
+- Store page: 4.7★, 3 reviews (latest: "עובד👍" on v1.3.0). Listing assets: cover `bin\store_images\cover_500.png`, hero `hero_1440x720.png`, screenshots `1_*.jpg`–`6_*.jpg` (made by `tools\store\make_store_images.py`, `make_cover.py`, `make_hero.py`).
 - To ship an update: bump `manifest.xml` version → `monkeyc -e -r -o bin\HebrewCalendar.iq ...` → dashboard "Upload New Version".
 - Earlier prep (commit `df45d6c`): removed unused `Positioning` permission; deleted dead `Zmanim.mc`/`JewishCalendar.mc`; new Hebrew-calendar launcher icon (calendar page + א, PNGs 54/60/62px).
 - **Backups:** `developer_key.der` + old icons/files in `C:\Users\yosef\Desktop\garmin app-backups\`. Dev key is irreplaceable.
