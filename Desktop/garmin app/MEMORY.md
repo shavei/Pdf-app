@@ -215,7 +215,7 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
   no Hebcal data/API ships. Keep these credits if the parasha code stays.
 - **v1.4.0 (internal build 5) live 2026-06-11**: added Forerunner 55. **Next release must be ≥ 1.5.0.**
 - History: v1.3.0 (internal 4) = the 15-device update, same day. (Its first submit attempt errored client-side but actually consumed v1.2.0/internal 3 — that's why version numbers skip.)
-- Store page: 4.7★, 3 reviews (latest: "עובד👍" on v1.3.0). Listing assets: cover `bin\store_images\cover_500.png`, hero `hero_1440x720.png`, screenshots `1_*.jpg`–`6_*.jpg` (made by `tools\store\make_store_images.py`, `make_cover.py`, `make_hero.py`).
+- Store page: 4.7★, 3 reviews (latest: "עובד👍" on v1.3.0). Listing assets in `bin\store_images\`: cover `cover_500.png`, hero `hero_1440x720.png`, screenshots `1_*.jpg`–`5_*.jpg`. **Garmin allows max 5 gallery images.** Generators in `tools\store\` (`make_store_images.py`, `make_cover.py`, `make_hero.py`) share `storelib.py` (gradient bg + anti-aliased watch cut-out + soft shadow). Gallery emits a styled `.jpg` (upload) **and** a clean white-bg `.png` twin (NOT for upload — only the hero composites from the twins). Run order if regenerating: gallery → hero (depends on twins) → cover.
 - To ship an update: bump `manifest.xml` version → `monkeyc -e -r -o bin\HebrewCalendar.iq ...` → dashboard "Upload New Version".
 - Earlier prep (commit `df45d6c`): removed unused `Positioning` permission; deleted dead `Zmanim.mc`/`JewishCalendar.mc`; new Hebrew-calendar launcher icon (calendar page + א, PNGs 54/60/62px).
 - **Backups:** `developer_key.der` + old icons/files in `C:\Users\yosef\Desktop\garmin app-backups\`. Dev key is irreplaceable.

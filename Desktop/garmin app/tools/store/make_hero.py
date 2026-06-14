@@ -9,14 +9,14 @@ Quality technique:
   - The whole synthetic layer (gradient, icon tile, hand-drawn calendar,
     type) is rendered on a SUPERSAMPLED canvas (SSx) and downscaled with
     LANCZOS, so text and icon edges are crisp.
-  - Watch shots are cut from their white crop with a corner FLOOD-FILL
-    silhouette (anti-aliased), not a 1-bit luminance threshold, then given
-    a soft drop shadow so they sit on the page with depth. The cut-out is
-    composited at final resolution to stay sharp.
+  - Watch shots are cut from their clean white-bg PNG twins (emitted by
+    make_store_images.py) with an anti-aliased corner flood-fill silhouette
+    and given a soft drop shadow. Shared look lives in storelib.py.
 """
 
 import os
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
+import storelib
 
 # ---------------------------------------------------------------- paths (robust)
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -24,27 +24,19 @@ PROJ = os.path.abspath(os.path.join(HERE, "..", ".."))
 BASE = os.path.join(PROJ, "bin", "store_images")
 OUT = os.path.join(BASE, "hero_1440x720.png")
 
-
-def find_font(candidates):
-    for p in candidates:
-        if os.path.exists(p):
-            return p
-    raise FileNotFoundError(f"none of these fonts exist: {candidates}")
-
-
-FONT_HE = find_font([
+FONT_HE = storelib.find_font([
     r"C:\Users\yosef\AppData\Roaming\Garmin\ConnectIQ\Fonts\NotoSansHebrew-Regular.ttf",
-    r"C:\Windows\Fonts\arial.ttf",          # has Hebrew on Windows
+    r"C:\Windows\Fonts\arial.ttf",
 ])
-FONT_HE_BOLD = find_font([
+FONT_HE_BOLD = storelib.find_font([
     r"C:\Users\yosef\AppData\Roaming\Garmin\ConnectIQ\Fonts\NotoSansHebrew-Bold.ttf",
     FONT_HE,
 ])
-FONT_EN = find_font([
+FONT_EN = storelib.find_font([
     r"C:\Windows\Fonts\segoeui.ttf",
     r"C:\Windows\Fonts\arial.ttf",
 ])
-FONT_EN_SB = find_font([
+FONT_EN_SB = storelib.find_font([
     r"C:\Windows\Fonts\segoeuisb.ttf",
     FONT_EN,
 ])
@@ -59,15 +51,7 @@ def S(v):
     return int(round(v * SS))
 
 
-# --- subtle vertical background gradient (top pure white -> faint cool gray) ---
-top = (255, 255, 255)
-bot = (243, 245, 248)
-grad = Image.new("RGB", (1, BH))
-gp = grad.load()
-for y in range(BH):
-    f = y / (BH - 1)
-    gp[0, y] = tuple(int(top[i] + (bot[i] - top[i]) * f) for i in range(3))
-big = grad.resize((BW, BH))
+big = storelib.gradient_v(BW, BH)
 
 # ---------------------------------------------------------------- left: icon tile
 TILE = 210
@@ -131,37 +115,12 @@ draw_centered("GLANCE  ·  WIDGET  ·  WEEKLY PARASHA", FONT_EN_SB, 22, 632,
 hero = big.resize((W, H), Image.LANCZOS).convert("RGBA")
 
 # ---------------------------------------------------------------- right: device shots
-def cutout(name, target_h):
-    """Load a white-bg watch crop, return (rgba, alpha) cut from its background
-    via corner flood-fill (keeps interior whites opaque), edge feathered."""
+def place(name, target_h, x, y):
     img = Image.open(os.path.join(BASE, name)).convert("RGB")
     w = round(img.width * target_h / img.height)
     img = img.resize((w, target_h), Image.LANCZOS)
-
-    flood = img.copy()
-    seed = (255, 0, 255)
-    for c in [(0, 0), (w - 1, 0), (0, target_h - 1), (w - 1, target_h - 1)]:
-        ImageDraw.floodfill(flood, c, seed, thresh=42)
-    diff = ImageChops.difference(flood, Image.new("RGB", img.size, seed)).convert("L")
-    alpha = diff.point(lambda v: 0 if v < 12 else 255).filter(ImageFilter.GaussianBlur(0.7))
-
-    rgba = img.convert("RGBA")
-    rgba.putalpha(alpha)
-    return rgba, alpha
-
-
-def place(name, target_h, x, y):
-    rgba, alpha = cutout(name, target_h)
-    w, h = rgba.size
-    pad = 60
-    # soft drop shadow from the silhouette
-    sh = Image.new("RGBA", (w + 2 * pad, h + 2 * pad), (0, 0, 0, 0))
-    sil = Image.new("RGBA", (w, h), (18, 20, 28, 255))
-    sil.putalpha(alpha.point(lambda v: int(v * 0.32)))
-    sh.paste(sil, (pad, pad), sil)
-    sh = sh.filter(ImageFilter.GaussianBlur(20))
-    hero.alpha_composite(sh, dest=(x - pad, y - pad + 16))
-    hero.alpha_composite(rgba, dest=(x, y))
+    rgba, alpha = storelib.cutout(img)
+    storelib.paste_with_shadow(hero, rgba, alpha, x, y, blur=20, opacity=0.32, dy=16)
     return w
 
 
@@ -169,9 +128,9 @@ def place(name, target_h, x, y):
 # fit the right zone (x 565..~1400) with a gap and a right margin.
 big_h = 560
 big_x = 565
-w1 = place("4_fr965_parasha.png", big_h, big_x, (H - big_h) // 2)
+w1 = place("2_fr965_parasha.png", big_h, big_x, (H - big_h) // 2)
 small_h = 408
-place("1_instinct2_date.png", small_h, big_x + w1 + 28, H - small_h - 70)
+place("3_instinct2_date.png", small_h, big_x + w1 + 28, H - small_h - 70)
 
 # ---------------------------------------------------------------- save
 hero.convert("RGB").save(OUT, "PNG", optimize=True)

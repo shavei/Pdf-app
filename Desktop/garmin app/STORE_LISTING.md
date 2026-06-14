@@ -27,12 +27,16 @@ v1.5.0 adds a second widget page (weekly parasha / festival), two app settings (
 ```
 
 ### 4. Screenshots — replace the gallery (in `bin\store_images\`)
-1. `1_instinct2_date.jpg` — date page (Instinct 2)
-2. `2_fenix7_date.jpg` — date page (fenix 7)
-3. `3_venu3_parasha.jpg` — **NEW** parasha page (Venu 3)
-4. `4_fr965_parasha.jpg` — **NEW** parasha page (FR965)
-5. `5_fr955_parasha.jpg` — **NEW** parasha page (FR955)
-6. `6_fenix7_glance.jpg` — glance
+**Garmin allows a maximum of 5 gallery images.** Upload these 5 (styled cards —
+watch cut-out on a gradient with a soft shadow, matching the hero):
+1. `1_venu3_date.jpg` — date page (Venu 3, AMOLED)
+2. `2_fr965_parasha.jpg` — **NEW** parasha page (FR965, AMOLED)
+3. `3_instinct2_date.jpg` — date page (Instinct 2)
+4. `4_fenix7_parasha.jpg` — **NEW** parasha page (fenix 7, MIP)
+5. `5_fr265_glance.jpg` — glance (FR265)
+
+(The matching `*.png` files are clean white-bg twins used only to build the
+hero — do not upload those.)
 
 ### 5. Hero image (if the store asks / to refresh)
 `bin\store_images\hero_1440x720.png` (regenerated, now shows the parasha page)
