@@ -162,8 +162,12 @@ Built on branch `showcase-site`. Three pure-math calendar features (no location/
 - Unit tests added (`ParashaTest.mc`): `testOmerDay`, `testNextEvent`. All 7 pass; all 16 compile.
 - **Sim-verified (2026-06-14):** epix2 omer+event, fr55 event (2-line fits 208px), Solar
   page2 (clean) + page3 omer + page3 event. Shots + `index.html` in `bin\shots\feat\`.
-- Remaining before release: version bump (→1.6.0, but v1.5.0 must clear review first),
-  store listing/gallery update. NOTE: glance is unchanged (still date only).
+- **v1.6.0 PACKAGED + COMMITTED (commit `44b63f9`), ready for dashboard upload** (2026-06-14):
+  manifest 1.5.0→1.6.0, `bin\HebrewCalendar.iq` 712KB/26 variants. Gallery refreshed to
+  `1_venu3_date` `2_epix2_omer` `3_fr55_event` `4_solar_omer` `5_fr265_glance` + new hero
+  (Omer page + date, tagline "PARASHA · OMER · HOLIDAYS"); STORE_LISTING.md updated (what's-new
+  EN+HE, full description, reviewer notes). Glance unchanged (date only). **User still needs to
+  Upload New Version on the dashboard** (yosefnider@gmail.com account). Once live → mark LIVE.
 
 ## Sim screenshot workflow — UPDATED (2026-06-14, learned the hard way)
 - **The sim opens a widget to its GLANCE over the watchface, NOT the widget page.** After
