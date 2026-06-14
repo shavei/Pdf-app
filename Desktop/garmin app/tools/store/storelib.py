@@ -26,18 +26,25 @@ def gradient_v(w, h, top=(255, 255, 255), bot=(243, 245, 248)):
     return g.resize((w, h))
 
 
-def cutout(img_rgb, thresh=42, feather=0.7):
-    """Cut a watch from its white crop background. Flood-fills the seed colour
-    in from the four corners (so interior whites stay opaque), then derives a
-    feathered alpha. Returns (rgba, alpha)."""
+def cutout(img_rgb, thresh=55, shrink=1, feather=1.0):
+    """Cut a watch from its white crop background with NO visible edge halo.
+
+    Flood-fills the seed colour in from the four corners (so interior whites
+    stay opaque), then ERODES the silhouette inward by `shrink` px so the
+    near-white anti-aliased fringe at the watch edge is dropped — otherwise
+    that fringe shows as a light outline on a non-white background. Finally
+    feathers the matte. Returns (rgba, alpha)."""
     w, h = img_rgb.size
     flood = img_rgb.copy()
     seed = (255, 0, 255)
     for c in [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]:
         ImageDraw.floodfill(flood, c, seed, thresh=thresh)
     diff = ImageChops.difference(flood, Image.new("RGB", (w, h), seed)).convert("L")
-    alpha = diff.point(lambda v: 0 if v < 12 else 255).filter(
-        ImageFilter.GaussianBlur(feather))
+    alpha = diff.point(lambda v: 0 if v < 12 else 255)        # 255 = watch
+    if shrink:
+        # MinFilter shrinks the opaque (255) region, eating the light fringe ring
+        alpha = alpha.filter(ImageFilter.MinFilter(2 * shrink + 1))
+    alpha = alpha.filter(ImageFilter.GaussianBlur(feather))
     rgba = img_rgb.convert("RGBA")
     rgba.putalpha(alpha)
     return rgba, alpha
