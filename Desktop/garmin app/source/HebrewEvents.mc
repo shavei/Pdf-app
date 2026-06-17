@@ -26,20 +26,41 @@ class HebrewEvents {
 
     // ---- Next event (holiday or Rosh Chodesh) --------------------------
 
+    // What to show on the contextual line: the Omer count, an event, or null.
+    //   ["omer",  <"… בעומר" string>, 0]
+    //   ["event", <name>, <daysUntil>]
+    // The Omer count wins during its season EXCEPT on a day that is itself an
+    // event (e.g. Yom HaAtzmaut / Lag BaOmer / Pesach Sheni fall inside the
+    // Omer) — then the event wins so those days actually surface.
+    static function contextual(hd as HebrewDate, israel as Boolean) as Array? {
+        var omer = hd.getOmerDay();
+        var ev   = nextEvent(hd, israel);
+        if (omer > 0 and (ev == null or (ev[1] as Number) > 0)) {
+            return ["omer", omerName(omer), 0];
+        }
+        if (ev != null) {
+            return ["event", ev[0] as String, ev[1] as Number];
+        }
+        if (omer > 0) {
+            return ["omer", omerName(omer), 0];
+        }
+        return null;
+    }
+
     // [name, daysUntil] for the soonest event on/after hd, or null.
-    static function nextEvent(hd as HebrewDate) as Array<Object>? {
+    static function nextEvent(hd as HebrewDate, israel as Boolean) as Array<Object>? {
         var todayJd = hd.jd;
         var bestName = null as String?;
         var bestJd = 0;
 
-        // Fixed-date holidays across this Hebrew year and the next, so a
-        // date late in Elul still sees Rosh Hashana of the coming year.
+        // Fixed-date events across this Hebrew year and the next, so a date
+        // late in Elul still sees Rosh Hashana of the coming year.
         for (var k = 0; k < 2; k++) {
             var yr = hd.year + k;
             var leap = HebrewDate.isHebrewLeapYear(yr);
             var rh = HebrewDate.hebrewNewYear(yr);
             var yearLen = HebrewDate.hebrewNewYear(yr + 1) - rh;
-            var hols = _holidays(leap);
+            var hols = _holidays(leap, israel);
             for (var i = 0; i < hols.size(); i++) {
                 var ev = hols[i] as Array;
                 var jd = rh + _doy(ev[0] as Number, ev[1] as Number, leap, yearLen);
@@ -65,23 +86,47 @@ class HebrewEvents {
         return [bestName, bestJd - todayJd] as Array<Object>;
     }
 
-    // Major holidays as [projMonth, day, name]. Adar resolves to Adar II in
-    // a leap year so Purim lands in the right month. Month numbering matches
-    // HebrewDate: Tishri=1 .. Elul=12, Adar I=13, Adar II=14.
-    private static function _holidays(leap as Boolean) as Array {
+    // Notable dates as [projMonth, day, name] — holidays, public fast days,
+    // minor/festive days, and modern Israeli days. Adar resolves to Adar II in
+    // a leap year so Purim & co. land in the right month. Month numbering
+    // matches HebrewDate: Tishri=1 .. Elul=12, Adar I=13, Adar II=14.
+    // NOTE: nominal dates — Shabbat-postponement (nidche) of fasts / modern
+    // days is intentionally not applied for this countdown teaser.
+    private static function _holidays(leap as Boolean, israel as Boolean) as Array {
         var adar = leap ? 14 : 6;
-        return [
+        var list = [
             [1, 1,   "ראש השנה"],
+            [1, 3,   "צום גדליה"],
             [1, 10,  "יום כיפור"],
             [1, 15,  "סוכות"],
+            [1, 21,  "הושענא רבה"],
             [3, 25,  "חנוכה"],
+            [4, 10,  "עשרה בטבת"],
             [5, 15,  "ט״ו בשבט"],
+            [adar, 13, "תענית אסתר"],
             [adar, 14, "פורים"],
+            [adar, 15, "שושן פורים"],
             [7, 15,  "פסח"],
+            [7, 27,  "יום השואה"],
+            [8, 4,   "יום הזיכרון"],
+            [8, 5,   "יום העצמאות"],
+            [8, 14,  "פסח שני"],
             [8, 18,  "ל״ג בעומר"],
+            [8, 28,  "יום ירושלים"],
             [9, 6,   "שבועות"],
-            [11, 9,  "תשעה באב"]
-        ];
+            [10, 17, "י״ז בתמוז"],
+            [11, 9,  "תשעה באב"],
+            [11, 15, "ט״ו באב"]
+        ] as Array;
+        // Shemini Atzeret / Simchat Torah: combined on 22 Tishri in Israel,
+        // split 22/23 in the diaspora.
+        if (israel) {
+            list.add([1, 22, "שמחת תורה"]);
+        } else {
+            list.add([1, 22, "שמיני עצרת"]);
+            list.add([1, 23, "שמחת תורה"]);
+        }
+        return list;
     }
 
     // [name, daysUntil] for the next Rosh Chodesh, or null when the upcoming

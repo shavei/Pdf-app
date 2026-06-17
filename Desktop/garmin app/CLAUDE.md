@@ -133,10 +133,20 @@ it; elsewhere page 2 is the last page (select returns to page 1). `ParashaView.d
 takes a page count — 2 normally, 3 on Solar. Color setting applies everywhere except
 Instinct (2-color MIP); the day-letter accent uses the chosen color when it isn't white.
 
-**Omer / next-event line (Rules):** the contextual line shows the Omer (16 Nisan–5 Sivan,
-gematria + בעומר) in season, else the soonest of the major holidays vs the next Rosh Chodesh
-(always ≤ ~30 days) with a gematria countdown (היום / מחר / בעוד … ימים). Countdowns use
-**gematria, not Arabic digits**, to stay all-Hebrew and on-brand (the fonts DO carry 0-9, but
-we don't use them). Non-Solar draws this under the parasha name; Solar can't fit a 3rd line at
-176px so it lives on page 3. Event math in `HebrewEvents.mc` is unit-tested (`testOmerDay`,
-`testNextEvent`) against pyluach fixtures — keep the tests green after any change.
+**Omer / next-event line (Rules):** the contextual line shows the closest Jewish date —
+`HebrewEvents.contextual(hd, israel)` decides: the Omer count (16 Nisan–5 Sivan, gematria +
+בעומר) in season, else `nextEvent` = the soonest of a BROAD event set vs the next Rosh Chodesh,
+with a gematria countdown (היום / מחר / בעוד … ימים). The event set (`_holidays`) is holidays +
+**public fasts** (צום גדליה, עשרה בטבת, תענית אסתר, י״ז בתמוז) + **minor/festive** (הושענא רבה,
+ט״ו בשבט, שושן פורים, פסח שני, ל״ג בעומר, ט״ו באב, שמיני עצרת/שמחת תורה — split 22/23 in diaspora,
+combined 22 in Israel) + **modern Israeli days** (יום השואה/הזיכרון/העצמאות/ירושלים). Nominal
+dates — Shabbat-postponement (nidche) is NOT applied (teaser, not a luach). **An event ON its
+day beats the Omer count** (`contextual`), so the modern days/ל״ג בעומר/פסח שני that fall inside
+the Omer still surface that day; other Omer days show the count. Countdowns use **gematria, not
+Arabic digits** (fonts carry 0-9 but we don't use them). Non-Solar draws this under the parasha
+name (chord-aware width — see round-clip rule); Solar shows it on page 3. Unit-tested
+(`testOmerDay`, `testNextEvent`, `testContextual`) vs pyluach fixtures — keep green.
+
+- **Round-screen text width:** any text low/high on a round screen must budget width with
+  `DeviceInfo.usableWidthAtY(y)` (chord at that row), NOT `w-…` — else medium lines clip the
+  bezel (the contextual line did; fixed).

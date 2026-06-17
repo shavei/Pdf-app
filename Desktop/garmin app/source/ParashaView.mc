@@ -71,17 +71,16 @@ class ParashaView extends WatchUi.View {
 
             _drawNameFit(dc, name, cx, (h * 53) / 100, w - 24, color, 0);
 
-            // Non-solar has room: append the contextual line under the name.
-            // Omer in season, else the soonest holiday / Rosh Chodesh + countdown.
-            var omer = hebrewDate.getOmerDay();
-            if (omer > 0) {
-                _drawExtra(dc, HebrewEvents.omerName(omer), null, null,
-                    cx, (h * 74) / 100, w - 24, true);
-            } else {
-                var ev = HebrewEvents.nextEvent(hebrewDate);
-                if (ev != null) {
-                    _drawExtra(dc, null, ev[0] as String,
-                        HebrewEvents.countdownText(ev[1] as Number),
+            // Non-solar has room: append the contextual line under the name —
+            // Omer count in season, else the closest Jewish date + countdown.
+            var c = HebrewEvents.contextual(hebrewDate, israel);
+            if (c != null) {
+                if ((c[0] as String).equals("omer")) {
+                    _drawExtra(dc, c[1] as String, null, null,
+                        cx, (h * 74) / 100, w - 24, true);
+                } else {
+                    _drawExtra(dc, null, c[1] as String,
+                        HebrewEvents.countdownText(c[2] as Number),
                         cx, (h * 74) / 100, w - 24, true);
                 }
             }

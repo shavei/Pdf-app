@@ -77,25 +77,49 @@ function _hebFor(y as Number, m as Number, d as Number) as HebrewDate {
         {:year => y, :month => m, :day => d, :hour => 12}));
 }
 
-// nextEvent — soonest of upcoming holidays vs Rosh Chodesh. Expected values
-// from pyluach (see tools/verify); Rosh Chodesh is always within ~30 days.
+// nextEvent — soonest of the full event set (holidays, fasts, minor/festive,
+// modern Israeli days) vs Rosh Chodesh. Expected values from pyluach.
 (:test)
 function testNextEvent(logger as Test.Logger) as Boolean {
     _assertEvent("2026-09-10", _hebFor(2026, 9, 10), "ראש השנה", 2, logger);     // Elul 28
     _assertEvent("2026-12-01", _hebFor(2026, 12, 1), "חנוכה", 4, logger);        // Kislev 21
     _assertEvent("2026-07-20", _hebFor(2026, 7, 20), "תשעה באב", 3, logger);     // Av 6
-    _assertEvent("2026-08-10", _hebFor(2026, 8, 10), "ראש חודש אלול", 3, logger);// Av 27
     _assertEvent("2026-06-14", _hebFor(2026, 6, 14), "ראש חודש תמוז", 1, logger);// Sivan 29
+    // New event types:
+    _assertEvent("2026-09-13", _hebFor(2026, 9, 13), "צום גדליה", 1, logger);    // Tishri 2 — fast
+    _assertEvent("2026-10-02", _hebFor(2026, 10, 2), "הושענא רבה", 0, logger);   // Tishri 21 — today
+    _assertEvent("2027-01-04", _hebFor(2027, 1, 4),  "ראש חודש שבט", 5, logger); // Tevet 25
+    _assertEvent("2027-03-20", _hebFor(2027, 3, 20), "תענית אסתר", 2, logger);   // Adar II 11 (leap)
     return true;
 }
 
 function _assertEvent(tag as String, hd as HebrewDate, name as String,
                       days as Number, logger as Test.Logger) as Void {
-    var ev = HebrewEvents.nextEvent(hd);
+    var ev = HebrewEvents.nextEvent(hd, true);
     Test.assert(ev != null);
     logger.debug(tag + " -> " + (ev[0] as String) + " in " + (ev[1] as Number));
     Test.assertEqual(ev[0] as String, name);
     Test.assertEqual(ev[1] as Number, days);
+}
+
+// contextual — Omer count wins in season, but an event ON its day wins over
+// the count (so the modern Israeli days inside the Omer actually surface).
+(:test)
+function testContextual(logger as Test.Logger) as Boolean {
+    // Plain Omer day → count.
+    var a = HebrewEvents.contextual(_hebFor(2027, 5, 13), true);  // 6 Iyar = omer 21
+    Test.assertEqual(a[0] as String, "omer");
+    Test.assertEqual(a[1] as String, "כ״א בעומר");
+    // Yom HaAtzmaut (5 Iyar) is inside the Omer but wins on its day.
+    var b = HebrewEvents.contextual(_hebFor(2027, 5, 12), true);
+    Test.assertEqual(b[0] as String, "event");
+    Test.assertEqual(b[1] as String, "יום העצמאות");
+    Test.assertEqual(b[2] as Number, 0);
+    // Out of season → closest event (a fast here).
+    var c = HebrewEvents.contextual(_hebFor(2026, 9, 13), true); // Tishri 2
+    Test.assertEqual(c[0] as String, "event");
+    Test.assertEqual(c[1] as String, "צום גדליה");
+    return true;
 }
 
 (:test)

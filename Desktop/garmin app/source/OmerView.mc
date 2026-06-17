@@ -47,26 +47,27 @@ class OmerView extends WatchUi.View {
         dc.drawText(gpsCX, gpsCY, fMedium, hebrewDate.getDayOfWeekLetter(),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-        var omer = hebrewDate.getOmerDay();
-        if (omer > 0) {
+        var c = HebrewEvents.contextual(hebrewDate, AppSettings.israelSchedule());
+        if (c != null and (c[0] as String).equals("omer")) {
             // Title + prominent count: ספירת העומר / ל״ג בעומר
             dc.setColor(DeviceInfo.colorDim(), Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, 98, fSmall, "ספירת העומר",
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            _drawFit(dc, HebrewEvents.omerName(omer), cx, 134, w - 16);
-        } else {
-            var ev = HebrewEvents.nextEvent(hebrewDate);
-            if (ev != null) {
+            _drawFit(dc, c[1] as String, cx, 134, w - 16);
+        } else if (c != null) {
+            // Closest event: "הבא" header (only when it's still upcoming),
+            // the name, and the countdown below.
+            var days = c[2] as Number;
+            if (days > 0) {
                 dc.setColor(DeviceInfo.colorDim(), Graphics.COLOR_TRANSPARENT);
                 dc.drawText(cx, 96, fSmall, "הבא",
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                _drawFit(dc, ev[0] as String, cx, 126, w - 16);
-                dc.drawText(cx, 152, fSmall,
-                    HebrewEvents.countdownText(ev[1] as Number),
-                    Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             }
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            _drawFit(dc, c[1] as String, cx, 126, w - 16);
+            dc.drawText(cx, 152, fSmall, HebrewEvents.countdownText(days),
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
         ParashaView.drawDots(dc, 2, 3);

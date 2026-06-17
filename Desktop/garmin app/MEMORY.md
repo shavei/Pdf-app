@@ -145,12 +145,19 @@ Built on branch `garmin-hebrew-widget` after a store review asked for customizab
 Built on branch `showcase-site`. Three pure-math calendar features (no location/permission):
 - **Omer counter** (`HebrewDate.omerDay`/`getOmerDay`): 16 Nisan(day1)..5 Sivan(day49),
   gematria + `בעומר` (e.g. `ל״ג בעומר`). Months Nisan=7/Iyar=8/Sivan=9.
-- **Next holiday + Rosh Chodesh** (`source/HebrewEvents.mc`, new): `nextEvent(hd)` returns
-  [name, daysUntil] = soonest of 10 major holidays (RH/YK/Sukkot/Chanuka/Tu-Bishvat/Purim/
-  Pesach/Lag-BaOmer/Shavuot/Tisha-BAv; Purim = Adar II in leap years) vs next Rosh Chodesh
-  (always ≤30 days: onset is 30-d days away for any month). `countdownText`: היום/מחר/
-  בעוד יומיים/בעוד <gematria> ימים. Holiday jd via per-year rh+doy (cheap month-length sums,
-  watchdog-safe). Verified vs **pyluach** fixtures (see `testNextEvent` for the dates).
+- **Closest Jewish date** (`source/HebrewEvents.mc`, new): `nextEvent(hd, israel)` returns
+  [name, daysUntil] = soonest of a BROAD event set vs next Rosh Chodesh (always ≤30 days:
+  onset is 30-d days away for any month). **Event set expanded 2026-06-17 (user: "closest
+  Jewish thing, not just ראש חודש")** from 10 majors to ~24: + public fasts (צום גדליה, עשרה
+  בטבת, תענית אסתר, י״ז בתמוז) + minor/festive (הושענא רבה, ט״ו בשבט, שושן פורים, פסח שני,
+  ל״ג בעומר, ט״ו באב, שמיני עצרת/שמחת תורה — split 22/23 diaspora vs combined 22 Israel) +
+  modern Israeli (יום השואה/הזיכרון/העצמאות/ירושלים). NOMINAL dates — no Shabbat-nidche.
+  Purim & co. → Adar II in leap years. `countdownText`: היום/מחר/בעוד יומיים/בעוד <gematria> ימים.
+  jd via per-year rh+doy (cheap sums, watchdog-safe). Verified vs **pyluach** (`testNextEvent`).
+- **`contextual(hd, israel)`** is the shared decision (ParashaView + OmerView both call it):
+  Omer count wins in season EXCEPT on a day that is itself an event → the event wins (so the
+  modern days / ל״ג בעומר / פסח שני that fall INSIDE the Omer surface on their day). Tested
+  (`testContextual`): plain Omer day → count; 5 Iyar → יום העצמאות; out of season → closest event.
 - **Countdowns use GEMATRIA not Arabic digits** to stay all-Hebrew (the bitmap fonts DO
   contain 0-9 + maqaf already — confirmed in the committed `.fnt` — but we don't render digits).
 - **UX:** Non-Solar shows the line under the parasha name on page 2 (Omer in season, else
@@ -162,8 +169,9 @@ Built on branch `showcase-site`. Three pure-math calendar features (no location/
 - Unit tests added (`ParashaTest.mc`): `testOmerDay`, `testNextEvent`. All 7 pass; all 16 compile.
 - **Sim-verified (2026-06-14):** epix2 omer+event, fr55 event (2-line fits 208px), Solar
   page2 (clean) + page3 omer + page3 event. Shots + `index.html` in `bin\shots\feat\`.
-- **v1.6.0 PACKAGED + COMMITTED (commit `44b63f9`), ready for dashboard upload** (2026-06-14):
-  manifest 1.5.0→1.6.0, `bin\HebrewCalendar.iq` 712KB/26 variants. Gallery refreshed to
+- **v1.6.0 PACKAGED, ready for dashboard upload** (2026-06-17): manifest 1.5.0→1.6.0,
+  `bin\HebrewCalendar.iq` ~730KB/26 variants (rebuild after the expanded event set + the
+  round-clip fix — repackage again if code changes). Gallery refreshed to
   `1_venu3_date` `2_epix2_omer` `3_fr55_event` `4_solar_omer` `5_fr265_glance` + new hero
   (Omer page + date, tagline "PARASHA · OMER · HOLIDAYS"); STORE_LISTING.md updated (what's-new
   EN+HE, full description, reviewer notes). Glance unchanged (date only). **User still needs to

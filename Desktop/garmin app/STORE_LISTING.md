@@ -13,17 +13,17 @@ Upload at: https://apps.garmin.com/developer/dashboard → app → **Upload New 
 
 **English:**
 ```
-Now with the Omer count, upcoming holidays, and Rosh Chodesh! During Sefirat HaOmer (Pesach to Shavuot) the parasha page shows the day's count; the rest of the year it shows the next holiday or Rosh Chodesh with a Hebrew countdown. On Instinct and Solar watches this gets its own new page.
+Now with the Omer count and a countdown to the next date on the Hebrew calendar! During Sefirat HaOmer (Pesach to Shavuot) the parasha page shows the day's count; otherwise it counts down to the closest upcoming day — holiday, fast, Rosh Chodesh, or a special day like Tu BiShvat, Lag BaOmer or Yom HaAtzma'ut. On Instinct and Solar watches this gets its own new page.
 ```
 
 **Hebrew:**
 ```
-עכשיו עם ספירת העומר, החגים הקרובים וראש חודש! בתקופת הספירה (מפסח עד שבועות) דף הפרשה מציג את ספירת היום; בשאר השנה מוצגים החג הבא או ראש חודש עם ספירה לאחור בעברית. בשעוני Instinct ו-Solar זה מקבל דף חדש משלו.
+עכשיו עם ספירת העומר וספירה לאחור לתאריך הבא בלוח העברי! בתקופת הספירה (מפסח עד שבועות) דף הפרשה מציג את ספירת היום; בשאר השנה הוא סופר לאחור ליום הקרוב הבא — חג, צום, ראש חודש או יום מיוחד כמו ט"ו בשבט, ל"ג בעומר או יום העצמאות. בשעוני Instinct ו-Solar זה מקבל דף חדש משלו.
 ```
 
 ### 3. "Notes for the reviewer" field
 ```
-v1.6.0 adds three pure date-math features to the existing parasha page: the Sefirat HaOmer count (in season), and otherwise the next major holiday or Rosh Chodesh with a Hebrew-gematria countdown. On the 176px 2-color Instinct/Solar watches these get a dedicated third page (no room for a third line). No new permissions; still no GPS/internet/sensors. All calculations are on-device and unit-tested against the open-source pyluach library.
+v1.6.0 adds pure date-math features to the existing parasha page: the Sefirat HaOmer count (in season), and otherwise a Hebrew-gematria countdown to the closest upcoming date on the Hebrew calendar — major holidays, public fast days, Rosh Chodesh, minor/festive days (Tu BiShvat, Lag BaOmer, Pesach Sheni, etc.) and the modern Israeli days. Dates are nominal (no Shabbat-postponement applied). On the 176px 2-color Instinct/Solar watches these get a dedicated third page (no room for a third line). No new permissions; still no GPS/internet/sensors. All calculations are on-device and unit-tested against the open-source pyluach library.
 ```
 
 ### 4. Screenshots — replace the gallery (in `bin\store_images\`)
@@ -76,7 +76,7 @@ Features:
 • Hebrew day-of-the-week letter (א–ז)
 • Weekly Torah portion (parasha) on the second page — shows the festival name on holidays
 • Sefirat HaOmer count during the Omer (Pesach to Shavuot)
-• Next holiday or Rosh Chodesh with a Hebrew countdown (on Instinct/Solar: its own page)
+• Countdown to the closest upcoming Hebrew date — holiday, fast, Rosh Chodesh, or a special day (Tu BiShvat, Lag BaOmer, Yom HaAtzma'ut…); on Instinct/Solar it gets its own page
 • Choose your reading schedule: Israel or Diaspora
 • Pick your text color
 • Fully Hebrew text, rendered with crisp custom Hebrew fonts
@@ -97,7 +97,7 @@ Parasha calculation is based on the open-source pyluach library (MIT License) an
 • אות יום השבוע (א–ז)
 • פרשת השבוע בדף השני — בחגים מוצג שם החג
 • ספירת העומר בתקופת הספירה (מפסח עד שבועות)
-• החג הבא או ראש חודש עם ספירה לאחור (בשעוני Instinct/Solar — בדף נפרד)
+• ספירה לאחור ליום העברי הקרוב — חג, צום, ראש חודש או יום מיוחד (ט"ו בשבט, ל"ג בעומר, יום העצמאות…); בשעוני Instinct/Solar בדף נפרד
 • בחירת לוח קריאה: ארץ ישראל או חו"ל
 • בחירת צבע הטקסט
 • טקסט עברי מלא עם גופנים עבריים מותאמים
@@ -119,9 +119,9 @@ None. The app uses no GPS, sensors, internet, or stored data.
 # Version history — "What's new" archive
 ═══════════════════════════════════════════════════════════════════════
 
-## v1.6.0 — 2026-06-14
-EN: Now with the Omer count, upcoming holidays, and Rosh Chodesh! During Sefirat HaOmer (Pesach to Shavuot) the parasha page shows the day's count; the rest of the year it shows the next holiday or Rosh Chodesh with a Hebrew countdown. On Instinct and Solar watches this gets its own new page.
-HE: עכשיו עם ספירת העומר, החגים הקרובים וראש חודש! בתקופת הספירה (מפסח עד שבועות) דף הפרשה מציג את ספירת היום; בשאר השנה מוצגים החג הבא או ראש חודש עם ספירה לאחור בעברית. בשעוני Instinct ו-Solar זה מקבל דף חדש משלו.
+## v1.6.0 — 2026-06-17
+EN: Now with the Omer count and a countdown to the next date on the Hebrew calendar! During Sefirat HaOmer (Pesach to Shavuot) the parasha page shows the day's count; otherwise it counts down to the closest upcoming day — holiday, fast, Rosh Chodesh, or a special day like Tu BiShvat, Lag BaOmer or Yom HaAtzma'ut. On Instinct and Solar watches this gets its own new page.
+HE: עכשיו עם ספירת העומר וספירה לאחור לתאריך הבא בלוח העברי! בתקופת הספירה (מפסח עד שבועות) דף הפרשה מציג את ספירת היום; בשאר השנה הוא סופר לאחור ליום הקרוב הבא — חג, צום, ראש חודש או יום מיוחד כמו ט"ו בשבט, ל"ג בעומר או יום העצמאות. בשעוני Instinct ו-Solar זה מקבל דף חדש משלו.
 
 ## v1.5.0 — 2026-06-14
 EN: New weekly Torah portion page! Swipe or tap from the date to see this week's parasha (with festival names on holidays). Plus new settings: choose the Israel or Diaspora reading schedule, and pick your text color. Also sharper layout — the glance date no longer clips on round watches.
