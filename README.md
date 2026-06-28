@@ -61,11 +61,22 @@ page content (the ink is flattened as vector strokes). Run it with:
 ./gradlew :file-persistence:testDebugUnitTest --tests "*PdfTestHarness*"
 ```
 
+## Download
+
+- **Releases** — tagged builds (signed APK + AAB) are published on the
+  [Releases page](../../releases). Download the `.apk` to sideload on a device.
+- **Latest debug build** — every CI run uploads an `app-debug-apk` artifact
+  (Actions → pick a run → *Artifacts*) for quick testing.
+
+See [`docs/RELEASING.md`](docs/RELEASING.md) for how to cut a release and the
+signing secrets to configure.
+
 ## Status
 
-Step-1 scaffold: project structure, the four modules with their core
-implementations, the verification stack, and the PDF-Test-Harness. Interactive UI
-polish and the full Espresso E2E flow are layered on next.
+Feature-complete for the core flow: open a PDF, navigate pages, add styled text
+and a hand-drawn signature, undo/clear, and save a flattened copy via SAF.
+Verification runs as three CI layers (Lint, Unit + PDF-Test-Harness, and an
+on-device emulator E2E). Cryptographic/PAdES signing remains a future extension.
 
 ## Requirements
 
