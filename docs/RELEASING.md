@@ -19,26 +19,38 @@ installing on your own device, **not** valid for the Google Play Store.
 
 ### 1. Check you have Java
 
-The keystore is created with `keytool`, which ships with the JDK.
+The keystore is created with `keytool`, which ships with the JDK. If you don't
+have one, install Temurin:
 
+```powershell
+# Windows (PowerShell)
+winget install EclipseAdoptium.Temurin.21.JDK
+```
 ```bash
-keytool -help >/dev/null 2>&1 && echo "keytool OK" || echo "install a JDK first"
+# macOS
+brew install temurin
+# Ubuntu/Debian
+sudo apt-get install -y openjdk-17-jdk
 ```
 
-If it says "install a JDK first", install Temurin/OpenJDK 17 (macOS: `brew install temurin`;
-Ubuntu/Debian: `sudo apt-get install -y openjdk-17-jdk`; Windows: install from adoptium.net),
-then re-run the check.
+> Temurin 25 also works for the keystore. 21 is a safer pick if you ever build
+> the app locally too. After installing, **open a new terminal** so PATH updates.
+
+Verify (any OS):
+
+```bash
+keytool -help
+```
+
+If that prints help text, you're set.
 
 ### 2. Generate your signing keystore
 
-Run this in a folder **outside** the repo (so it can never be committed):
+Run this in a folder **outside** the repo (so it can never be committed). It's
+one line, so it works the same in PowerShell, cmd, or a Unix shell:
 
 ```bash
-keytool -genkeypair -v \
-  -keystore release.keystore \
-  -alias pdfapp \
-  -keyalg RSA -keysize 2048 \
-  -validity 10000
+keytool -genkeypair -v -keystore release.keystore -alias pdfapp -keyalg RSA -keysize 2048 -validity 10000
 ```
 
 It will prompt you:
@@ -59,15 +71,23 @@ You now have `release.keystore`.
 
 GitHub secrets hold text, so encode the file to one line:
 
+```powershell
+# Windows (PowerShell) — run from the folder containing release.keystore
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.keystore")) | Out-File -NoNewline keystore.b64
+```
 ```bash
-# Linux:
+# Linux
 base64 -w0 release.keystore > keystore.b64
-
-# macOS:
+# macOS
 base64 -i release.keystore | tr -d '\n' > keystore.b64
 ```
 
-Open `keystore.b64` and copy its entire contents (one long line).
+Open `keystore.b64` and copy its entire contents (one long line). On Windows you
+can copy it straight to the clipboard instead of opening the file:
+
+```powershell
+Get-Content keystore.b64 -Raw | Set-Clipboard
+```
 
 ### 4. Add the four secrets on GitHub
 
