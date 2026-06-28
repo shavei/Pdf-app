@@ -37,10 +37,20 @@ class OverlayCanvasView
         /** Invoked when the user taps in [Mode.TEXT]; host shows a text-entry dialog. */
         var onTextPlacementRequested: ((PdfPoint) -> Unit)? = null
 
-        /** Current overlays. Assigning triggers a redraw. */
+        /** Invoked whenever [layer] changes, so the host can persist it per page. */
+        var onLayerChanged: ((OverlayLayer) -> Unit)? = null
+
+        /** Ink colour used for new strokes. */
+        var inkColorArgb: Int = InkSignature.DEFAULT_COLOR
+
+        /** Ink stroke width (PDF points) used for new strokes. */
+        var inkStrokeWidthPt: Float = InkSignature.DEFAULT_STROKE_WIDTH_PT
+
+        /** Current overlays. Assigning triggers a redraw and notifies [onLayerChanged]. */
         var layer: OverlayLayer = OverlayLayer(pageIndex = 0)
             set(value) {
                 field = value
+                onLayerChanged?.invoke(value)
                 invalidate()
             }
 
@@ -62,11 +72,17 @@ class OverlayCanvasView
                 color = TextOverlay.DEFAULT_COLOR
             }
 
-        /** Bind the page to display and reset any in-progress drawing. */
-        fun setPage(rendered: RenderedPage) {
+        /**
+         * Bind the page to display along with its stored overlays, and reset any
+         * in-progress drawing.
+         */
+        fun setPage(
+            rendered: RenderedPage,
+            initialLayer: OverlayLayer = OverlayLayer(pageIndex = rendered.index),
+        ) {
             page = rendered
-            layer = OverlayLayer(pageIndex = rendered.index)
             activeStrokes.clear()
+            layer = initialLayer
             requestLayout()
             invalidate()
         }
@@ -79,11 +95,42 @@ class OverlayCanvasView
                     .filter { it.isNotEmpty() }
                     .map { stroke -> stroke.map { mapper.toPdfPoint(it) } }
             if (strokes.isEmpty()) return null
-            val signature = InkSignature(strokes = strokes)
+            val signature =
+                InkSignature(
+                    strokes = strokes,
+                    strokeWidthPt = inkStrokeWidthPt,
+                    colorArgb = inkColorArgb,
+                )
             layer = layer.withSignature(signature)
             activeStrokes.clear()
             invalidate()
             return signature
+        }
+
+        /**
+         * Undo the most recent action: an in-progress stroke first, otherwise the
+         * last committed signature, otherwise the last text overlay.
+         */
+        fun undo() {
+            if (activeStrokes.isNotEmpty()) {
+                activeStrokes.removeAt(activeStrokes.lastIndex)
+                invalidate()
+                return
+            }
+            val signatures = layer.signatures
+            val texts = layer.texts
+            layer =
+                when {
+                    signatures.isNotEmpty() -> layer.removeSignature(signatures.last().id)
+                    texts.isNotEmpty() -> layer.removeText(texts.last().id)
+                    else -> return
+                }
+        }
+
+        /** Remove all overlays and in-progress strokes from the current page. */
+        fun clearOverlays() {
+            activeStrokes.clear()
+            layer = OverlayLayer(pageIndex = page?.index ?: layer.pageIndex)
         }
 
         override fun onMeasure(
@@ -125,8 +172,8 @@ class OverlayCanvasView
 
         private fun drawActiveStrokes(canvas: Canvas) {
             val mapper = page?.mapper ?: return
-            inkPaint.color = InkSignature.DEFAULT_COLOR
-            inkPaint.strokeWidth = InkSignature.DEFAULT_STROKE_WIDTH_PT * mapper.pixelsPerPoint
+            inkPaint.color = inkColorArgb
+            inkPaint.strokeWidth = inkStrokeWidthPt * mapper.pixelsPerPoint
             activeStrokes.forEach { stroke ->
                 val path = Path()
                 stroke.forEachIndexed { i, p ->
