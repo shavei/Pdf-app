@@ -1,0 +1,17 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+
+[*.{kt,kts}]
+# Several files intentionally group small related declarations (e.g. geometry
+# model types) in one file, so the one-class-per-file rule is relaxed.
+ktlint_standard_filename = disabled
+# Give signatures a real line budget so short ones stay on one line (a disabled
+# value makes the function/class-signature rules wrap every parameter).
+max_line_length = 120
+ktlint_function_naming_ignore_when_annotated_with = Composable, Test

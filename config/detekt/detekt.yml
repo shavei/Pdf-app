@@ -1,0 +1,21 @@
+# Detekt configuration for PDF-app. Builds upon the default config
+# (buildUponDefaultConfig = true), with a few project-specific tweaks.
+
+complexity:
+  LongMethod:
+    threshold: 60
+    # Composable screen functions are conventionally long and PascalCase.
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    active: false
+
+naming:
+  FunctionNaming:
+    # @Composable functions are PascalCase by Compose convention.
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    active: false
+  ReturnCount:
+    max: 4

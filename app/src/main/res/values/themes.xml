@@ -1,0 +1,4 @@
+<resources>
+    <!-- Base theme; Compose drives the actual styling via MaterialTheme. -->
+    <style name="Theme.PdfApp" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
