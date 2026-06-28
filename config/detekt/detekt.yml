@@ -1,0 +1,14 @@
+# Detekt configuration for PDF-app. Builds upon the default config
+# (buildUponDefaultConfig = true), with a few project-specific tweaks.
+
+complexity:
+  LongMethod:
+    threshold: 60
+  TooManyFunctions:
+    active: false
+
+style:
+  MagicNumber:
+    active: false
+  ReturnCount:
+    max: 4
