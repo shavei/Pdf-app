@@ -11,6 +11,7 @@ indent_size = 4
 # Several files intentionally group small related declarations (e.g. geometry
 # model types) in one file, so the one-class-per-file rule is relaxed.
 ktlint_standard_filename = disabled
-# KDoc and a few descriptive lines run long; don't fail the build on length.
-ktlint_standard_max-line-length = disabled
+# Give signatures a real line budget so short ones stay on one line (a disabled
+# value makes the function/class-signature rules wrap every parameter).
+max_line_length = 120
 ktlint_function_naming_ignore_when_annotated_with = Composable, Test

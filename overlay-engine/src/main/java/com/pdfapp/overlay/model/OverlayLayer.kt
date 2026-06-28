@@ -14,11 +14,9 @@ data class OverlayLayer(
 
     fun withText(text: TextOverlay): OverlayLayer = copy(texts = texts + text)
 
-    fun withSignature(signature: InkSignature): OverlayLayer =
-        copy(signatures = signatures + signature)
+    fun withSignature(signature: InkSignature): OverlayLayer = copy(signatures = signatures + signature)
 
     fun removeText(id: String): OverlayLayer = copy(texts = texts.filterNot { it.id == id })
 
-    fun removeSignature(id: String): OverlayLayer =
-        copy(signatures = signatures.filterNot { it.id == id })
+    fun removeSignature(id: String): OverlayLayer = copy(signatures = signatures.filterNot { it.id == id })
 }

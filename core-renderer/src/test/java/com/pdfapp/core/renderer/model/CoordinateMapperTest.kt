@@ -8,7 +8,6 @@ import org.junit.Test
  * highest-risk logic (origin flip + scale), so it is tested on the plain JVM.
  */
 class CoordinateMapperTest {
-
     private val a4 = PageSize(widthPt = 595f, heightPt = 842f)
 
     @Test

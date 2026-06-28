@@ -5,7 +5,6 @@ import com.pdfapp.core.renderer.model.PdfPoint
 import org.junit.Test
 
 class OverlayLayerTest {
-
     @Test
     fun `new layer is empty`() {
         assertThat(OverlayLayer(pageIndex = 0).isEmpty).isTrue()

@@ -20,7 +20,6 @@ import kotlinx.coroutines.withContext
 
 /** UI state for editing a single page (step-1 scope renders page 0). */
 class PdfEditorViewModel : ViewModel() {
-
     var renderedPage: RenderedPage? by mutableStateOf(null)
         private set
 
@@ -31,7 +30,10 @@ class PdfEditorViewModel : ViewModel() {
     private var source: PdfDocumentSource? = null
 
     /** Open a PDF from a SAF [uri] and render its first page. */
-    fun open(context: Context, uri: Uri) {
+    fun open(
+        context: Context,
+        uri: Uri,
+    ) {
         viewModelScope.launch {
             runCatching {
                 context.contentResolver.takePersistableUriPermission(
@@ -39,9 +41,10 @@ class PdfEditorViewModel : ViewModel() {
                     android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
                 )
                 source?.close()
-                val opened = withContext(Dispatchers.IO) {
-                    PdfDocumentSource.fromUri(context.contentResolver, uri)
-                }
+                val opened =
+                    withContext(Dispatchers.IO) {
+                        PdfDocumentSource.fromUri(context.contentResolver, uri)
+                    }
                 source = opened
                 sourceUri = uri
                 renderedPage = PageRenderer(opened).renderPage(index = 0, pixelsPerPoint = RENDER_SCALE)
@@ -51,7 +54,11 @@ class PdfEditorViewModel : ViewModel() {
     }
 
     /** Flatten [layer] into a fresh copy of the source PDF and save to [destUri]. */
-    fun save(context: Context, destUri: Uri, layer: OverlayLayer) {
+    fun save(
+        context: Context,
+        destUri: Uri,
+        layer: OverlayLayer,
+    ) {
         val src = sourceUri
         if (src == null) {
             status = "Nothing to save yet"
@@ -60,8 +67,9 @@ class PdfEditorViewModel : ViewModel() {
         viewModelScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) {
-                    val input = context.contentResolver.openInputStream(src)
-                        ?: error("Unable to open source PDF")
+                    val input =
+                        context.contentResolver.openInputStream(src)
+                            ?: error("Unable to open source PDF")
                     input.use { stream ->
                         PDDocument.load(stream).use { document ->
                             PdfFlattener().flattenInto(document, layer)

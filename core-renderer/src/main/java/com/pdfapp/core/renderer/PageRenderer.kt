@@ -27,22 +27,26 @@ class PageRenderer(
     private val source: PdfDocumentSource,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-
     /**
      * Render [index] at [pixelsPerPoint] (e.g. 2.0 ≈ 144 dpi). The returned
      * [RenderedPage.mapper] converts between the produced bitmap and PDF points.
      */
-    suspend fun renderPage(index: Int, pixelsPerPoint: Float): RenderedPage =
+    suspend fun renderPage(
+        index: Int,
+        pixelsPerPoint: Float,
+    ): RenderedPage =
         withContext(ioDispatcher) {
             source.openPage(index).use { page ->
                 val pageSize = PageSize(page.width.toFloat(), page.height.toFloat())
                 val mapper = CoordinateMapper(pageSize, pixelsPerPoint)
 
-                val bitmap = Bitmap.createBitmap(
-                    mapper.bitmapWidthPx.toInt().coerceAtLeast(1),
-                    mapper.bitmapHeightPx.toInt().coerceAtLeast(1),
-                    Bitmap.Config.ARGB_8888,
-                ).apply { eraseColor(Color.WHITE) }
+                val bitmap =
+                    Bitmap
+                        .createBitmap(
+                            mapper.bitmapWidthPx.toInt().coerceAtLeast(1),
+                            mapper.bitmapHeightPx.toInt().coerceAtLeast(1),
+                            Bitmap.Config.ARGB_8888,
+                        ).apply { eraseColor(Color.WHITE) }
 
                 val transform = Matrix().apply { setScale(pixelsPerPoint, pixelsPerPoint) }
                 page.render(bitmap, null, transform, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)

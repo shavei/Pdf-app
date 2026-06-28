@@ -18,7 +18,6 @@ class PdfDocumentSource private constructor(
     private val descriptor: ParcelFileDescriptor,
     private val renderer: PdfRenderer,
 ) : Closeable {
-
     /** Number of pages in the document. */
     val pageCount: Int get() = renderer.pageCount
 
@@ -38,9 +37,13 @@ class PdfDocumentSource private constructor(
 
     companion object {
         /** Open a document from a SAF [Uri] for read access. */
-        fun fromUri(resolver: ContentResolver, uri: Uri): PdfDocumentSource {
-            val pfd = resolver.openFileDescriptor(uri, "r")
-                ?: error("Unable to open file descriptor for $uri")
+        fun fromUri(
+            resolver: ContentResolver,
+            uri: Uri,
+        ): PdfDocumentSource {
+            val pfd =
+                resolver.openFileDescriptor(uri, "r")
+                    ?: error("Unable to open file descriptor for $uri")
             return PdfDocumentSource(pfd, PdfRenderer(pfd))
         }
     }

@@ -47,15 +47,17 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
     var mode by remember { mutableStateOf(OverlayCanvasView.Mode.INK) }
     var pendingTextPoint by remember { mutableStateOf<PdfPoint?>(null) }
 
-    val openLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri -> uri?.let { viewModel.open(context, it) } }
+    val openLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri -> uri?.let { viewModel.open(context, it) } }
 
-    val saveLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/pdf"),
-    ) { uri ->
-        uri?.let { dest -> viewModel.save(context, dest, canvasView?.layer ?: OverlayLayer(0)) }
-    }
+    val saveLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/pdf"),
+        ) { uri ->
+            uri?.let { dest -> viewModel.save(context, dest, canvasView?.layer ?: OverlayLayer(0)) }
+        }
 
     val rendered = viewModel.renderedPage
     LaunchedEffect(rendered, canvasView) {
@@ -67,10 +69,11 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
     Scaffold(topBar = { TopAppBar(title = { Text("PDF-App") }) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Button(onClick = { openLauncher.launch(arrayOf(MIME_PDF)) }) { Text("Open") }
@@ -94,11 +97,12 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
             Text(text = viewModel.status, modifier = Modifier.padding(horizontal = 12.dp))
 
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .horizontalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .horizontalScroll(rememberScrollState()),
             ) {
                 AndroidView(
                     factory = { ctx ->

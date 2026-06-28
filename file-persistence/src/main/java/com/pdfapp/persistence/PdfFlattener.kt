@@ -17,13 +17,15 @@ import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
  * verify), matching the "vector path" option in the architecture.
  */
 class PdfFlattener {
-
     /**
      * Append [layer]'s overlays to its page in [document]. The document is
      * modified in place; the caller saves it via [PdfSaver]. No-op for an empty
      * layer.
      */
-    fun flattenInto(document: PDDocument, layer: OverlayLayer) {
+    fun flattenInto(
+        document: PDDocument,
+        layer: OverlayLayer,
+    ) {
         require(layer.pageIndex in 0 until document.numberOfPages) {
             "pageIndex ${layer.pageIndex} out of bounds (0..${document.numberOfPages - 1})"
         }
@@ -34,15 +36,20 @@ class PdfFlattener {
             document,
             page,
             PDPageContentStream.AppendMode.APPEND,
-            /* compress = */ true,
-            /* resetContext = */ true,
+            // compress =
+            true,
+            // resetContext =
+            true,
         ).use { stream ->
             layer.texts.forEach { drawText(stream, it) }
             layer.signatures.forEach { drawSignature(stream, it) }
         }
     }
 
-    private fun drawText(stream: PDPageContentStream, overlay: TextOverlay) {
+    private fun drawText(
+        stream: PDPageContentStream,
+        overlay: TextOverlay,
+    ) {
         val (r, g, b) = overlay.colorArgb.toRgb()
         stream.beginText()
         stream.setFont(PDType1Font.HELVETICA, overlay.fontSizePt)
@@ -52,7 +59,10 @@ class PdfFlattener {
         stream.endText()
     }
 
-    private fun drawSignature(stream: PDPageContentStream, signature: InkSignature) {
+    private fun drawSignature(
+        stream: PDPageContentStream,
+        signature: InkSignature,
+    ) {
         if (signature.isEmpty) return
         val (r, g, b) = signature.colorArgb.toRgb()
         stream.setStrokingColor(r, g, b)

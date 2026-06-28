@@ -5,16 +5,25 @@ package com.pdfapp.core.renderer.model
  * points (1/72 inch). Overlay positions are stored in this space so they are
  * independent of the zoom/density a page happens to be rendered at.
  */
-data class PdfPoint(val x: Float, val y: Float)
+data class PdfPoint(
+    val x: Float,
+    val y: Float,
+)
 
 /**
  * A point in on-screen bitmap space: origin top-left, y-axis pointing down,
  * units in pixels of the rendered page bitmap.
  */
-data class PixelPoint(val x: Float, val y: Float)
+data class PixelPoint(
+    val x: Float,
+    val y: Float,
+)
 
 /** Size of a PDF page in points. */
-data class PageSize(val widthPt: Float, val heightPt: Float) {
+data class PageSize(
+    val widthPt: Float,
+    val heightPt: Float,
+) {
     init {
         require(widthPt > 0f && heightPt > 0f) { "Page size must be positive: $widthPt x $heightPt" }
     }

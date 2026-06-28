@@ -28,7 +28,6 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class PdfTestHarnessTest {
-
     private val overlayText = "PDF-TEST-OVERLAY"
 
     @Before
@@ -44,16 +43,18 @@ class PdfTestHarnessTest {
             val document = PDDocument().apply { addPage(PDPage(PDRectangle.A4)) }
 
             // 2. Build a mock overlay layer with text + a 2-stroke signature.
-            val layer = OverlayLayer(pageIndex = 0)
-                .withText(TextOverlay(overlayText, PdfPoint(x = 72f, y = 720f)))
-                .withSignature(
-                    InkSignature(
-                        strokes = listOf(
-                            listOf(PdfPoint(72f, 120f), PdfPoint(140f, 160f), PdfPoint(210f, 120f)),
-                            listOf(PdfPoint(140f, 100f), PdfPoint(140f, 180f)),
+            val layer =
+                OverlayLayer(pageIndex = 0)
+                    .withText(TextOverlay(overlayText, PdfPoint(x = 72f, y = 720f)))
+                    .withSignature(
+                        InkSignature(
+                            strokes =
+                                listOf(
+                                    listOf(PdfPoint(72f, 120f), PdfPoint(140f, 160f), PdfPoint(210f, 120f)),
+                                    listOf(PdfPoint(140f, 100f), PdfPoint(140f, 180f)),
+                                ),
                         ),
-                    ),
-                )
+                    )
 
             // 3. Flatten and 4. save through the production code paths.
             PdfFlattener().flattenInto(document, layer)
@@ -69,7 +70,12 @@ class PdfTestHarnessTest {
 
                 // The signature is a vector path: assert a stroke operator was
                 // emitted into the (decoded) page content stream.
-                val content = reloaded.getPage(0).contents.bufferedReader().use { it.readText() }
+                val content =
+                    reloaded
+                        .getPage(0)
+                        .contents
+                        .bufferedReader()
+                        .use { it.readText() }
                 assertThat(STROKE_OPERATOR.containsMatchIn(content)).isTrue()
             }
         } finally {
