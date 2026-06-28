@@ -82,3 +82,9 @@ on-device emulator E2E). Cryptographic/PAdES signing remains a future extension.
 
 - JDK 17+
 - Android SDK (compileSdk 35); set `ANDROID_HOME` or add `local.properties` with `sdk.dir`.
+
+## License
+
+Released under the [MIT License](LICENSE). The app bundles
+[PdfBox-Android](https://github.com/TomRoush/PdfBox-Android), which is licensed
+under Apache-2.0.
