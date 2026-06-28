@@ -2,9 +2,14 @@
 # (buildUponDefaultConfig = true), with a few project-specific tweaks.
 
 complexity:
+  # @Composable functions conventionally have many parameters, are long, and
+  # branch on state — none of which are smells in Compose UI code.
   LongMethod:
     threshold: 60
-    # Composable screen functions are conventionally long and PascalCase.
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
     ignoreAnnotated: ['Composable']
   TooManyFunctions:
     active: false
