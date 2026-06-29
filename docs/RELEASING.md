@@ -4,6 +4,12 @@ This guide takes you from zero to a published GitHub Release with a **signed**
 APK + AAB attached. It ships through **GitHub Releases** (no Play Console
 required for sideloading).
 
+> **Just want to install the app?** You don't need any of this. Every push to
+> `main` that passes all checks auto-publishes a debug-signed APK to the rolling
+> [`Latest build`](../../releases/latest) release — grab it via the **Download
+> APK** button in the README (a one-tap permalink, no login). This guide is only
+> for cutting **signed, versioned** releases via the `release.yml` workflow.
+
 There are two parts:
 
 - **Part 1 — one-time signing setup** (needs a laptop with Java). Do this once.
@@ -130,8 +136,11 @@ Watch progress under the **`Actions`** tab (the **Release** workflow, ~3–5 min
   `app-release.apk` (and `app-release.aab` for the Play Store).
 - **On an Android phone:** tap the downloaded `.apk`; the first time, allow
   "install unknown apps" for your browser/files app when prompted.
-- **Latest test build (no release needed):** **`Actions`** → newest **CI** run →
-  **Artifacts** → `app-debug-apk`.
+- **Latest build (no release needed):** the rolling
+  [`Latest build`](../../releases/latest) release always has the newest
+  `pdf-app.apk` — one tap from the README's **Download APK** button, no login.
+  (The same APK is also on **`Actions`** → newest **CI** run → **Artifacts** →
+  `app-debug-apk`.)
 
 ---
 

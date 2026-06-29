@@ -1,5 +1,16 @@
 # PDF-App
 
+### 📲 [**Download the latest APK**](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
+
+[![Download APK](https://img.shields.io/badge/Download-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
+[![Latest build](https://img.shields.io/github/v/release/shavei/Pdf-app?include_prereleases&label=latest%20build&style=for-the-badge)](https://github.com/shavei/Pdf-app/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/shavei/Pdf-app/ci.yml?branch=main&style=for-the-badge)](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml)
+
+> Tap **Download the latest APK** above, then open the file on your Android phone
+> to install (you may need to allow "install from unknown sources"). Every push
+> to `main` that passes all checks updates this download automatically. You can
+> also rebuild on demand from your phone: **Actions → CI → Run workflow**.
+
 A native Android app for viewing PDFs, adding **text overlays**, and applying a
 hand-drawn **ink signature**, then flattening and saving the result back to
 storage. Offline-first, open-source libraries only.
@@ -63,10 +74,15 @@ page content (the ink is flattened as vector strokes). Run it with:
 
 ## Download
 
-- **Releases** — tagged builds (signed APK + AAB) are published on the
-  [Releases page](../../releases). Download the `.apk` to sideload on a device.
-- **Latest debug build** — every CI run uploads an `app-debug-apk` artifact
-  (Actions → pick a run → *Artifacts*) for quick testing.
+- **Latest build** — the [`Latest build` release](../../releases/latest) is
+  refreshed automatically on every push to `main` that passes all checks. The
+  [Download APK](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
+  link above is a permalink that always points at the newest one — one tap, no
+  login required.
+- **Tagged releases** — versioned builds (signed APK + AAB) are published on the
+  [Releases page](../../releases) when a `vX.Y.Z` tag is pushed.
+- **Build on demand** — trigger a fresh build from anywhere (including the GitHub
+  mobile app): **Actions → CI → *Run workflow***.
 
 See [`docs/RELEASING.md`](docs/RELEASING.md) for how to cut a release and the
 signing secrets to configure.
