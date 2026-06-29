@@ -1,4 +1,4 @@
-# PDF-App — Agent Guide
+# PDF-App — Development Guide
 
 Native Android (Kotlin) app: view PDFs, add text overlays, draw + flatten an ink signature, save via SAF. Offline, open-source libs only.
 
