@@ -1,0 +1,20 @@
+PDF-App is a lightweight, privacy-respecting PDF tool for Android.
+
+Open any PDF, add text overlays, and sign documents with your finger — then save
+the result as a flattened PDF. Everything happens on your device. There is no
+account, no cloud upload, no advertising, and no tracking of any kind.
+
+Features
+• View PDF documents page by page
+• Add text overlays anywhere on a page
+• Draw an ink signature and flatten it into the document
+• Save edited PDFs using the system file picker (Storage Access Framework)
+• Works completely offline
+
+Privacy first
+The app never connects to the internet and collects no personal data. Files stay
+on your device and are only written where you choose to save them.
+
+Open source
+PDF-App is built entirely with open-source libraries and contains no commercial
+SDKs or telemetry.

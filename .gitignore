@@ -12,3 +12,5 @@ captures/
 *.keystore
 *.jks
 key.properties
+play-service-account.json
+*-service-account.json

@@ -1,0 +1,2 @@
+Initial internal release: view PDFs, add text overlays, draw and flatten an ink
+signature, and save via the system file picker. Fully offline.

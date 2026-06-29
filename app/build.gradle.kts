@@ -1,7 +1,10 @@
+import com.github.triplet.gradle.androidpublisher.ReleaseStatus
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.play.publisher)
 }
 
 // Version is overridable from the release workflow via -P flags; defaults keep
@@ -61,6 +64,27 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+}
+
+// Gradle Play Publisher: uploads the signed AAB to Google Play. Credentials come
+// from the ANDROID_PUBLISHER_CREDENTIALS env var (a CI secret holding the
+// service-account JSON), so nothing sensitive is ever committed. Publish tasks
+// (e.g. :app:publishReleaseBundle) only run when explicitly invoked, so this is
+// inert for normal local/CI builds.
+play {
+    // Promote through tracks: internal -> alpha -> beta -> production.
+    track.set((findProperty("playTrack") as String?) ?: "internal")
+    defaultToAppBundles.set(true)
+    releaseStatus.set(ReleaseStatus.COMPLETED)
+    // Store-listing text/graphics live under src/main/play (see listings/).
+    // Skip resolving credentials at configuration time when none are present.
+    if (System.getenv("ANDROID_PUBLISHER_CREDENTIALS").isNullOrBlank() &&
+        !rootProject.file("play-service-account.json").exists()
+    ) {
+        enabled.set(false)
+    } else if (rootProject.file("play-service-account.json").exists()) {
+        serviceAccountCredentials.set(rootProject.file("play-service-account.json"))
     }
 }
 
