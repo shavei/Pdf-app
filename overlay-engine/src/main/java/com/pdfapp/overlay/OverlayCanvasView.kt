@@ -321,8 +321,7 @@ class OverlayCanvasView
         private fun textAt(
             pixel: PixelPoint,
             mapper: CoordinateMapper,
-        ): TextOverlay? =
-            layer.texts.lastOrNull { textBounds(it, mapper).contains(pixel.x, pixel.y) }
+        ): TextOverlay? = layer.texts.lastOrNull { textBounds(it, mapper).contains(pixel.x, pixel.y) }
 
         private fun handleInkTouch(event: MotionEvent): Boolean {
             when (event.action) {
