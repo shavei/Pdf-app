@@ -4,10 +4,12 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import com.pdfapp.core.renderer.RenderedPage
+import com.pdfapp.core.renderer.model.CoordinateMapper
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.core.renderer.model.PixelPoint
 import com.pdfapp.overlay.model.InkSignature
@@ -30,12 +32,24 @@ class OverlayCanvasView
         attrs: AttributeSet? = null,
         defStyleAttr: Int = 0,
     ) : View(context, attrs, defStyleAttr) {
-        enum class Mode { INK, TEXT }
+        enum class Mode { INK, TEXT, EDIT }
 
         var mode: Mode = Mode.INK
+            set(value) {
+                if (field != value) {
+                    field = value
+                    // Leaving edit mode clears any selection highlight.
+                    selectedTextId = null
+                    draggingText = null
+                    invalidate()
+                }
+            }
 
         /** Invoked when the user taps in [Mode.TEXT]; host shows a text-entry dialog. */
         var onTextPlacementRequested: ((PdfPoint) -> Unit)? = null
+
+        /** Invoked when the user taps an existing text in [Mode.EDIT]; host shows an edit dialog. */
+        var onTextEditRequested: ((TextOverlay) -> Unit)? = null
 
         /** Invoked whenever [layer] changes, so the host can persist it per page. */
         var onLayerChanged: ((OverlayLayer) -> Unit)? = null
@@ -59,6 +73,13 @@ class OverlayCanvasView
         // Strokes captured for the signature currently being drawn, in pixel space.
         private val activeStrokes = mutableListOf<MutableList<PixelPoint>>()
 
+        // Edit-mode state: the text currently selected/dragged, plus grab bookkeeping.
+        private var selectedTextId: String? = null
+        private var draggingText: TextOverlay? = null
+        private var dragGrabOffset = PixelPoint(0f, 0f)
+        private var dragStart = PixelPoint(0f, 0f)
+        private var dragMoved = false
+
         private val inkPaint =
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
@@ -72,6 +93,13 @@ class OverlayCanvasView
                 color = TextOverlay.DEFAULT_COLOR
             }
 
+        private val selectionPaint =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                strokeWidth = SELECTION_STROKE_PX
+                color = SELECTION_COLOR
+            }
+
         /**
          * Bind the page to display along with its stored overlays, and reset any
          * in-progress drawing.
@@ -82,6 +110,8 @@ class OverlayCanvasView
         ) {
             page = rendered
             activeStrokes.clear()
+            selectedTextId = null
+            draggingText = null
             layer = initialLayer
             requestLayout()
             invalidate()
@@ -152,6 +182,7 @@ class OverlayCanvasView
             drawCommittedSignatures(canvas)
             drawActiveStrokes(canvas)
             drawTexts(canvas)
+            drawSelection(canvas)
         }
 
         private fun drawCommittedSignatures(canvas: Canvas) {
@@ -193,17 +224,45 @@ class OverlayCanvasView
             }
         }
 
+        /** Outline the selected text (only shown in [Mode.EDIT]) so the user sees the drag target. */
+        private fun drawSelection(canvas: Canvas) {
+            if (mode != Mode.EDIT) return
+            val mapper = page?.mapper ?: return
+            val selectedId = selectedTextId ?: return
+            val overlay = layer.texts.firstOrNull { it.id == selectedId } ?: return
+            val bounds = textBounds(overlay, mapper)
+            canvas.drawRect(bounds.left, bounds.top, bounds.right, bounds.bottom, selectionPaint)
+        }
+
+        /** Pixel-space bounding box of [overlay]'s glyphs, padded for touch/highlight. */
+        private fun textBounds(
+            overlay: TextOverlay,
+            mapper: CoordinateMapper,
+        ): RectF {
+            textPaint.textSize = overlay.fontSizePt * mapper.pixelsPerPoint
+            val width = textPaint.measureText(overlay.text)
+            val metrics = textPaint.fontMetrics
+            val anchor = mapper.toPixel(overlay.position)
+            return RectF(
+                anchor.x - TOUCH_PADDING_PX,
+                anchor.y + metrics.ascent - TOUCH_PADDING_PX,
+                anchor.x + width + TOUCH_PADDING_PX,
+                anchor.y + metrics.descent + TOUCH_PADDING_PX,
+            )
+        }
+
         override fun onTouchEvent(event: MotionEvent): Boolean {
             val mapper = page?.mapper ?: return false
             return when (mode) {
                 Mode.TEXT -> handleTextTouch(event, mapper)
                 Mode.INK -> handleInkTouch(event)
+                Mode.EDIT -> handleEditTouch(event, mapper)
             }
         }
 
         private fun handleTextTouch(
             event: MotionEvent,
-            mapper: com.pdfapp.core.renderer.model.CoordinateMapper,
+            mapper: CoordinateMapper,
         ): Boolean {
             if (event.action == MotionEvent.ACTION_UP) {
                 onTextPlacementRequested?.invoke(mapper.toPdfPoint(PixelPoint(event.x, event.y)))
@@ -212,6 +271,57 @@ class OverlayCanvasView
             }
             return true
         }
+
+        /**
+         * Select, drag-to-move, or tap-to-edit an existing text overlay. A press that
+         * misses every glyph clears the selection; a press that hits one begins a drag,
+         * which becomes a move once it passes [TAP_SLOP_PX] or an edit request otherwise.
+         */
+        private fun handleEditTouch(
+            event: MotionEvent,
+            mapper: CoordinateMapper,
+        ): Boolean {
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    val hit = textAt(PixelPoint(event.x, event.y), mapper)
+                    selectedTextId = hit?.id
+                    draggingText = hit
+                    dragMoved = false
+                    if (hit != null) {
+                        val anchor = mapper.toPixel(hit.position)
+                        dragGrabOffset = PixelPoint(event.x - anchor.x, event.y - anchor.y)
+                        dragStart = PixelPoint(event.x, event.y)
+                    }
+                    invalidate()
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dragging = draggingText
+                    val passedSlop =
+                        kotlin.math.hypot(event.x - dragStart.x, event.y - dragStart.y) >= TAP_SLOP_PX
+                    if (dragging != null && (dragMoved || passedSlop)) {
+                        dragMoved = true
+                        val newAnchor = PixelPoint(event.x - dragGrabOffset.x, event.y - dragGrabOffset.y)
+                        val updated = dragging.copy(position = mapper.toPdfPoint(newAnchor))
+                        draggingText = updated
+                        layer = layer.updateText(updated)
+                    }
+                }
+                MotionEvent.ACTION_UP -> {
+                    val dragging = draggingText
+                    draggingText = null
+                    if (dragging != null && !dragMoved) onTextEditRequested?.invoke(dragging)
+                    performClick()
+                }
+                else -> return false
+            }
+            return true
+        }
+
+        /** Topmost text overlay whose padded bounds contain [pixel], or null. */
+        private fun textAt(
+            pixel: PixelPoint,
+            mapper: CoordinateMapper,
+        ): TextOverlay? = layer.texts.lastOrNull { textBounds(it, mapper).contains(pixel.x, pixel.y) }
 
         private fun handleInkTouch(event: MotionEvent): Boolean {
             when (event.action) {
@@ -230,5 +340,16 @@ class OverlayCanvasView
         override fun performClick(): Boolean {
             super.performClick()
             return true
+        }
+
+        private companion object {
+            // Touch/highlight padding around a glyph box, in bitmap pixels.
+            const val TOUCH_PADDING_PX = 24f
+
+            // Movement under this distance (pixels) counts as a tap, not a drag.
+            const val TAP_SLOP_PX = 16f
+
+            const val SELECTION_STROKE_PX = 2f
+            const val SELECTION_COLOR = 0xFF1A73E8.toInt()
         }
     }

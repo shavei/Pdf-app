@@ -23,6 +23,7 @@ class EditorUiTest {
         // off-screen on a narrow device, so assert they are composed, not visible.
         composeRule.onNodeWithText("Sign").assertExists()
         composeRule.onNodeWithText("Text").assertExists()
+        composeRule.onNodeWithText("Edit").assertExists()
         composeRule.onNodeWithText("Save").assertExists()
     }
 }
