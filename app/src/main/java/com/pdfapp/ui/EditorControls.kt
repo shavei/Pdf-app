@@ -64,6 +64,12 @@ fun EditorToolbar(
             label = { Text("Text") },
             enabled = enabled,
         )
+        FilterChip(
+            selected = mode == OverlayCanvasView.Mode.EDIT,
+            onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
+            label = { Text("Edit") },
+            enabled = enabled,
+        )
         OutlinedButton(onClick = onCommitInk, enabled = enabled) { Text("Ink✓") }
         OutlinedButton(onClick = onUndo, enabled = enabled) { Text("Undo") }
         OutlinedButton(onClick = onClear, enabled = enabled) { Text("Clear") }

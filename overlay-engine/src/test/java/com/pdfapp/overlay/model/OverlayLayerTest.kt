@@ -40,4 +40,29 @@ class OverlayLayerTest {
         val layer = OverlayLayer(pageIndex = 0).withText(text).removeText(text.id)
         assertThat(layer.texts).isEmpty()
     }
+
+    @Test
+    fun `updateText replaces content and position in place`() {
+        val original = TextOverlay("Draft", PdfPoint(10f, 20f))
+        val other = TextOverlay("Keep", PdfPoint(0f, 0f))
+        val layer = OverlayLayer(pageIndex = 0).withText(original).withText(other)
+
+        val moved = original.copy(text = "Final", position = PdfPoint(30f, 40f))
+        val updated = layer.updateText(moved)
+
+        assertThat(updated.texts).hasSize(2)
+        val edited = updated.texts.first { it.id == original.id }
+        assertThat(edited.text).isEqualTo("Final")
+        assertThat(edited.position).isEqualTo(PdfPoint(30f, 40f))
+        // Order and the untouched overlay are preserved.
+        assertThat(updated.texts.map { it.id }).containsExactly(original.id, other.id).inOrder()
+    }
+
+    @Test
+    fun `updateText leaves the layer unchanged when the id is unknown`() {
+        val text = TextOverlay("Hello", PdfPoint(1f, 2f))
+        val layer = OverlayLayer(pageIndex = 0).withText(text)
+        val stray = TextOverlay("Ghost", PdfPoint(9f, 9f))
+        assertThat(layer.updateText(stray).texts).containsExactly(text)
+    }
 }

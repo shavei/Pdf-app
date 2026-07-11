@@ -46,6 +46,7 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
     var canvasView by remember { mutableStateOf<OverlayCanvasView?>(null) }
     var mode by remember { mutableStateOf(OverlayCanvasView.Mode.INK) }
     var pendingTextPoint by remember { mutableStateOf<PdfPoint?>(null) }
+    var editingText by remember { mutableStateOf<TextOverlay?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val openLauncher =
@@ -128,6 +129,7 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
                         factory = { ctx ->
                             OverlayCanvasView(ctx).also { view ->
                                 view.onTextPlacementRequested = { point -> pendingTextPoint = point }
+                                view.onTextEditRequested = { overlay -> editingText = overlay }
                                 view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
                                 canvasView = view
                             }
@@ -157,6 +159,27 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
                         )
                 }
                 pendingTextPoint = null
+            },
+        )
+    }
+
+    editingText?.let { overlay ->
+        TextEntryDialog(
+            title = "Edit text",
+            confirmLabel = "Save",
+            initialText = overlay.text,
+            onDismiss = { editingText = null },
+            onConfirm = { text ->
+                canvasView?.let { view ->
+                    view.layer = view.layer.updateText(overlay.copy(text = text))
+                }
+                editingText = null
+            },
+            onDelete = {
+                canvasView?.let { view ->
+                    view.layer = view.layer.removeText(overlay.id)
+                }
+                editingText = null
             },
         )
     }
