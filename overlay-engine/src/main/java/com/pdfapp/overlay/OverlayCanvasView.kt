@@ -293,32 +293,28 @@ class OverlayCanvasView
                         dragStart = PixelPoint(event.x, event.y)
                     }
                     invalidate()
-                    return true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val dragging = draggingText ?: return true
-                    if (!dragMoved &&
-                        kotlin.math.hypot(event.x - dragStart.x, event.y - dragStart.y) < TAP_SLOP_PX
-                    ) {
-                        return true
+                    val dragging = draggingText
+                    val passedSlop =
+                        kotlin.math.hypot(event.x - dragStart.x, event.y - dragStart.y) >= TAP_SLOP_PX
+                    if (dragging != null && (dragMoved || passedSlop)) {
+                        dragMoved = true
+                        val newAnchor = PixelPoint(event.x - dragGrabOffset.x, event.y - dragGrabOffset.y)
+                        val updated = dragging.copy(position = mapper.toPdfPoint(newAnchor))
+                        draggingText = updated
+                        layer = layer.updateText(updated)
                     }
-                    dragMoved = true
-                    val newAnchor =
-                        PixelPoint(event.x - dragGrabOffset.x, event.y - dragGrabOffset.y)
-                    val updated = dragging.copy(position = mapper.toPdfPoint(newAnchor))
-                    draggingText = updated
-                    layer = layer.updateText(updated)
-                    return true
                 }
                 MotionEvent.ACTION_UP -> {
                     val dragging = draggingText
                     draggingText = null
                     if (dragging != null && !dragMoved) onTextEditRequested?.invoke(dragging)
                     performClick()
-                    return true
                 }
                 else -> return false
             }
+            return true
         }
 
         /** Topmost text overlay whose padded bounds contain [pixel], or null. */
