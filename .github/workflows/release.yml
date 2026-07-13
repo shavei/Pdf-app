@@ -1,11 +1,18 @@
 name: Release
 
 # Tag a commit `vX.Y.Z` to build and publish a release. Manual runs
-# (workflow_dispatch) build the artifacts without creating a Release.
+# (workflow_dispatch) build the artifacts only, unless a `version` input is
+# given — then they also publish a Release, creating the `vX.Y.Z` tag at the
+# run's commit.
 on:
   push:
     tags: [ "v*" ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (X.Y.Z, no leading v). Empty = build artifacts only."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -45,7 +52,12 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          VERSION_NAME="${GITHUB_REF_NAME#v}"
+          VERSION_NAME="${{ inputs.version }}"
+          if [ -z "$VERSION_NAME" ]; then
+            case "$GITHUB_REF" in
+              refs/tags/*) VERSION_NAME="${GITHUB_REF_NAME#v}" ;;
+            esac
+          fi
           ./gradlew :app:assembleRelease :app:bundleRelease \
             -PappVersionName="${VERSION_NAME:-0.1.0}" \
             -PappVersionCode="${GITHUB_RUN_NUMBER}" \
@@ -66,9 +78,11 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.version != ''
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version) }}
+          target_commitish: ${{ github.sha }}
           files: dist/**
           generate_release_notes: true
           fail_on_unmatched_files: true

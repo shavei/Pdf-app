@@ -117,6 +117,15 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
+### Option C — manual workflow run (no tag push needed)
+
+1. Repo → **`Actions`** → **`Release`** → **`Run workflow`**.
+2. Set the **`version`** input (e.g. `1.2.0`, no leading `v`) and run it.
+
+The workflow publishes the Release and creates the `v1.2.0` tag at the run's
+commit for you. Leaving `version` empty just builds the artifacts without
+publishing anything.
+
 ### What happens next
 
 Publishing the tag triggers **`.github/workflows/release.yml`**, which:
