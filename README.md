@@ -110,7 +110,16 @@ Feature-complete for the core flow: open a PDF, zoom and pan with touch,
 navigate pages, add styled text and a hand-drawn signature, move/edit placed
 text, undo/clear, and save a flattened copy via SAF. Verification runs as three
 CI layers (Lint, Unit + PDF-Test-Harness, and an on-device emulator E2E).
-Cryptographic/PAdES signing remains a future extension.
+
+Next up:
+
+- **System "Open with" support** — register as an Android PDF handler
+  (`ACTION_VIEW`/`ACTION_SEND` for `application/pdf`) so tapping a PDF in a file
+  manager, browser, or chat app can open it directly in Signet — and the app
+  can be set as the device's default PDF viewer. See [`plan.md`](plan.md) for
+  the detailed design.
+- **Cryptographic/PAdES signing** — a future extension beyond the current
+  flattened ink signature.
 
 ## Requirements
 
