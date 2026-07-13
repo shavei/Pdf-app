@@ -253,6 +253,24 @@ class OverlayCanvasView
 
         override fun onTouchEvent(event: MotionEvent): Boolean {
             val mapper = page?.mapper ?: return false
+            when (event.actionMasked) {
+                // Scrollable ancestors (the editor hosts this view inside scroll
+                // containers) steal the gesture once it passes their touch slop,
+                // cancelling ink strokes and text drags after a few pixels. Claim
+                // gestures that draw or drag; taps and misses stay interceptable
+                // so the page can still be panned.
+                MotionEvent.ACTION_DOWN -> {
+                    val consumesGesture =
+                        when (mode) {
+                            Mode.INK -> true
+                            Mode.EDIT -> textAt(PixelPoint(event.x, event.y), mapper) != null
+                            Mode.TEXT -> false
+                        }
+                    if (consumesGesture) parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                    parent?.requestDisallowInterceptTouchEvent(false)
+            }
             return when (mode) {
                 Mode.TEXT -> handleTextTouch(event, mapper)
                 Mode.INK -> handleInkTouch(event)
@@ -264,7 +282,7 @@ class OverlayCanvasView
             event: MotionEvent,
             mapper: CoordinateMapper,
         ): Boolean {
-            if (event.action == MotionEvent.ACTION_UP) {
+            if (event.actionMasked == MotionEvent.ACTION_UP) {
                 onTextPlacementRequested?.invoke(mapper.toPdfPoint(PixelPoint(event.x, event.y)))
                 performClick()
                 return true
@@ -281,7 +299,7 @@ class OverlayCanvasView
             event: MotionEvent,
             mapper: CoordinateMapper,
         ): Boolean {
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     val hit = textAt(PixelPoint(event.x, event.y), mapper)
                     selectedTextId = hit?.id
@@ -312,6 +330,10 @@ class OverlayCanvasView
                     if (dragging != null && !dragMoved) onTextEditRequested?.invoke(dragging)
                     performClick()
                 }
+                MotionEvent.ACTION_CANCEL -> {
+                    draggingText = null
+                    invalidate()
+                }
                 else -> return false
             }
             return true
@@ -324,13 +346,24 @@ class OverlayCanvasView
         ): TextOverlay? = layer.texts.lastOrNull { textBounds(it, mapper).contains(pixel.x, pixel.y) }
 
         private fun handleInkTouch(event: MotionEvent): Boolean {
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> activeStrokes.add(mutableListOf(PixelPoint(event.x, event.y)))
-                MotionEvent.ACTION_MOVE -> activeStrokes.lastOrNull()?.add(PixelPoint(event.x, event.y))
+                MotionEvent.ACTION_MOVE -> {
+                    val stroke = activeStrokes.lastOrNull() ?: return true
+                    // Batched samples between frames carry the fine curvature of a
+                    // signature; taking only the latest position produces jagged ink.
+                    for (i in 0 until event.historySize) {
+                        stroke.add(PixelPoint(event.getHistoricalX(i), event.getHistoricalY(i)))
+                    }
+                    stroke.add(PixelPoint(event.x, event.y))
+                }
                 MotionEvent.ACTION_UP -> {
                     activeStrokes.lastOrNull()?.add(PixelPoint(event.x, event.y))
                     performClick()
                 }
+                // Keep whatever was inked before the system cancelled the gesture;
+                // undo can discard it if unwanted.
+                MotionEvent.ACTION_CANCEL -> Unit
                 else -> return false
             }
             invalidate()
