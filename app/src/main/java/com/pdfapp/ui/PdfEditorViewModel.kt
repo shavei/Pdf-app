@@ -55,17 +55,34 @@ class PdfEditorViewModel : ViewModel() {
 
     private var sourceUri: Uri? = null
     private var source: PdfDocumentSource? = null
+    private var initialUriConsumed = false
 
-    /** Open a PDF from a SAF [uri] and render its first page. */
+    /**
+     * Open the PDF [uri] delivered by the launching intent ("Open with" /
+     * share sheet), at most once per ViewModel — recompositions after
+     * rotation must not re-open and blow away in-progress overlays.
+     */
+    fun openInitial(
+        context: Context,
+        uri: Uri,
+    ) {
+        if (initialUriConsumed) return
+        initialUriConsumed = true
+        open(context, uri)
+    }
+
+    /** Open a PDF from a SAF or intent-delivered [uri] and render its first page. */
     fun open(
         context: Context,
         uri: Uri,
     ) {
         launchBusy {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            } // best-effort: intent-delivered URIs only carry a temporary grant
             source?.close()
             val opened =
                 withContext(Dispatchers.IO) {

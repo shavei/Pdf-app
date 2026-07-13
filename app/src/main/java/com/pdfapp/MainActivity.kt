@@ -14,10 +14,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val initialUri = intent?.pdfUri()
         setContent {
             SignetTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    PdfEditorScreen()
+                    PdfEditorScreen(initialUri = initialUri)
                 }
             }
         }
