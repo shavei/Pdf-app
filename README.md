@@ -111,15 +111,21 @@ navigate pages, add styled text and a hand-drawn signature, move/edit placed
 text, undo/clear, and save a flattened copy via SAF. Verification runs as three
 CI layers (Lint, Unit + PDF-Test-Harness, and an on-device emulator E2E).
 
-Next up:
+Next up — the roadmap from editor to full default PDF app, detailed phase by
+phase in [`plan.md`](plan.md):
 
-- **System "Open with" support** — register as an Android PDF handler
-  (`ACTION_VIEW`/`ACTION_SEND` for `application/pdf`) so tapping a PDF in a file
-  manager, browser, or chat app can open it directly in Signet — and the app
-  can be set as the device's default PDF viewer. See [`plan.md`](plan.md) for
-  the detailed design.
-- **Cryptographic/PAdES signing** — a future extension beyond the current
-  flattened ink signature.
+1. **System "Open with" support** — `ACTION_VIEW`/`ACTION_SEND` intent filters
+   for `application/pdf`, so Signet appears in the "Open with" sheet and can be
+   set as the device's default PDF viewer.
+2. **Table-stakes reading** — continuous scrolling, thumbnails, in-document
+   search, text selection, outline/TOC, password-protected files, night mode,
+   recent files.
+3. **Full annotation suite** — highlight/underline/strikethrough, shapes,
+   sticky notes, highlighter, eraser, redo, saved signatures, image stamps.
+4. **Forms** — AcroForm fill & save.
+5. **Page tools** — reorder/rotate/delete pages, merge/split, print, share out.
+6. **Create & secure** — images/scan to PDF, password protection, and
+   cryptographic/PAdES signing as the long-term extension.
 
 ## Requirements
 

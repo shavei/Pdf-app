@@ -1,27 +1,52 @@
-# Plan: Become the system's PDF handler ("Open with" support)
+# Plan: Signet as the everything-PDF app
 
-## Goal
+Signet today is a focused PDF **editor**: open a PDF via its own file picker, view
+and zoom pages, add text overlays and an ink signature, and save a flattened copy.
+This plan maps the road from that editor to a **full-fledged default PDF app** — the
+one you pick "Always" for in Android's "Open with" sheet and never need to leave.
 
-Today the app can only open a PDF through its **own** file picker
-(`ActivityResultContracts.OpenDocument` in `PdfEditorScreen`). When the user taps a
-PDF in a file manager, browser download, email attachment, or WhatsApp, Android shows
-an "Open with" sheet (Reader, Drive PDF Viewer, ChatGPT, …) — and Signet is not in it.
+The gap analysis below is based on what the category leaders on Android ship
+(Adobe Acrobat Reader, Foxit, Xodo, Drive PDF Viewer, MuPDF) and what users
+expect from a device-default viewer.
 
-After this work, Signet appears in that sheet (and can be chosen as the **Always**
-default PDF app), and also shows up in the **share sheet** when another app shares a
-PDF. That makes it the one-stop PDF app: view, sign, annotate, save — regardless of
-where the PDF came from.
+## Where we are vs. where we're going
 
-## Why it doesn't show up today
+| Area | Have today | Missing for "default app" status |
+|---|---|---|
+| Getting PDFs in | Own SAF file picker | **"Open with" / share-target intents, recent files** |
+| Viewing | Single page, pinch-zoom/pan, prev/next | Continuous scroll, thumbnails, go-to-page, outline/TOC, night mode, text selection, search, password-protected files |
+| Annotating | Text overlay, ink signature, undo | Highlight/underline/strikethrough, shapes, sticky notes, highlighter pen, eraser, redo, saved signatures, image stamps |
+| Forms | — | AcroForm fill & save |
+| Organizing | — | Reorder/rotate/delete pages, merge/split, extract |
+| Output | Save flattened copy via SAF | Print, share out, compress |
+| Security | — | Open encrypted PDFs; add/remove password; PAdES signing (long-term) |
+
+Phases are ordered by user impact for a default viewer: integration first (be
+reachable), then reading (most sessions are read-only), then the editing suite
+that differentiates us.
+
+---
+
+## Phase 1 — System integration: "Open with" support
+
+*(Designed in detail below; unchanged from the merged plan.)*
+
+### Goal
+
+When the user taps a PDF in a file manager, browser download, email attachment, or
+WhatsApp, Android shows an "Open with" sheet (Reader, Drive PDF Viewer, ChatGPT, …)
+— and Signet is not in it. After this phase, Signet appears in that sheet (and can
+be chosen as the **Always** default PDF app), and also shows up in the **share
+sheet** when another app shares a PDF.
+
+### Why it doesn't show up today
 
 `app/src/main/AndroidManifest.xml` declares only the `MAIN`/`LAUNCHER` intent filter
 on `MainActivity`. Android builds the "Open with" list from activities whose intent
 filters match `ACTION_VIEW` + `application/pdf`; we declare no such filter, so the
 resolver never considers us.
 
-## Changes
-
-### 1. Manifest: declare the intent filters (`:app`)
+### 1.1 Manifest: declare the intent filters (`:app`)
 
 Add to `MainActivity` in `app/src/main/AndroidManifest.xml`:
 
@@ -48,14 +73,13 @@ Notes:
   default PDF app.
 - `BROWSABLE` lets browsers hand off downloaded/linked PDFs.
 - `file://` scheme still matters for older file managers (pre-FileProvider apps);
-  reading it needs no permission on API 21–28 targets via SAF-style streams, and the
-  existing `PdfDocumentSource.fromUri(contentResolver, uri)` already goes through
-  `ContentResolver`, which handles both schemes.
+  the existing `PdfDocumentSource.fromUri(contentResolver, uri)` already goes
+  through `ContentResolver`, which handles both schemes.
 - Keep `launchMode` default for now; a second VIEW intent simply creates a new task
   entry. If that feels wrong in testing, consider `singleTask` + `onNewIntent`
-  (step 3 already routes through one code path, so the switch is cheap).
+  (1.3 already routes through one code path, so the switch is cheap).
 
-### 2. Fix `takePersistableUriPermission` (`:app` — **required, currently a crash**)
+### 1.2 Fix `takePersistableUriPermission` (**required, currently a crash**)
 
 `PdfEditorViewModel.open()` unconditionally calls
 `contentResolver.takePersistableUriPermission(uri, FLAG_GRANT_READ_URI_PERMISSION)`.
@@ -63,8 +87,7 @@ That only succeeds for URIs obtained via SAF (`OpenDocument`). A URI delivered b
 `VIEW`/`SEND` intent carries a **temporary, non-persistable** grant — the call throws
 `SecurityException` and the coroutine dies before the PDF loads.
 
-Fix: attempt the persistable grant only when the intent grants it, and never let it
-abort opening:
+Fix: attempt the persistable grant best-effort, never letting it abort opening:
 
 ```kotlin
 runCatching {
@@ -74,11 +97,11 @@ runCatching {
 } // best-effort: intent-delivered URIs only carry a temporary grant
 ```
 
-Consequence to accept: for intent-delivered PDFs the read grant lives only as long as
-the task, which is fine because we load pages on demand from an open
+Consequence to accept: for intent-delivered PDFs the read grant lives only as long
+as the task, which is fine because we load pages on demand from an open
 `ParcelFileDescriptor` and "Save" writes to a *new* SAF destination anyway.
 
-### 3. Route the incoming intent to the ViewModel (`:app`)
+### 1.3 Route the incoming intent to the ViewModel
 
 `MainActivity` currently ignores its `Intent`. Add extraction:
 
@@ -91,50 +114,173 @@ private fun Intent.pdfUri(): Uri? = when (action) {
 }
 ```
 
-Pass the result into `PdfEditorScreen(initialUri = intent.pdfUri())`; the screen calls
-`viewModel.open(context, it)` once (guard with `rememberSaveable`/ViewModel flag so
-rotation doesn't re-open and blow away in-progress overlays). Keep the extraction
-logic in a small pure-ish helper (e.g. `IncomingIntent.kt`) so it is unit-testable
-without an emulator.
+Pass the result into `PdfEditorScreen(initialUri = intent.pdfUri())`; the screen
+calls `viewModel.open(context, it)` once (guard with a ViewModel flag so rotation
+doesn't re-open and blow away in-progress overlays). Keep the extraction logic in a
+small helper (e.g. `IncomingIntent.kt`) so it is unit-testable without an emulator.
 
-Style guardrails (per CLAUDE.md): PDF loading stays on `Dispatchers.IO` (already the
-case in `open()`); no new file paths or storage permissions — the granted `content://`
-URI **is** the SAF-compatible handle.
-
-### 4. Graceful failure
+### 1.4 Graceful failure
 
 If the URI can't be opened (revoked grant, corrupt file, mime-lied non-PDF), surface
 the existing snackbar (`userMessage`) instead of crashing, and leave the user on the
-normal "pick a PDF" screen. `PdfDocumentSource.fromUri` failures should map to a
-user-readable message.
+normal "pick a PDF" screen.
 
-## Testing
+### Testing (three-layer definition of Done)
 
-Per the project's three-layer definition of Done:
+1. **Lint** — manifest merger + `lintDebug` validate the intent filters.
+2. **Unit** — intent-extraction helper (VIEW with data, SEND with `EXTRA_STREAM`,
+   wrong action ⇒ null); Robolectric test that `open()` survives a non-persistable
+   URI.
+3. **E2E** — Espresso launch of `MainActivity` with an `ACTION_VIEW` intent via
+   `ActivityScenario.launch(intent)`; manual smoke: tap a PDF in Files → chooser
+   lists Signet → **Always** works → sign → save.
 
-1. **Lint** — `./gradlew ktlintCheck detekt lintDebug` (manifest merger + lint will
-   also validate the intent filters).
-2. **Unit** — new tests for the intent-extraction helper (VIEW with data, SEND with
-   `EXTRA_STREAM`, wrong action, missing URI ⇒ null) and a Robolectric test that
-   `open()` survives a non-persistable URI (mock resolver throwing
-   `SecurityException`).
-3. **E2E** — Espresso test launching `MainActivity` with an `ACTION_VIEW` intent
-   pointing at a `content://` URI served from test assets (androidx-test's
-   `ActivityScenario.launch(intent)`), asserting the page renders. Manual smoke on a
-   device: tap a PDF in Files/a browser download → chooser lists Signet → **Always**
-   works → sign → save.
+---
 
-## Out of scope (deliberately)
+## Phase 2 — Table-stakes reading experience
 
-- Being a PDF *share target for editing in place* (would need write-back to the
-  source URI; our model is "save a flattened copy").
-- `ACTION_SEND_MULTIPLE`, print services, or opening password-protected PDFs.
-- App-links/deep links to `http(s)` PDF URLs — the browser downloads first, then
-  fires `VIEW` with a `content://` URI, which the plan already handles.
+Most sessions with a default PDF app are *read-only*. These are the features every
+competitor ships and users notice within the first minute.
 
-## Order of work
+### 2.1 Continuous scrolling & fast navigation
+- Replace the single-page prev/next model with a vertically scrolling `LazyColumn`
+  of pages (render on demand, recycle bitmaps; keep pinch-zoom via a shared
+  transform).
+- **Page thumbnails grid** for jump-navigation, plus a slider/scrubber and a
+  "page X of N — go to page" dialog.
+- Remember last-read page per document (DataStore keyed by URI).
 
-1. Manifest intent filters (step 1) — smallest diff, makes us appear in the chooser.
-2. Permission fix (step 2) — must land in the same PR or the chooser path crashes.
-3. Intent routing (step 3) + failure handling (step 4).
-4. Tests, README already updated alongside this plan.
+### 2.2 Text search
+- In-document search with match highlighting and next/previous navigation.
+- Engine: PdfBox-Android's `PDFTextStripper` subclassed to capture glyph positions
+  (`TextPosition`) per page → rectangles in PDF points → reuse `CoordinateMapper`
+  to draw highlight quads over the rendered bitmap. Index lazily per page on
+  `Dispatchers.IO`; cache per document.
+
+### 2.3 Text selection & copy
+- Long-press to select rendered text, drag handles, copy to clipboard.
+- Same `TextPosition` data as search; selection rectangles snap to word/line boxes.
+
+### 2.4 Outline (table of contents) & link taps
+- Read `PDDocumentOutline` from PdfBox → bookmark drawer; tapping jumps to the page.
+- Handle internal link annotations (`PDAnnotationLink` with go-to actions) as taps;
+  external `http(s)` links open the browser via `Intent.ACTION_VIEW`.
+
+### 2.5 Password-protected PDFs
+- `android.graphics.pdf.PdfRenderer` cannot open encrypted files. Flow: catch the
+  renderer's `SecurityException` → password dialog → open with
+  `PDDocument.load(stream, password)` → save a decrypted copy to app-private cache
+  → render that. Wipe the cache copy when the document closes.
+
+### 2.6 Night mode & reading comfort
+- Dark *page* rendering (the UI already has dark theme): invert rendered bitmaps via
+  `ColorMatrix` (`-1` scale + offset), toggle in the top bar; persists per app.
+- Keep-screen-on toggle; fit-width vs fit-page zoom presets.
+
+### 2.7 Recent files
+- Home screen shows recently opened documents (name, page count, last-read page,
+  thumbnail). Store SAF URIs — we already take persistable permissions for
+  picker-opened files; intent-delivered ones appear only while their grant lives.
+
+### 2.8 Performance guardrails
+- Tile-based rendering at high zoom (render only the visible rect at scale instead
+  of one huge bitmap) — `PdfRenderer.Page.render` accepts a transform matrix, so
+  this fits the existing `PageRenderer`.
+- Bitmap pool + LRU cache sized off `ActivityManager.getMemoryClass()`; target:
+  smooth on 1000-page documents.
+
+---
+
+## Phase 3 — Full annotation suite
+
+Extends `:overlay-engine`, reusing the existing PDF-point coordinate model and the
+flatten-on-save pipeline in `:file-persistence`.
+
+- **Text markup**: highlight, underline, strikethrough over selected text (needs
+  2.3's text geometry). Flatten as translucent quads / lines via PdfBox content
+  streams — or write real `PDAnnotationTextMarkup` annotations so other readers
+  can show/edit them (decide: flatten vs. annotate; default-app behavior is
+  *annotate*, keep flatten as "Save flattened copy").
+- **Freehand pen & highlighter**: generalize `InkSignature` into an ink tool with
+  per-stroke color/width/alpha; highlighter = wide translucent stroke with
+  multiply-style blending.
+- **Shapes**: rectangle, ellipse, line, arrow with stroke/fill pickers.
+- **Sticky notes**: tappable note icon anchored in PDF points; note text editable
+  in a dialog; export as `PDAnnotationText` (popup note) so other viewers see it.
+- **Eraser & redo**: stroke-level eraser; extend the undo stack (currently
+  undo-only) into undo/redo.
+- **Saved signatures**: persist drawn signatures (encrypted app-private storage);
+  one-tap placement, drag/resize like text overlays.
+- **Image stamps**: insert an image (e.g. scanned signature, checkmark) from the
+  gallery; flatten via PdfBox `PDImageXObject`.
+
+## Phase 4 — Forms (AcroForm fill & sign)
+
+The single biggest functional gap vs. Acrobat/Foxit for a default app.
+
+- Detect `PDAcroForm` on open; render field widgets (text fields, checkboxes,
+  radio groups, dropdowns) as native Compose inputs positioned via
+  `CoordinateMapper`.
+- Write values back with PdfBox (`PDField.setValue`), offer "Save" (fields stay
+  editable) and "Save flattened" (`PDAcroForm.flatten()`).
+- XFA forms are explicitly out of scope (Acrobat-proprietary, dying format).
+
+## Phase 5 — Page organization & document tools
+
+All buildable on PdfBox; each is a small headless operation + a picker UI.
+
+- **Organize pages**: thumbnail grid with drag-to-reorder, rotate, delete;
+  `PDDocument` page-tree manipulation, save as copy.
+- **Merge** multiple PDFs (`PDFMergerUtility`) and **split** / **extract pages**
+  to a new file.
+- **Compress**: re-encode images at lower DPI/quality.
+- **Print**: `PrintManager` + a `PrintDocumentAdapter` that streams the current
+  (flattened) PDF bytes in `onWrite` — Android's print framework accepts PDF
+  natively, so this is cheap and expected of a default viewer.
+- **Share out**: `ACTION_SEND` the current/flattened copy via `FileProvider`.
+
+## Phase 6 — Create & secure
+
+- **Images → PDF** (gallery multi-select → one page per image).
+- **Scan to PDF** with the device camera (edge detection via ML Kit document
+  scanner API; keeps the no-cloud promise — on-device only).
+- **Add/remove password**: PdfBox `StandardProtectionPolicy` (AES-256) on save.
+- **Cryptographic/PAdES signing** — the long-standing roadmap item; PdfBox
+  supports signature containers, key storage via Android Keystore.
+
+## Cross-cutting platform polish
+
+- **App shortcuts** (static: "Open last document", "Pick a PDF").
+- **Predictive back, themed icon, per-app language** — modern-Android hygiene.
+- **Tablets/foldables**: two-page spread layout, drag-and-drop a PDF onto the app.
+- **Accessibility**: expose extracted page text (from 2.2/2.3) to TalkBack;
+  content descriptions on all tools; large-touch-target mode.
+- **Privacy stance stays**: everything on-device, no telemetry — this is Signet's
+  differentiator vs. Acrobat/Xodo, whose headline features increasingly require
+  cloud accounts and AI upsells.
+
+## Suggested module mapping
+
+| Work | Module |
+|---|---|
+| Intents, recent files, navigation UI, print, share | `:app` |
+| Text extraction/search/selection geometry, tiles | `:core-renderer` |
+| Markup, shapes, notes, eraser, redo, saved signatures | `:overlay-engine` |
+| Forms write-back, page ops, merge/split, encrypt, annotations export | `:file-persistence` |
+
+## Sequencing & definition of done
+
+1. **Phase 1** ships first and alone (small, unblocks "default app" status).
+2. **Phase 2** next — 2.1/2.2 are the highest-impact items in this plan; 2.2 and
+   2.3 share the text-geometry engine, so build that once.
+3. Phases 3–6 can proceed feature-by-feature; each feature is independently
+   shippable and must pass the project's three verification layers (Lint, Unit,
+   E2E/PDF-Test-Harness) before merge, per `README.md`.
+
+## Competitive research sources
+
+- [TechRadar: Best PDF reader for Android](https://www.techradar.com/best/best-pdf-reader-android)
+- [Adobe Acrobat Reader for Android — features](https://www.adobe.com/acrobat/mobile/acrobat-reader.html) and [Fill & Sign docs](https://www.adobe.com/devnet-docs/acrobat/android/en/forms.html)
+- [Android Developers: building a PDF viewer](https://developer.android.com/media/grow/pdf-viewer)
+- [Adamsdesk: open-source PDF readers (MuPDF et al.)](https://www.adamsdesk.com/posts/free-open-source-pdf-reader/)
+- [RankRed: Best Android PDF reader apps](https://www.rankred.com/best-android-pdf-reader-apps/)
