@@ -14,8 +14,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,26 +54,28 @@ fun EditorToolbar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Button(onClick = onOpen) { Text("Open") }
-        FilterChip(
-            selected = mode == OverlayCanvasView.Mode.INK,
-            onClick = { onModeChange(OverlayCanvasView.Mode.INK) },
-            label = { Text("Sign") },
-            enabled = enabled,
-        )
-        FilterChip(
-            selected = mode == OverlayCanvasView.Mode.TEXT,
-            onClick = { onModeChange(OverlayCanvasView.Mode.TEXT) },
-            label = { Text("Text") },
-            enabled = enabled,
-        )
-        FilterChip(
-            selected = mode == OverlayCanvasView.Mode.EDIT,
-            onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
-            label = { Text("Edit") },
-            enabled = enabled,
-        )
-        OutlinedButton(onClick = onCommitInk, enabled = enabled) { Text("Ink✓") }
+        FilledTonalButton(onClick = onOpen) { Text("Open") }
+        SingleChoiceSegmentedButtonRow {
+            SegmentedButton(
+                selected = mode == OverlayCanvasView.Mode.INK,
+                onClick = { onModeChange(OverlayCanvasView.Mode.INK) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                enabled = enabled,
+            ) { Text("Sign") }
+            SegmentedButton(
+                selected = mode == OverlayCanvasView.Mode.TEXT,
+                onClick = { onModeChange(OverlayCanvasView.Mode.TEXT) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                enabled = enabled,
+            ) { Text("Text") }
+            SegmentedButton(
+                selected = mode == OverlayCanvasView.Mode.EDIT,
+                onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
+                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                enabled = enabled,
+            ) { Text("Edit") }
+        }
+        OutlinedButton(onClick = onCommitInk, enabled = enabled) { Text("Apply ink") }
         OutlinedButton(onClick = onUndo, enabled = enabled) { Text("Undo") }
         OutlinedButton(onClick = onClear, enabled = enabled) { Text("Clear") }
         Button(onClick = onSave, enabled = enabled) { Text("Save") }

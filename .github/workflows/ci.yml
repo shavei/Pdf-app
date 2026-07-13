@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [ main, "claude/**" ]
+    branches: [ "**" ]
   pull_request:
     branches: [ main ]
+  # Lets you build the APK on demand from the GitHub mobile app:
+  # Actions → CI → "Run workflow".
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -103,3 +106,49 @@ jobs:
           name: androidTest-reports
           path: "**/build/reports/androidTests/**"
           if-no-files-found: ignore
+
+  # Publishes a one-tap-installable APK to a rolling "Latest build" GitHub
+  # Release, but only after every check above passes (lint + unit + E2E), and
+  # only for the main branch (push or the manual "Run workflow" button).
+  publish:
+    name: Publish latest APK
+    needs: [ verify, instrumented ]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      # Stable asset name so the README "Download APK" link is a permalink:
+      # https://github.com/<owner>/<repo>/releases/latest/download/pdf-app.apk
+      - name: Stage APK with stable name
+        run: cp app/build/outputs/apk/debug/app-debug.apk pdf-app.apk
+
+      - name: Publish to "Latest build" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          body: |
+            Automatically built from the latest commit on `main`
+            (`${{ github.sha }}`) after all checks passed.
+
+            **[⬇️ Download pdf-app.apk](https://github.com/${{ github.repository }}/releases/latest/download/pdf-app.apk)** and sideload it on your device.
+          files: pdf-app.apk
+          make_latest: true
