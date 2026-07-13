@@ -61,6 +61,52 @@ class OverlayCanvasViewTouchTest {
         event.recycle()
     }
 
+    /** Dispatch a multi-pointer event; [action] carries no pointer index yet. */
+    private fun multiTouch(
+        action: Int,
+        points: List<Pair<Float, Float>>,
+        actionIndex: Int = 0,
+    ) {
+        val properties =
+            Array(points.size) { index ->
+                MotionEvent.PointerProperties().apply {
+                    id = index
+                    toolType = MotionEvent.TOOL_TYPE_FINGER
+                }
+            }
+        val coords =
+            Array(points.size) { index ->
+                MotionEvent.PointerCoords().apply {
+                    x = points[index].first
+                    y = points[index].second
+                    pressure = 1f
+                    size = 1f
+                }
+            }
+        val event =
+            MotionEvent.obtain(
+                0L,
+                0L,
+                action or (actionIndex shl MotionEvent.ACTION_POINTER_INDEX_SHIFT),
+                points.size,
+                properties,
+                coords,
+                0,
+                0,
+                1f,
+                1f,
+                0,
+                0,
+                android.view.InputDevice.SOURCE_TOUCHSCREEN,
+                0,
+            )
+        view.onTouchEvent(event)
+        event.recycle()
+    }
+
+    /** Lay the view out so the viewport transform has a real size (fit scale 1). */
+    private fun layoutView() = view.layout(0, 0, 200, 200)
+
     @Test
     fun `ink gesture claims touch stream and captures the full stroke`() {
         view.mode = OverlayCanvasView.Mode.INK
@@ -105,6 +151,71 @@ class OverlayCanvasViewTouchTest {
 
         touch(MotionEvent.ACTION_DOWN, 180f, 180f)
         assertThat(parent.disallowIntercept).isFalse()
+    }
+
+    @Test
+    fun `pinch zooms the viewport and discards the accidental ink stroke`() {
+        layoutView()
+        view.mode = OverlayCanvasView.Mode.INK
+
+        touch(MotionEvent.ACTION_DOWN, 100f, 100f)
+        multiTouch(
+            MotionEvent.ACTION_POINTER_DOWN,
+            listOf(100f to 100f, 120f to 100f),
+            actionIndex = 1,
+        )
+        // Span grows 20 → 40 px, so the zoom doubles.
+        multiTouch(MotionEvent.ACTION_MOVE, listOf(90f to 100f, 130f to 100f))
+        multiTouch(
+            MotionEvent.ACTION_POINTER_UP,
+            listOf(90f to 100f, 130f to 100f),
+            actionIndex = 1,
+        )
+        touch(MotionEvent.ACTION_UP, 90f, 100f)
+
+        assertThat(view.zoom).isWithin(1e-4f).of(2f)
+        assertThat(view.commitSignature()).isNull()
+    }
+
+    @Test
+    fun `ink drawn while zoomed lands at page coordinates`() {
+        layoutView()
+        view.mode = OverlayCanvasView.Mode.INK
+
+        // Zoom to 2x with a pinch, then draw a 20x20 view-px stroke.
+        touch(MotionEvent.ACTION_DOWN, 100f, 100f)
+        multiTouch(
+            MotionEvent.ACTION_POINTER_DOWN,
+            listOf(100f to 100f, 120f to 100f),
+            actionIndex = 1,
+        )
+        multiTouch(MotionEvent.ACTION_MOVE, listOf(90f to 100f, 130f to 100f))
+        touch(MotionEvent.ACTION_UP, 90f, 100f)
+
+        touch(MotionEvent.ACTION_DOWN, 100f, 100f)
+        touch(MotionEvent.ACTION_UP, 120f, 120f)
+
+        val stroke = view.commitSignature()!!.strokes.single()
+        // 20 view px at 2x zoom cover 10 page points (y grows downward on screen).
+        assertThat(stroke.last().x - stroke.first().x).isWithin(1e-3f).of(10f)
+        assertThat(stroke.first().y - stroke.last().y).isWithin(1e-3f).of(10f)
+    }
+
+    @Test
+    fun `single-finger pan in text mode suppresses text placement`() {
+        layoutView()
+        view.mode = OverlayCanvasView.Mode.TEXT
+        var placements = 0
+        view.onTextPlacementRequested = { placements++ }
+
+        touch(MotionEvent.ACTION_DOWN, 100f, 100f)
+        touch(MotionEvent.ACTION_MOVE, 150f, 150f)
+        touch(MotionEvent.ACTION_UP, 150f, 150f)
+        assertThat(placements).isEqualTo(0)
+
+        touch(MotionEvent.ACTION_DOWN, 100f, 100f)
+        touch(MotionEvent.ACTION_UP, 102f, 101f)
+        assertThat(placements).isEqualTo(1)
     }
 
     @Test

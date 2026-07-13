@@ -1,4 +1,10 @@
 <resources>
-    <!-- Base theme; Compose drives the actual styling via MaterialTheme. -->
-    <style name="Theme.PdfApp" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Light base theme. Compose (PdfAppTheme) drives the real styling; this
+         only sets the window background shown before Compose draws, plus
+         transparent system bars for edge-to-edge. -->
+    <style name="Theme.PdfApp" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
 </resources>

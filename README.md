@@ -1,52 +1,35 @@
-# PDF-App
+# Signet
 
 **View, sign, and annotate PDFs on Android — fully offline, no ads, no tracking.**
 
-[![CI](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml/badge.svg)](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/shavei/Pdf-app)](https://github.com/shavei/Pdf-app/releases/latest)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+### 📲 [**Download the latest APK**](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
 
-A native Android (Kotlin) app for opening a PDF, adding **text overlays**, drawing a
-hand-drawn **ink signature**, and saving a flattened copy back to your storage.
-Everything runs on-device with open-source libraries only.
+<!-- Static badges only: dynamic shields.io badges (release version, CI status)
+     query the GitHub API anonymously and always show "repo not found" while
+     this repo is private. The build date/commit live in the release itself. -->
+[![Download APK](https://img.shields.io/badge/Download-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
+[![Latest build](https://img.shields.io/badge/Latest%20build-releases-blue?style=for-the-badge&logo=github)](https://github.com/shavei/Pdf-app/releases/latest)
+[![CI](https://img.shields.io/badge/CI-workflow%20runs-555?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml)
+
+> Tap **Download the latest APK** above, then open the file on your Android phone
+> to install (you may need to allow "install from unknown sources"). Every push
+> to `main` that passes all checks updates this download automatically. You can
+> also rebuild on demand from your phone: **Actions → CI → Run workflow**.
+
+A native Android app for viewing PDFs, adding **text overlays**, and applying a
+hand-drawn **ink signature**, then flattening and saving the result back to
+storage. Offline-first, open-source libraries only.
 
 ## Features
 
 - 📄 **View PDFs** — open any PDF via the system file picker and navigate its pages.
+- 🔍 **Pinch to zoom** — zoom and pan the page with touch; two fingers always work, even mid-signature.
 - ✍️ **Sign** — draw your signature with your finger; pick ink color and stroke width.
 - 🔤 **Add text** — tap to place text anywhere on the page; choose size and color.
 - ✏️ **Edit & move** — drag placed text to reposition it, tap to edit or delete it.
 - ↩️ **Undo & clear** — step back a stroke or wipe the page's overlays.
 - 💾 **Save a flattened copy** — overlays are baked into a new PDF; your original is untouched.
 - 🔒 **Private by design** — works completely offline, no ads, no telemetry, no account.
-
-## Download
-
-Grab the latest `.apk` from the [Releases page](https://github.com/shavei/Pdf-app/releases/latest)
-and sideload it on your device (Android 5.0 / API 21 or newer). Every CI run also
-uploads an `app-debug-apk` artifact (Actions → pick a run → *Artifacts*) for quick testing.
-
-## Build from source
-
-Requirements: JDK 17+, Android SDK (compileSdk 35) — set `ANDROID_HOME` or add
-`local.properties` with `sdk.dir`.
-
-```bash
-./gradlew assembleDebug          # build the APK
-./gradlew testDebugUnitTest      # unit tests (incl. PDF-Test-Harness)
-./gradlew ktlintCheck detekt lintDebug   # static analysis (Lint layer)
-./gradlew connectedDebugAndroidTest      # E2E (needs a device/emulator)
-```
-
-See [`docs/RELEASING.md`](docs/RELEASING.md) for how to cut a release and the
-signing secrets to configure.
-
-## Tech stack
-
-- **View:** `android.graphics.pdf.PdfRenderer` (API 21+)
-- **Overlay/Ink:** `android.graphics.Canvas` in a custom `View`
-- **Write-back:** [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) (Apache-2.0) — `PdfRenderer` is read-only and cannot save
-- **Storage:** Storage Access Framework (SAF) — no broad storage permissions
 
 ## Architecture
 
@@ -69,7 +52,24 @@ overlay positions are stored in **PDF points** so they are resolution-independen
 conversion happens only at the View boundary via `CoordinateMapper`. This is the
 single source of truth and is the most heavily unit-tested class in the project.
 
-## Testing
+## Tech stack
+
+- **View:** `android.graphics.pdf.PdfRenderer` (API 21+)
+- **Overlay/Ink:** `android.graphics.Canvas` in a custom `View`
+- **Write-back:** [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) (Apache-2.0) — `PdfRenderer` is read-only and cannot save
+- **Text overlays beyond Latin-1:** bundled [Arimo](https://github.com/googlefonts/Arimo) font (SIL OFL 1.1) embedded as a subset — the built-in Helvetica only covers WinAnsi, so Hebrew/Greek/Cyrillic text falls back to Arimo, with RTL runs reordered to visual order before flattening
+- **Storage:** Storage Access Framework (SAF)
+
+## Build & verify
+
+```bash
+./gradlew assembleDebug          # build the APK
+./gradlew testDebugUnitTest      # unit tests (incl. PDF-Test-Harness)
+./gradlew ktlintCheck detekt lintDebug   # static analysis (Lint layer)
+./gradlew connectedDebugAndroidTest      # E2E (needs a device/emulator)
+```
+
+### Verification stack
 
 A feature is **Done** only when all three layers pass (enforced in CI):
 
@@ -89,21 +89,52 @@ page content (the ink is flattened as vector strokes). Run it with:
 ./gradlew :file-persistence:testDebugUnitTest --tests "*PdfTestHarness*"
 ```
 
-## Roadmap
+## Download
 
-The core flow is feature-complete: open a PDF, navigate pages, add styled text
-and a hand-drawn signature, move/edit placed text, undo/clear, and save a
-flattened copy via SAF. Cryptographic/PAdES signing remains a future extension.
+- **Latest build** — the [`Latest build` release](../../releases/latest) is
+  refreshed automatically on every push to `main` that passes all checks. The
+  [Download APK](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
+  link above is a permalink that always points at the newest one — one tap, no
+  login required.
+- **Tagged releases** — versioned builds (signed APK + AAB) are published on the
+  [Releases page](../../releases) when a `vX.Y.Z` tag is pushed.
+- **Build on demand** — trigger a fresh build from anywhere (including the GitHub
+  mobile app): **Actions → CI → *Run workflow***.
 
-## Contributing
+See [`docs/RELEASING.md`](docs/RELEASING.md) for how to cut a release and the
+signing secrets to configure.
 
-Issues and pull requests are welcome. Before submitting, make sure all three
-verification layers pass locally (see [Testing](#testing)); CI enforces them on
-every PR.
+## Status
+
+Feature-complete for the core flow: open a PDF, zoom and pan with touch,
+navigate pages, add styled text and a hand-drawn signature, move/edit placed
+text, undo/clear, and save a flattened copy via SAF. Verification runs as three
+CI layers (Lint, Unit + PDF-Test-Harness, and an on-device emulator E2E).
+
+Next up — the roadmap from editor to full default PDF app, detailed phase by
+phase in [`plan.md`](plan.md):
+
+1. **System "Open with" support** — `ACTION_VIEW`/`ACTION_SEND` intent filters
+   for `application/pdf`, so Signet appears in the "Open with" sheet and can be
+   set as the device's default PDF viewer.
+2. **Table-stakes reading** — continuous scrolling, thumbnails, in-document
+   search, text selection, outline/TOC, password-protected files, night mode,
+   recent files.
+3. **Full annotation suite** — highlight/underline/strikethrough, shapes,
+   sticky notes, highlighter, eraser, redo, saved signatures, image stamps.
+4. **Forms** — AcroForm fill & save.
+5. **Page tools** — reorder/rotate/delete pages, merge/split, print, share out.
+6. **Create & secure** — images/scan to PDF, password protection, and
+   cryptographic/PAdES signing as the long-term extension.
+
+## Requirements
+
+- JDK 17+
+- Android SDK (compileSdk 35); set `ANDROID_HOME` or add `local.properties` with `sdk.dir`.
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE).
-
-Built with [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) by Tom Roush
-(Apache-2.0).
+Licensed under the [Apache License 2.0](LICENSE). The app bundles
+[PdfBox-Android](https://github.com/TomRoush/PdfBox-Android), which is also
+licensed under Apache-2.0, and the [Arimo](https://github.com/googlefonts/Arimo)
+font, licensed under the [SIL Open Font License 1.1](file-persistence/src/main/assets/fonts/Arimo-OFL.txt).

@@ -12,7 +12,7 @@ import java.io.Closeable
  *
  * Note: [PdfRenderer] is *read-only*. It can render pages but cannot write or
  * modify a PDF — saving is handled by the `:file-persistence` module. See
- * CLAUDE.md "Never Do".
+ * DEVELOPMENT.md "Never Do".
  */
 class PdfDocumentSource private constructor(
     private val descriptor: ParcelFileDescriptor,

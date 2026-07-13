@@ -2,13 +2,15 @@ name: CI
 
 # One pipeline for everything:
 #   - Branch pushes / PRs: lint + unit + debug build, plus emulator E2E.
+#   - main: after all checks pass, a rolling "Latest build" APK is published.
 #   - Tag `vX.Y.Z`: same checks, then a signed release build published as a
 #     GitHub Release (gated on the verify job; E2E runs but does not block).
-#   - Manual runs (workflow_dispatch) build the release artifacts without
-#     creating a Release.
+#   - Manual runs (workflow_dispatch, e.g. from the GitHub mobile app via
+#     Actions → CI → "Run workflow") refresh the rolling build (main only)
+#     and build the release artifacts without creating a Release.
 on:
   push:
-    branches: [ main, "claude/**" ]
+    branches: [ "**" ]
     tags: [ "v*" ]
   pull_request:
     branches: [ main ]
@@ -117,6 +119,83 @@ jobs:
           path: "**/build/reports/androidTests/**"
           if-no-files-found: ignore
 
+  # Publishes a one-tap-installable APK to a rolling "Latest build" GitHub
+  # Release, but only after every check above passes (lint + unit + E2E), and
+  # only for the main branch (push or the manual "Run workflow" button).
+  publish:
+    name: Publish latest APK
+    needs: [ verify, instrumented ]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so commit count can serve as the versionCode below.
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      # Stamp each rolling build so it is distinguishable from the previous
+      # one: versionCode = commit count (monotonically increasing, so Android
+      # offers an in-place update instead of refusing), versionName carries the
+      # short commit SHA (visible in Android's App info), and the release title
+      # carries the build date.
+      - name: Compute build stamp
+        run: |
+          echo "VERSION_CODE=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')" >> "$GITHUB_ENV"
+
+      - name: Assemble debug APK
+        run: |
+          ./gradlew assembleDebug \
+            -PappVersionCode="$VERSION_CODE" \
+            -PappVersionName="0.1.0+$SHORT_SHA" \
+            --stacktrace
+
+      # Stable asset name so the README "Download APK" link is a permalink:
+      # https://github.com/<owner>/<repo>/releases/latest/download/pdf-app.apk
+      - name: Stage APK with stable name
+        run: cp app/build/outputs/apk/debug/app-debug.apk pdf-app.apk
+
+      # GitHub displays a release's original creation date forever — merely
+      # swapping the asset kept showing "released weeks ago" for fresh builds.
+      # Deleting the rolling release (and its tag) right before publishing
+      # makes the next step create it anew, so the displayed date is always
+      # the build date. The permalink above is tag-based and unaffected.
+      - name: Delete previous "Latest build" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete latest --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+
+      - name: Publish to "Latest build" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Latest build — ${{ env.BUILD_DATE }}"
+          body: |
+            Built **${{ env.BUILD_DATE }}** from commit `${{ env.SHORT_SHA }}` on `main`
+            after all checks passed. Installed version shows as
+            `0.1.0+${{ env.SHORT_SHA }}` (versionCode ${{ env.VERSION_CODE }})
+            in Android's App info.
+
+            **[⬇️ Download pdf-app.apk](https://github.com/${{ github.repository }}/releases/latest/download/pdf-app.apk)** and sideload it on your device.
+            New builds install directly over previous ones — no uninstall needed.
+          files: pdf-app.apk
+          make_latest: true
+
   release:
     name: Build + publish release
     # Only tag pushes and manual dispatches; verify must be green first. The
@@ -130,6 +209,11 @@ jobs:
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: versionCode = commit count, the same scheme the
+          # rolling "Latest build" job uses, so a tagged release always
+          # outranks any rolling build already installed on a device.
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -164,7 +248,7 @@ jobs:
           fi
           ./gradlew :app:assembleRelease :app:bundleRelease \
             -PappVersionName="$VERSION_NAME" \
-            -PappVersionCode="${GITHUB_RUN_NUMBER}" \
+            -PappVersionCode="$(git rev-list --count HEAD)" \
             --stacktrace
 
       - name: Collect artifacts

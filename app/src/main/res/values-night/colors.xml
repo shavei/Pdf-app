@@ -1,0 +1,4 @@
+<resources>
+    <!-- Pre-Compose window background (dark). Matches PdfAppTheme's surface. -->
+    <color name="window_background">#121318</color>
+</resources>

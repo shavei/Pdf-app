@@ -1,21 +1,22 @@
 package com.pdfapp.ui
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,8 +26,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pdfapp.R
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.overlay.OverlayCanvasView
 import com.pdfapp.overlay.model.OverlayLayer
@@ -41,7 +45,10 @@ import com.pdfapp.overlay.model.TextOverlay
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
+fun PdfEditorScreen(
+    initialUri: Uri? = null,
+    viewModel: PdfEditorViewModel = viewModel(),
+) {
     val context = LocalContext.current
     var canvasView by remember { mutableStateOf<OverlayCanvasView?>(null) }
     var mode by remember { mutableStateOf(OverlayCanvasView.Mode.INK) }
@@ -64,6 +71,10 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
             }
         }
 
+    LaunchedEffect(initialUri) {
+        initialUri?.let { viewModel.openInitial(context, it) }
+    }
+
     val rendered = viewModel.renderedPage
     LaunchedEffect(rendered, canvasView) {
         val view = canvasView ?: return@LaunchedEffect
@@ -84,7 +95,16 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("PDF-App") }) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.SemiBold) },
+                colors =
+                    TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -117,25 +137,26 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
                 )
             }
 
-            Box(modifier = Modifier.fillMaxSize().weight(1f)) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .horizontalScroll(rememberScrollState()),
-                ) {
-                    AndroidView(
-                        factory = { ctx ->
-                            OverlayCanvasView(ctx).also { view ->
-                                view.onTextPlacementRequested = { point -> pendingTextPoint = point }
-                                view.onTextEditRequested = { overlay -> editingText = overlay }
-                                view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
-                                canvasView = view
-                            }
-                        },
-                    )
-                }
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+            ) {
+                // The canvas view fills the area and handles pinch-zoom and
+                // panning itself, so no scroll containers wrap it.
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx ->
+                        OverlayCanvasView(ctx).also { view ->
+                            view.onTextPlacementRequested = { point -> pendingTextPoint = point }
+                            view.onTextEditRequested = { overlay -> editingText = overlay }
+                            view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
+                            canvasView = view
+                        }
+                    },
+                )
                 if (viewModel.busy) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
