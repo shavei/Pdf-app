@@ -158,6 +158,16 @@ jobs:
       - name: Stage APK with stable name
         run: cp app/build/outputs/apk/debug/app-debug.apk pdf-app.apk
 
+      # GitHub displays a release's original creation date forever — merely
+      # swapping the asset kept showing "released weeks ago" for fresh builds.
+      # Deleting the rolling release (and its tag) right before publishing
+      # makes the next step create it anew, so the displayed date is always
+      # the build date. The permalink above is tag-based and unaffected.
+      - name: Delete previous "Latest build" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete latest --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+
       - name: Publish to "Latest build" release
         uses: softprops/action-gh-release@v2
         with:
