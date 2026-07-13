@@ -28,6 +28,18 @@ android {
     }
 
     signingConfigs {
+        // Debug builds sign with the keystore committed at config/debug.keystore
+        // instead of each machine's auto-generated one. Without a stable key,
+        // every CI runner produces a differently-signed APK and Android refuses
+        // to install a new "Latest build" over the previous one. This key is
+        // intentionally public (sideload/debug only); Play releases use the
+        // separate release keystore from CI secrets.
+        getByName("debug") {
+            storeFile = rootProject.file("config/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (releaseKeystore != null) {
             create("release") {
                 storeFile = file(releaseKeystore)

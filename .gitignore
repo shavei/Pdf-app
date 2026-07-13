@@ -13,3 +13,7 @@ captures/
 *.keystore
 *.jks
 key.properties
+# The shared CI/debug signing key is deliberately committed (sideload installs
+# fail on signature mismatch when every build signs with a fresh key). The
+# release keystore stays in CI secrets and remains ignored above.
+!config/debug.keystore

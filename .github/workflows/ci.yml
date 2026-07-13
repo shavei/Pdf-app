@@ -119,6 +119,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so commit count can serve as the versionCode below.
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -132,8 +135,23 @@ jobs:
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
+      # Stamp each rolling build so it is distinguishable from the previous
+      # one: versionCode = commit count (monotonically increasing, so Android
+      # offers an in-place update instead of refusing), versionName carries the
+      # short commit SHA (visible in Android's App info), and the release title
+      # carries the build date.
+      - name: Compute build stamp
+        run: |
+          echo "VERSION_CODE=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')" >> "$GITHUB_ENV"
+
       - name: Assemble debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          ./gradlew assembleDebug \
+            -PappVersionCode="$VERSION_CODE" \
+            -PappVersionName="0.1.0+$SHORT_SHA" \
+            --stacktrace
 
       # Stable asset name so the README "Download APK" link is a permalink:
       # https://github.com/<owner>/<repo>/releases/latest/download/pdf-app.apk
@@ -144,11 +162,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: Latest build
+          name: "Latest build — ${{ env.BUILD_DATE }}"
           body: |
-            Automatically built from the latest commit on `main`
-            (`${{ github.sha }}`) after all checks passed.
+            Built **${{ env.BUILD_DATE }}** from commit `${{ env.SHORT_SHA }}` on `main`
+            after all checks passed. Installed version shows as
+            `0.1.0+${{ env.SHORT_SHA }}` (versionCode ${{ env.VERSION_CODE }})
+            in Android's App info.
 
             **[⬇️ Download pdf-app.apk](https://github.com/${{ github.repository }}/releases/latest/download/pdf-app.apk)** and sideload it on your device.
+            New builds install directly over previous ones — no uninstall needed.
           files: pdf-app.apk
           make_latest: true
