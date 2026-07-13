@@ -30,6 +30,8 @@ import java.io.File
 class PdfTestHarnessTest {
     private val overlayText = "PDF-TEST-OVERLAY"
 
+    private fun flattener() = PdfFlattener(RuntimeEnvironment.getApplication())
+
     @Before
     fun setUp() {
         PDFBoxResourceLoader.init(RuntimeEnvironment.getApplication())
@@ -57,7 +59,7 @@ class PdfTestHarnessTest {
                     )
 
             // 3. Flatten and 4. save through the production code paths.
-            PdfFlattener().flattenInto(document, layer)
+            flattener().flattenInto(document, layer)
             PdfSaver().writeTo(document, file.outputStream())
             document.close()
 
@@ -84,11 +86,85 @@ class PdfTestHarnessTest {
     }
 
     @Test
+    fun `hebrew text overlay survives the flatten and save round trip`() {
+        // Regression test for the Save crash "U+05D9 ('afii57673') is not
+        // available in the font Helvetica": non-WinAnsi text must fall back to
+        // the bundled Unicode font instead of throwing.
+        val hebrew = "שלום עולם"
+        val file = File.createTempFile("harness-hebrew", ".pdf")
+        try {
+            val document = PDDocument().apply { addPage(PDPage(PDRectangle.A4)) }
+            val layer =
+                OverlayLayer(pageIndex = 0)
+                    .withText(TextOverlay(hebrew, PdfPoint(x = 72f, y = 720f)))
+
+            flattener().flattenInto(document, layer)
+            PdfSaver().writeTo(document, file.outputStream())
+            document.close()
+
+            PDDocument.load(file).use { reloaded ->
+                val extracted = PDFTextStripper().getText(reloaded)
+                // Glyphs are placed in visual order, so depending on the
+                // stripper's own bidi handling the text comes back in logical
+                // or visual (reversed) order — either proves the round trip.
+                assertThat(
+                    extracted.contains(hebrew) || extracted.contains(hebrew.reversed()),
+                ).isTrue()
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
+    fun `mixed latin and hebrew text overlay flattens without error`() {
+        val mixed = "Signed by יעל on 2026-07-13"
+        val file = File.createTempFile("harness-mixed", ".pdf")
+        try {
+            val document = PDDocument().apply { addPage(PDPage(PDRectangle.A4)) }
+            val layer =
+                OverlayLayer(pageIndex = 0)
+                    .withText(TextOverlay(mixed, PdfPoint(x = 72f, y = 680f)))
+
+            flattener().flattenInto(document, layer)
+            PdfSaver().writeTo(document, file.outputStream())
+            document.close()
+
+            PDDocument.load(file).use { reloaded ->
+                val extracted = PDFTextStripper().getText(reloaded)
+                assertThat(extracted).contains("Signed by")
+                assertThat(extracted).contains("יעל")
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
+    fun `latin-only text still uses built-in helvetica without embedding a font file`() {
+        val file = File.createTempFile("harness-latin", ".pdf")
+        try {
+            val document = PDDocument().apply { addPage(PDPage(PDRectangle.A4)) }
+            val layer =
+                OverlayLayer(pageIndex = 0)
+                    .withText(TextOverlay(overlayText, PdfPoint(x = 72f, y = 720f)))
+            flattener().flattenInto(document, layer)
+            PdfSaver().writeTo(document, file.outputStream())
+            document.close()
+
+            // Pure-Latin output must stay small: no embedded font program.
+            assertThat(file.length()).isLessThan(EMBEDDED_FONT_THRESHOLD_BYTES)
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun `flattening an empty layer leaves the page text unchanged`() {
         val file = File.createTempFile("harness-empty", ".pdf")
         try {
             val document = PDDocument().apply { addPage(PDPage(PDRectangle.A4)) }
-            PdfFlattener().flattenInto(document, OverlayLayer(pageIndex = 0))
+            flattener().flattenInto(document, OverlayLayer(pageIndex = 0))
             PdfSaver().writeTo(document, file.outputStream())
             document.close()
 
@@ -104,5 +180,9 @@ class PdfTestHarnessTest {
         // A standalone PDF stroke operator "S" surrounded by whitespace — avoids
         // matching the "S" inside the overlay text string "PDF-TEST-OVERLAY".
         val STROKE_OPERATOR = Regex("""(^|\s)S(\s|$)""")
+
+        // A blank page + Helvetica text is ~1 KB; even a subset font program
+        // adds tens of KB. Anything under this cannot contain an embedded font.
+        const val EMBEDDED_FONT_THRESHOLD_BYTES = 10_000L
     }
 }

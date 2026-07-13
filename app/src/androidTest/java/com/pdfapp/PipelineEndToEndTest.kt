@@ -71,7 +71,7 @@ class PipelineEndToEndTest {
                     )
             context.contentResolver.openInputStream(uri)!!.use { input ->
                 PDDocument.load(input).use { pdf ->
-                    PdfFlattener().flattenInto(pdf, layer)
+                    PdfFlattener(context).flattenInto(pdf, layer)
                     PdfSaver().writeTo(pdf, outFile.outputStream())
                 }
             }

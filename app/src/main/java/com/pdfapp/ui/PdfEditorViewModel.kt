@@ -137,7 +137,7 @@ class PdfEditorViewModel : ViewModel() {
                         ?: error("Unable to open source PDF")
                 input.use { stream ->
                     PDDocument.load(stream).use { pdf ->
-                        val flattener = PdfFlattener()
+                        val flattener = PdfFlattener(context)
                         document.nonEmptyLayers.forEach { flattener.flattenInto(pdf, it) }
                         PdfSaver().saveToUri(context.contentResolver, destUri, pdf)
                     }
