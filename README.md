@@ -4,9 +4,12 @@
 
 ### 📲 [**Download the latest APK**](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
 
+<!-- Static badges only: dynamic shields.io badges (release version, CI status)
+     query the GitHub API anonymously and always show "repo not found" while
+     this repo is private. The build date/commit live in the release itself. -->
 [![Download APK](https://img.shields.io/badge/Download-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
-[![Latest build](https://img.shields.io/github/v/release/shavei/Pdf-app?include_prereleases&label=latest%20build&style=for-the-badge)](https://github.com/shavei/Pdf-app/releases/latest)
-[![CI](https://img.shields.io/github/actions/workflow/status/shavei/Pdf-app/ci.yml?branch=main&style=for-the-badge)](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml)
+[![Latest build](https://img.shields.io/badge/Latest%20build-releases-blue?style=for-the-badge&logo=github)](https://github.com/shavei/Pdf-app/releases/latest)
+[![CI](https://img.shields.io/badge/CI-workflow%20runs-555?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml)
 
 > Tap **Download the latest APK** above, then open the file on your Android phone
 > to install (you may need to allow "install from unknown sources"). Every push
