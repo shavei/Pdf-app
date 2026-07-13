@@ -1,14 +1,27 @@
 name: CI
 
+# One pipeline for everything:
+#   - Branch pushes / PRs: lint + unit + debug build, plus emulator E2E.
+#   - Tag `vX.Y.Z`: same checks, then a signed release build published as a
+#     GitHub Release (gated on the verify job; E2E runs but does not block).
+#   - Manual runs (workflow_dispatch) build the release artifacts without
+#     creating a Release.
 on:
   push:
     branches: [ main, "claude/**" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded branch/PR runs are cancelled; a tagged release build always
+  # runs to completion.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   verify:
@@ -103,3 +116,75 @@ jobs:
           name: androidTest-reports
           path: "**/build/reports/androidTests/**"
           if-no-files-found: ignore
+
+  release:
+    name: Build + publish release
+    # Only tag pushes and manual dispatches; verify must be green first. The
+    # emulator E2E job runs alongside for coverage but does not gate a release.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      # Decode the signing keystore from a secret, if configured. Without it the
+      # build falls back to debug signing (installable, but not Play-ready).
+      - name: Decode keystore
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+
+      - name: Build release APK + AAB
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+          else
+            VERSION_NAME="0.1.0"
+          fi
+          ./gradlew :app:assembleRelease :app:bundleRelease \
+            -PappVersionName="$VERSION_NAME" \
+            -PappVersionCode="${GITHUB_RUN_NUMBER}" \
+            --stacktrace
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/*.apk dist/ 2>/dev/null || true
+          cp app/build/outputs/bundle/release/*.aab dist/ 2>/dev/null || true
+          ls -la dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist/**
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**
+          generate_release_notes: true
+          fail_on_unmatched_files: true
