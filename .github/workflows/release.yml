@@ -18,6 +18,11 @@ jobs:
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: versionCode = commit count, the same scheme the CI
+          # "Latest build" job uses, so a tagged release always outranks any
+          # rolling build already installed on a device.
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -48,7 +53,7 @@ jobs:
           VERSION_NAME="${GITHUB_REF_NAME#v}"
           ./gradlew :app:assembleRelease :app:bundleRelease \
             -PappVersionName="${VERSION_NAME:-0.1.0}" \
-            -PappVersionCode="${GITHUB_RUN_NUMBER}" \
+            -PappVersionCode="$(git rev-list --count HEAD)" \
             --stacktrace
 
       - name: Collect artifacts
