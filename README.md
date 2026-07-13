@@ -1,8 +1,52 @@
 # PDF-App
 
-A native Android app for viewing PDFs, adding **text overlays**, and applying a
-hand-drawn **ink signature**, then flattening and saving the result back to
-storage. Offline-first, open-source libraries only.
+**View, sign, and annotate PDFs on Android — fully offline, no ads, no tracking.**
+
+[![CI](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml/badge.svg)](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/shavei/Pdf-app)](https://github.com/shavei/Pdf-app/releases/latest)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
+A native Android (Kotlin) app for opening a PDF, adding **text overlays**, drawing a
+hand-drawn **ink signature**, and saving a flattened copy back to your storage.
+Everything runs on-device with open-source libraries only.
+
+## Features
+
+- 📄 **View PDFs** — open any PDF via the system file picker and navigate its pages.
+- ✍️ **Sign** — draw your signature with your finger; pick ink color and stroke width.
+- 🔤 **Add text** — tap to place text anywhere on the page; choose size and color.
+- ✏️ **Edit & move** — drag placed text to reposition it, tap to edit or delete it.
+- ↩️ **Undo & clear** — step back a stroke or wipe the page's overlays.
+- 💾 **Save a flattened copy** — overlays are baked into a new PDF; your original is untouched.
+- 🔒 **Private by design** — works completely offline, no ads, no telemetry, no account.
+
+## Download
+
+Grab the latest `.apk` from the [Releases page](https://github.com/shavei/Pdf-app/releases/latest)
+and sideload it on your device (Android 5.0 / API 21 or newer). Every CI run also
+uploads an `app-debug-apk` artifact (Actions → pick a run → *Artifacts*) for quick testing.
+
+## Build from source
+
+Requirements: JDK 17+, Android SDK (compileSdk 35) — set `ANDROID_HOME` or add
+`local.properties` with `sdk.dir`.
+
+```bash
+./gradlew assembleDebug          # build the APK
+./gradlew testDebugUnitTest      # unit tests (incl. PDF-Test-Harness)
+./gradlew ktlintCheck detekt lintDebug   # static analysis (Lint layer)
+./gradlew connectedDebugAndroidTest      # E2E (needs a device/emulator)
+```
+
+See [`docs/RELEASING.md`](docs/RELEASING.md) for how to cut a release and the
+signing secrets to configure.
+
+## Tech stack
+
+- **View:** `android.graphics.pdf.PdfRenderer` (API 21+)
+- **Overlay/Ink:** `android.graphics.Canvas` in a custom `View`
+- **Write-back:** [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) (Apache-2.0) — `PdfRenderer` is read-only and cannot save
+- **Storage:** Storage Access Framework (SAF) — no broad storage permissions
 
 ## Architecture
 
@@ -25,28 +69,12 @@ overlay positions are stored in **PDF points** so they are resolution-independen
 conversion happens only at the View boundary via `CoordinateMapper`. This is the
 single source of truth and is the most heavily unit-tested class in the project.
 
-## Tech stack
-
-- **View:** `android.graphics.pdf.PdfRenderer` (API 21+)
-- **Overlay/Ink:** `android.graphics.Canvas` in a custom `View`
-- **Write-back:** [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) (Apache-2.0) — `PdfRenderer` is read-only and cannot save
-- **Storage:** Storage Access Framework (SAF)
-
-## Build & verify
-
-```bash
-./gradlew assembleDebug          # build the APK
-./gradlew testDebugUnitTest      # unit tests (incl. PDF-Test-Harness)
-./gradlew ktlintCheck detekt lintDebug   # static analysis (Lint layer)
-./gradlew connectedDebugAndroidTest      # E2E (needs a device/emulator)
-```
-
-### Verification stack
+## Testing
 
 A feature is **Done** only when all three layers pass (enforced in CI):
 
 1. **Lint** — `ktlint` + `detekt` + Android `lintDebug`.
-2. **Unit** — JUnit + Robolectric, focused on `CoordinateMapper`, overlay models, and `PdfFlattener`.
+2. **Unit** — JUnit + Robolectric, focused on `CoordinateMapper`, overlay models, touch handling, and `PdfFlattener`.
 3. **E2E signature validation** — Espresso; its headless core is the **PDF-Test-Harness** (verifies a flattened text overlay + signature round-trips through save/reload).
 
 ### PDF-Test-Harness
@@ -61,24 +89,21 @@ page content (the ink is flattened as vector strokes). Run it with:
 ./gradlew :file-persistence:testDebugUnitTest --tests "*PdfTestHarness*"
 ```
 
-## Download
+## Roadmap
 
-- **Releases** — tagged builds (signed APK + AAB) are published on the
-  [Releases page](../../releases). Download the `.apk` to sideload on a device.
-- **Latest debug build** — every CI run uploads an `app-debug-apk` artifact
-  (Actions → pick a run → *Artifacts*) for quick testing.
+The core flow is feature-complete: open a PDF, navigate pages, add styled text
+and a hand-drawn signature, move/edit placed text, undo/clear, and save a
+flattened copy via SAF. Cryptographic/PAdES signing remains a future extension.
 
-See [`docs/RELEASING.md`](docs/RELEASING.md) for how to cut a release and the
-signing secrets to configure.
+## Contributing
 
-## Status
+Issues and pull requests are welcome. Before submitting, make sure all three
+verification layers pass locally (see [Testing](#testing)); CI enforces them on
+every PR.
 
-Feature-complete for the core flow: open a PDF, navigate pages, add styled text
-and a hand-drawn signature, undo/clear, and save a flattened copy via SAF.
-Verification runs as three CI layers (Lint, Unit + PDF-Test-Harness, and an
-on-device emulator E2E). Cryptographic/PAdES signing remains a future extension.
+## License
 
-## Requirements
+Licensed under the [Apache License 2.0](LICENSE).
 
-- JDK 17+
-- Android SDK (compileSdk 35); set `ANDROID_HOME` or add `local.properties` with `sdk.dir`.
+Built with [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) by Tom Roush
+(Apache-2.0).
