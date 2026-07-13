@@ -54,6 +54,7 @@ single source of truth and is the most heavily unit-tested class in the project.
 - **View:** `android.graphics.pdf.PdfRenderer` (API 21+)
 - **Overlay/Ink:** `android.graphics.Canvas` in a custom `View`
 - **Write-back:** [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) (Apache-2.0) — `PdfRenderer` is read-only and cannot save
+- **Text overlays beyond Latin-1:** bundled [Arimo](https://github.com/googlefonts/Arimo) font (SIL OFL 1.1) embedded as a subset — the built-in Helvetica only covers WinAnsi, so Hebrew/Greek/Cyrillic text falls back to Arimo, with RTL runs reordered to visual order before flattening
 - **Storage:** Storage Access Framework (SAF)
 
 ## Build & verify
@@ -117,4 +118,5 @@ Cryptographic/PAdES signing remains a future extension.
 
 Licensed under the [Apache License 2.0](LICENSE). The app bundles
 [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android), which is also
-licensed under Apache-2.0.
+licensed under Apache-2.0, and the [Arimo](https://github.com/googlefonts/Arimo)
+font, licensed under the [SIL Open Font License 1.1](file-persistence/src/main/assets/fonts/Arimo-OFL.txt).
