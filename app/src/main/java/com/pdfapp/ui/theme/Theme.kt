@@ -9,12 +9,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * App theme. Prefers Material You **dynamic colour** (palette derived from the
- * user's wallpaper) on Android 12+, and otherwise falls back to the static
- * indigo brand palette. Follows the system light/dark setting.
+ * Signet's app theme. Prefers Material You **dynamic colour** (palette derived
+ * from the user's wallpaper) on Android 12+, and otherwise falls back to the
+ * static indigo brand palette. Follows the system light/dark setting.
  */
 @Composable
-fun PdfAppTheme(
+fun SignetTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit,

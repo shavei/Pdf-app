@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Signet launcher foreground: a document sheet with a folded corner and a
+     flowing coral signature stroke. Content stays inside the 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Sheet with folded top-right corner. -->
+    <path
+        android:pathData="M40,27 H64 L72,35 V77 A4,4 0 0 1 68,81 H40 A4,4 0 0 1 36,77 V31 A4,4 0 0 1 40,27 Z"
+        android:fillColor="#F8FAFD" />
+    <!-- Fold shadow. -->
+    <path
+        android:pathData="M64,27 L72,35 H66 A2,2 0 0 1 64,33 Z"
+        android:fillColor="#C9D3E6" />
+    <!-- Body-text placeholder bars. -->
+    <path
+        android:pathData="M42,40 H60 V43 H42 Z M42,47 H66 V50 H42 Z"
+        android:fillColor="#C9D3E6" />
+    <!-- Signature flourish. -->
+    <path
+        android:pathData="M34,67 C43,54 47,76 55,65 C60,58 61,67 72,60"
+        android:strokeColor="#FF6B4A"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>

@@ -14,6 +14,9 @@ data class OverlayLayer(
 
     fun withText(text: TextOverlay): OverlayLayer = copy(texts = texts + text)
 
+    /** Replace the text overlay sharing [text]'s id, preserving its position in the list. */
+    fun updateText(text: TextOverlay): OverlayLayer = copy(texts = texts.map { if (it.id == text.id) text else it })
+
     fun withSignature(signature: InkSignature): OverlayLayer = copy(signatures = signatures + signature)
 
     fun removeText(id: String): OverlayLayer = copy(texts = texts.filterNot { it.id == id })

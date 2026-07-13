@@ -1,4 +1,6 @@
-# PDF-App
+# Signet
+
+**View, sign, and annotate PDFs on Android — fully offline, no ads, no tracking.**
 
 ### 📲 [**Download the latest APK**](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
 
@@ -14,6 +16,17 @@
 A native Android app for viewing PDFs, adding **text overlays**, and applying a
 hand-drawn **ink signature**, then flattening and saving the result back to
 storage. Offline-first, open-source libraries only.
+
+## Features
+
+- 📄 **View PDFs** — open any PDF via the system file picker and navigate its pages.
+- 🔍 **Pinch to zoom** — zoom and pan the page with touch; two fingers always work, even mid-signature.
+- ✍️ **Sign** — draw your signature with your finger; pick ink color and stroke width.
+- 🔤 **Add text** — tap to place text anywhere on the page; choose size and color.
+- ✏️ **Edit & move** — drag placed text to reposition it, tap to edit or delete it.
+- ↩️ **Undo & clear** — step back a stroke or wipe the page's overlays.
+- 💾 **Save a flattened copy** — overlays are baked into a new PDF; your original is untouched.
+- 🔒 **Private by design** — works completely offline, no ads, no telemetry, no account.
 
 ## Architecture
 
@@ -57,7 +70,7 @@ single source of truth and is the most heavily unit-tested class in the project.
 A feature is **Done** only when all three layers pass (enforced in CI):
 
 1. **Lint** — `ktlint` + `detekt` + Android `lintDebug`.
-2. **Unit** — JUnit + Robolectric, focused on `CoordinateMapper`, overlay models, and `PdfFlattener`.
+2. **Unit** — JUnit + Robolectric, focused on `CoordinateMapper`, overlay models, touch handling, and `PdfFlattener`.
 3. **E2E signature validation** — Espresso; its headless core is the **PDF-Test-Harness** (verifies a flattened text overlay + signature round-trips through save/reload).
 
 ### PDF-Test-Harness
@@ -89,10 +102,11 @@ signing secrets to configure.
 
 ## Status
 
-Feature-complete for the core flow: open a PDF, navigate pages, add styled text
-and a hand-drawn signature, undo/clear, and save a flattened copy via SAF.
-Verification runs as three CI layers (Lint, Unit + PDF-Test-Harness, and an
-on-device emulator E2E). Cryptographic/PAdES signing remains a future extension.
+Feature-complete for the core flow: open a PDF, zoom and pan with touch,
+navigate pages, add styled text and a hand-drawn signature, move/edit placed
+text, undo/clear, and save a flattened copy via SAF. Verification runs as three
+CI layers (Lint, Unit + PDF-Test-Harness, and an on-device emulator E2E).
+Cryptographic/PAdES signing remains a future extension.
 
 ## Requirements
 
@@ -101,6 +115,6 @@ on-device emulator E2E). Cryptographic/PAdES signing remains a future extension.
 
 ## License
 
-Released under the [MIT License](LICENSE). The app bundles
-[PdfBox-Android](https://github.com/TomRoush/PdfBox-Android), which is licensed
-under Apache-2.0.
+Licensed under the [Apache License 2.0](LICENSE). The app bundles
+[PdfBox-Android](https://github.com/TomRoush/PdfBox-Android), which is also
+licensed under Apache-2.0.

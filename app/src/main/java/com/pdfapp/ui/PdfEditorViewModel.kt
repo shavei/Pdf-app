@@ -167,7 +167,8 @@ class PdfEditorViewModel : ViewModel() {
     }
 
     private companion object {
-        const val RENDER_SCALE = 2f
+        // 3 px/pt ≈ 216 dpi keeps the page crisp while pinch-zoomed in.
+        const val RENDER_SCALE = 3f
         const val MIN_STROKE_PT = 1f
         const val MAX_STROKE_PT = 8f
         const val MIN_TEXT_PT = 8f

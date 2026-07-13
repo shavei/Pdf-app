@@ -3,13 +3,10 @@ package com.pdfapp.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,9 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pdfapp.R
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.overlay.OverlayCanvasView
 import com.pdfapp.overlay.model.OverlayLayer
@@ -50,6 +49,7 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
     var canvasView by remember { mutableStateOf<OverlayCanvasView?>(null) }
     var mode by remember { mutableStateOf(OverlayCanvasView.Mode.INK) }
     var pendingTextPoint by remember { mutableStateOf<PdfPoint?>(null) }
+    var editingText by remember { mutableStateOf<TextOverlay?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val openLauncher =
@@ -89,7 +89,7 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("PDF-App", fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.SemiBold) },
                 colors =
                     TopAppBarDefaults.centerAlignedTopAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -136,23 +136,19 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
                         .weight(1f)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
             ) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .horizontalScroll(rememberScrollState()),
-                ) {
-                    AndroidView(
-                        factory = { ctx ->
-                            OverlayCanvasView(ctx).also { view ->
-                                view.onTextPlacementRequested = { point -> pendingTextPoint = point }
-                                view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
-                                canvasView = view
-                            }
-                        },
-                    )
-                }
+                // The canvas view fills the area and handles pinch-zoom and
+                // panning itself, so no scroll containers wrap it.
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx ->
+                        OverlayCanvasView(ctx).also { view ->
+                            view.onTextPlacementRequested = { point -> pendingTextPoint = point }
+                            view.onTextEditRequested = { overlay -> editingText = overlay }
+                            view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
+                            canvasView = view
+                        }
+                    },
+                )
                 if (viewModel.busy) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
@@ -176,6 +172,27 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
                         )
                 }
                 pendingTextPoint = null
+            },
+        )
+    }
+
+    editingText?.let { overlay ->
+        TextEntryDialog(
+            title = "Edit text",
+            confirmLabel = "Save",
+            initialText = overlay.text,
+            onDismiss = { editingText = null },
+            onConfirm = { text ->
+                canvasView?.let { view ->
+                    view.layer = view.layer.updateText(overlay.copy(text = text))
+                }
+                editingText = null
+            },
+            onDelete = {
+                canvasView?.let { view ->
+                    view.layer = view.layer.removeText(overlay.id)
+                }
+                editingText = null
             },
         )
     }

@@ -59,15 +59,21 @@ fun EditorToolbar(
             SegmentedButton(
                 selected = mode == OverlayCanvasView.Mode.INK,
                 onClick = { onModeChange(OverlayCanvasView.Mode.INK) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
                 enabled = enabled,
             ) { Text("Sign") }
             SegmentedButton(
                 selected = mode == OverlayCanvasView.Mode.TEXT,
                 onClick = { onModeChange(OverlayCanvasView.Mode.TEXT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
                 enabled = enabled,
             ) { Text("Text") }
+            SegmentedButton(
+                selected = mode == OverlayCanvasView.Mode.EDIT,
+                onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
+                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                enabled = enabled,
+            ) { Text("Edit") }
         }
         OutlinedButton(onClick = onCommitInk, enabled = enabled) { Text("Apply ink") }
         OutlinedButton(onClick = onUndo, enabled = enabled) { Text("Undo") }
