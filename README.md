@@ -1,4 +1,4 @@
-# PDF-App
+# Signet
 
 **View, sign, and annotate PDFs on Android — fully offline, no ads, no tracking.**
 
@@ -13,6 +13,7 @@ Everything runs on-device with open-source libraries only.
 ## Features
 
 - 📄 **View PDFs** — open any PDF via the system file picker and navigate its pages.
+- 🔍 **Pinch to zoom** — zoom and pan the page with touch; two fingers always work, even mid-signature.
 - ✍️ **Sign** — draw your signature with your finger; pick ink color and stroke width.
 - 🔤 **Add text** — tap to place text anywhere on the page; choose size and color.
 - ✏️ **Edit & move** — drag placed text to reposition it, tap to edit or delete it.

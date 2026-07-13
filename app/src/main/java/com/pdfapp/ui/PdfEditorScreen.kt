@@ -2,13 +2,10 @@ package com.pdfapp.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -25,8 +22,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pdfapp.R
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.overlay.OverlayCanvasView
 import com.pdfapp.overlay.model.OverlayLayer
@@ -84,7 +83,7 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("PDF-App") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -118,24 +117,19 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
             }
 
             Box(modifier = Modifier.fillMaxSize().weight(1f)) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .horizontalScroll(rememberScrollState()),
-                ) {
-                    AndroidView(
-                        factory = { ctx ->
-                            OverlayCanvasView(ctx).also { view ->
-                                view.onTextPlacementRequested = { point -> pendingTextPoint = point }
-                                view.onTextEditRequested = { overlay -> editingText = overlay }
-                                view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
-                                canvasView = view
-                            }
-                        },
-                    )
-                }
+                // The canvas view fills the area and handles pinch-zoom and
+                // panning itself, so no scroll containers wrap it.
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx ->
+                        OverlayCanvasView(ctx).also { view ->
+                            view.onTextPlacementRequested = { point -> pendingTextPoint = point }
+                            view.onTextEditRequested = { overlay -> editingText = overlay }
+                            view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
+                            canvasView = view
+                        }
+                    },
+                )
                 if (viewModel.busy) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
