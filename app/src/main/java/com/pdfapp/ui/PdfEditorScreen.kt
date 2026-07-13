@@ -1,5 +1,6 @@
 package com.pdfapp.ui
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -44,7 +45,10 @@ import com.pdfapp.overlay.model.TextOverlay
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
+fun PdfEditorScreen(
+    initialUri: Uri? = null,
+    viewModel: PdfEditorViewModel = viewModel(),
+) {
     val context = LocalContext.current
     var canvasView by remember { mutableStateOf<OverlayCanvasView?>(null) }
     var mode by remember { mutableStateOf(OverlayCanvasView.Mode.INK) }
@@ -66,6 +70,10 @@ fun PdfEditorScreen(viewModel: PdfEditorViewModel = viewModel()) {
                 viewModel.save(context, dest)
             }
         }
+
+    LaunchedEffect(initialUri) {
+        initialUri?.let { viewModel.openInitial(context, it) }
+    }
 
     val rendered = viewModel.renderedPage
     LaunchedEffect(rendered, canvasView) {
