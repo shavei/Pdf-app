@@ -6,7 +6,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.OpenableColumns
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -43,7 +42,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** UI state for viewing (continuous reader) and editing a multi-page PDF. */
+/** UI state for viewing (one-page-at-a-time reader) and editing a multi-page PDF. */
 class PdfEditorViewModel(
     application: Application,
 ) : AndroidViewModel(application) {
@@ -62,10 +61,6 @@ class PdfEditorViewModel(
     var session: DocumentSession? by mutableStateOf(null)
         private set
     var mode: ViewerMode by mutableStateOf(ViewerMode.READ)
-        private set
-
-    /** Reader scroll state, recreated per document to restore the last page. */
-    var readerListState: LazyListState by mutableStateOf(LazyListState())
         private set
 
     /** One-shot page the reader should scroll to (search/outline/go-to). */
@@ -375,7 +370,6 @@ class PdfEditorViewModel(
                 ?.lastPageIndex
                 ?.coerceIn(0, opened.pageCount - 1) ?: 0
         currentPageIndex = lastPage
-        readerListState = LazyListState(firstVisibleItemIndex = lastPage)
         mode = ViewerMode.READ
         defaultPageSize = newSession.cache.pageSize(0)
         if (grantPersisted) {

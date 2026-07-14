@@ -72,6 +72,15 @@ class ViewportTransform {
         clampOffsets()
     }
 
+    /**
+     * Zoom to [target] (clamped to the allowed range) about the view centre,
+     * keeping the content currently under the centre fixed. Used for the
+     * reader's fit-width / fit-page presets.
+     */
+    fun setZoom(target: Float) {
+        pinch(viewWidth / 2f, viewHeight / 2f, scaleFactor = target / zoom, deltaX = 0f, deltaY = 0f)
+    }
+
     /** Map a view-space x coordinate into content (bitmap) space. */
     fun toContentX(viewX: Float): Float = (viewX - offsetX) / scale
 

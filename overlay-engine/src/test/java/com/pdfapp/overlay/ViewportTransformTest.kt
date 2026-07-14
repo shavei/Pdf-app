@@ -76,6 +76,24 @@ class ViewportTransformTest {
     }
 
     @Test
+    fun `setZoom scales about the view centre and clamps to bounds`() {
+        transform.setViewSize(400f, 400f)
+        transform.setContentSize(400f, 400f)
+
+        transform.setZoom(4f)
+        assertThat(transform.zoom).isEqualTo(4f)
+        // The content that was under the view centre stays under the centre.
+        assertThat(transform.toContentX(200f)).isWithin(1e-3f).of(200f)
+        assertThat(transform.toContentY(200f)).isWithin(1e-3f).of(200f)
+
+        transform.setZoom(100f)
+        assertThat(transform.zoom).isEqualTo(8f)
+
+        transform.setZoom(0.01f)
+        assertThat(transform.zoom).isEqualTo(1f)
+    }
+
+    @Test
     fun `new content resets zoom and pan`() {
         transform.setViewSize(400f, 400f)
         transform.setContentSize(400f, 400f)

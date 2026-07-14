@@ -53,7 +53,7 @@ import com.pdfapp.ui.reader.ThumbnailSheet
 /**
  * Single-activity screen wiring the three feature modules: open + render
  * (`:core-renderer`), draw overlays (`:overlay-engine`), and flatten + save
- * (`:file-persistence`). An open document starts in the continuous-scroll
+ * (`:file-persistence`). An open document starts in the one-page-at-a-time
  * READ mode (search, outline, selection); EDIT mode hosts the interactive
  * [OverlayCanvasView] for signing and text placement.
  */

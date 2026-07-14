@@ -1,7 +1,7 @@
 package com.pdfapp.ui
 
 /**
- * Top-level mode of an open document: [READ] is the continuous-scroll viewer
+ * Top-level mode of an open document: [READ] is the one-page-at-a-time viewer
  * (search, selection, outline); [EDIT] is the single-page overlay editor
  * (sign, text, move).
  */

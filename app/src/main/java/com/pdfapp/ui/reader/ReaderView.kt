@@ -12,20 +12,18 @@ import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -34,15 +32,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.core.renderer.model.PdfRect
 import com.pdfapp.core.renderer.text.PdfLink
+import com.pdfapp.overlay.ViewportTransform
 import com.pdfapp.ui.PdfEditorViewModel
 import com.pdfapp.ui.ZoomPreset
 import kotlinx.coroutines.delay
@@ -57,15 +59,13 @@ import kotlinx.coroutines.launch
 import kotlin.math.ceil
 
 /**
- * Continuous-scroll reader (plan 2.1): a lazy column of on-demand rendered
- * pages with focal-anchored pinch-zoom and two-finger pan, search-match
- * highlighting, long-press text selection, tappable links, and night-mode page
- * inversion.
- *
- * Zoom drives the page width; the horizontal scroll container and the lazy list
- * carry pan (and their own fling) for single-finger gestures, while a two-finger
- * gesture zooms about — and pans with — its centroid so the content under the
- * fingers stays put.
+ * One-page-at-a-time reader: a [HorizontalPager] whose slots each host a single
+ * page laid out inside the same [ViewportTransform] zoom system the overlay
+ * editor uses — two fingers pinch-zoom and pan, a single finger pans once the
+ * page is zoomed past its fit scale, and swiping between pages is enabled only
+ * while a page sits at fit (so a pan gesture never fights the pager). Search-match
+ * highlighting, long-press text selection, tappable links, night-mode inversion
+ * and crisp high-zoom tiles are preserved.
  */
 @Composable
 fun ReaderView(
@@ -73,105 +73,53 @@ fun ReaderView(
     modifier: Modifier = Modifier,
 ) {
     val session = viewModel.session ?: return
-    val listState = viewModel.readerListState
-
-    // One-shot navigation requests from search / outline / go-to-page.
-    LaunchedEffect(viewModel.pendingReadTarget) {
-        viewModel.pendingReadTarget?.let { target ->
-            listState.scrollToItem(target)
-            viewModel.readTargetConsumed()
-        }
-    }
-    // Track the visible page for the indicator and last-read persistence.
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.firstVisibleItemIndex }
-            .collect { viewModel.onVisiblePageChanged(it) }
-    }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val density = LocalDensity.current
         val viewportWidthPx = constraints.maxWidth.toFloat()
         val viewportHeightPx = constraints.maxHeight.toFloat()
-        val hScrollState = rememberScrollState()
-        var zoom by remember { mutableFloatStateOf(1f) }
 
-        // Crisp tiles follow a *settled* zoom: a live pinch changes [zoom] every
-        // frame, but re-rendering strips each time it crosses an integer level
-        // would stutter the gesture. The stretched base bitmap covers the gap
-        // until the pinch pauses, then the debounced value commits a sharp bucket.
-        var tileZoom by remember { mutableFloatStateOf(1f) }
-        LaunchedEffect(zoom) {
-            delay(TILE_SETTLE_MS)
-            tileZoom = zoom
-        }
-
-        // Fit-width / fit-page presets from the reader menu (plan 2.6).
-        LaunchedEffect(viewModel.pendingZoomPreset) {
-            val preset = viewModel.pendingZoomPreset ?: return@LaunchedEffect
-            zoom =
-                when (preset) {
-                    ZoomPreset.FIT_WIDTH -> 1f
-                    ZoomPreset.FIT_PAGE ->
-                        minOf(
-                            1f,
-                            viewportHeightPx * viewModel.defaultPageSize.widthPt /
-                                (viewportWidthPx * viewModel.defaultPageSize.heightPt),
-                        )
-                }.coerceIn(MIN_ZOOM, MAX_ZOOM)
-            viewModel.zoomPresetConsumed()
-        }
-
-        val pageWidthPx = viewportWidthPx * zoom
-        val spacingPx = with(density) { PAGE_SPACING.dp.toPx() }
-        val pageAspect = viewModel.defaultPageSize.heightPt / viewModel.defaultPageSize.widthPt
-
-        // One pinch/two-finger-pan step: zoom about the gesture centroid and pan
-        // with it, keeping the content under the fingers fixed on both axes. The
-        // horizontal scroll container anchors exactly; the lazy list is anchored
-        // from an estimate of the absolute scroll (uniform page stride).
-        fun onZoomPan(
-            centroid: Offset,
-            pan: Offset,
-            zoomChange: Float,
-        ) {
-            val old = zoom
-            val newZoom = (old * zoomChange).coerceIn(MIN_ZOOM, MAX_ZOOM)
-            val ratio = newZoom / old
-            val hOffset =
-                ReaderZoomMath.horizontalOffset(hScrollState.value.toFloat(), centroid.x, ratio, pan.x)
-            val stridePx = viewportWidthPx * old * pageAspect + spacingPx
-            val vScroll =
-                listState.firstVisibleItemIndex * stridePx + listState.firstVisibleItemScrollOffset
-            val vDelta = ReaderZoomMath.verticalDelta(vScroll, centroid.y, ratio, pan.y)
-            zoom = newZoom
-            hScrollState.dispatchRawDelta(hOffset - hScrollState.value.toFloat())
-            listState.dispatchRawDelta(vDelta)
-        }
-
-        Box(
-            contentAlignment = Alignment.TopCenter,
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .zoomAndPan(onGesture = ::onZoomPan)
-                    .horizontalScroll(hScrollState),
-        ) {
-            LazyColumn(
-                state = listState,
-                verticalArrangement = Arrangement.spacedBy(PAGE_SPACING.dp),
-                modifier =
-                    Modifier.width(with(density) { pageWidthPx.toDp() }),
-            ) {
-                items(count = session.pageCount, key = { it }) { index ->
-                    ReaderPage(
-                        viewModel = viewModel,
-                        pageIndex = index,
-                        pageWidthPx = pageWidthPx,
-                        viewportWidthPx = viewportWidthPx,
-                        tileZoom = tileZoom,
-                    )
-                }
+        // A fresh pager per document so the last-read page is restored and stale
+        // scroll state never carries across a reopen.
+        val pagerState =
+            key(session) {
+                rememberPagerState(
+                    initialPage = viewModel.currentPageIndex.coerceIn(0, (session.pageCount - 1).coerceAtLeast(0)),
+                ) { session.pageCount }
             }
+
+        // One-shot navigation requests from search / outline / go-to-page.
+        LaunchedEffect(viewModel.pendingReadTarget) {
+            viewModel.pendingReadTarget?.let { target ->
+                pagerState.scrollToPage(target)
+                viewModel.readTargetConsumed()
+            }
+        }
+        // Track the visible page for the indicator and last-read persistence.
+        LaunchedEffect(pagerState) {
+            snapshotFlow { pagerState.currentPage }.collect { viewModel.onVisiblePageChanged(it) }
+        }
+
+        // Paging is disabled while the current page is zoomed in, so a one-finger
+        // pan moves the page instead of flipping to the next one. A freshly
+        // settled page always starts at fit, so re-enable on every page change.
+        var currentZoom by remember { mutableFloatStateOf(1f) }
+        LaunchedEffect(pagerState.currentPage) { currentZoom = 1f }
+
+        HorizontalPager(
+            state = pagerState,
+            userScrollEnabled = currentZoom <= FIT_ZOOM_EPSILON,
+            pageSpacing = PAGE_SPACING.dp,
+            modifier = Modifier.fillMaxSize(),
+        ) { index ->
+            ReaderPage(
+                viewModel = viewModel,
+                pageIndex = index,
+                viewportWidthPx = viewportWidthPx,
+                viewportHeightPx = viewportHeightPx,
+                isCurrentPage = index == pagerState.currentPage,
+                zoomPreset = viewModel.pendingZoomPreset,
+                onZoomChanged = { zoom -> if (index == pagerState.currentPage) currentZoom = zoom },
+            )
         }
     }
 }
@@ -181,28 +129,78 @@ fun ReaderView(
 private fun ReaderPage(
     viewModel: PdfEditorViewModel,
     pageIndex: Int,
-    pageWidthPx: Float,
     viewportWidthPx: Float,
-    tileZoom: Float,
+    viewportHeightPx: Float,
+    isCurrentPage: Boolean,
+    zoomPreset: ZoomPreset?,
+    onZoomChanged: (Float) -> Unit,
 ) {
     val session = viewModel.session ?: return
+    val density = LocalDensity.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     val pageSize by produceState(viewModel.defaultPageSize, session, pageIndex) {
         value = session.cache.pageSize(pageIndex)
     }
-    // The base bitmap is always the cheap fit-width render. Zoomed past 1x it
-    // stays visible (stretched) while crisp tiles arrive on top: the page is
-    // cut into ceil(zoom) horizontal strips rendered at the zoom's scale, so
-    // no single high-zoom bitmap ever exceeds roughly a screen in size (2.8).
-    val fitScale = viewportWidthPx / pageSize.widthPt
-    val bucket = ceil(tileZoom.toDouble()).toInt().coerceIn(1, MAX_STRIPS)
-    val bitmap by produceState<ImageBitmap?>(null, session, pageIndex, fitScale) {
-        value = session.cache.page(pageIndex, fitScale).bitmap.asImageBitmap()
+
+    // The page bitmap is rendered to fit the viewport width; the viewport
+    // transform then fits, zooms and pans it inside the slot. Content space is
+    // the bitmap's pixel grid, so overlay/point mapping never depends on zoom.
+    val baseScale = viewportWidthPx / pageSize.widthPt
+    val contentWidthPx = pageSize.widthPt * baseScale
+    val contentHeightPx = pageSize.heightPt * baseScale
+
+    val viewport = remember(pageIndex) { ViewportTransform() }
+
+    // Mirror the (non-observable) transform into Compose state so the graphics
+    // layer and tile bucket recompose as the gesture updates the viewport.
+    var glScale by remember(pageIndex) { mutableFloatStateOf(1f) }
+    var glOffsetX by remember(pageIndex) { mutableFloatStateOf(0f) }
+    var glOffsetY by remember(pageIndex) { mutableFloatStateOf(0f) }
+
+    fun syncTransform() {
+        glScale = viewport.scale
+        glOffsetX = viewport.offsetX
+        glOffsetY = viewport.offsetY
     }
 
-    val pointScale = pageWidthPx / pageSize.widthPt
+    LaunchedEffect(viewportWidthPx, viewportHeightPx, contentWidthPx, contentHeightPx) {
+        viewport.setViewSize(viewportWidthPx, viewportHeightPx)
+        viewport.setContentSize(contentWidthPx, contentHeightPx)
+        syncTransform()
+        onZoomChanged(viewport.zoom)
+    }
+
+    // Fit-width / fit-page presets from the reader menu (plan 2.6), applied to
+    // whichever page is currently showing.
+    LaunchedEffect(zoomPreset, isCurrentPage) {
+        if (!isCurrentPage || zoomPreset == null) return@LaunchedEffect
+        when (zoomPreset) {
+            ZoomPreset.FIT_WIDTH -> viewport.setZoom(1f / viewport.fitScale)
+            ZoomPreset.FIT_PAGE -> viewport.setZoom(1f)
+        }
+        syncTransform()
+        onZoomChanged(viewport.zoom)
+        viewModel.zoomPresetConsumed()
+    }
+
+    // Crisp tiles follow a *settled* scale: a live pinch changes the scale every
+    // frame, but re-rendering strips each time it crosses an integer level would
+    // stutter the gesture. The stretched base bitmap covers the gap until the
+    // pinch pauses, then the debounced value commits a sharp bucket.
+    var settledScale by remember(pageIndex) { mutableFloatStateOf(1f) }
+    LaunchedEffect(glScale) {
+        delay(TILE_SETTLE_MS)
+        settledScale = glScale
+    }
+    val bucket = ceil(settledScale.toDouble()).toInt().coerceIn(1, MAX_STRIPS)
+
+    val bitmap by produceState<ImageBitmap?>(null, session, pageIndex, baseScale) {
+        value = session.cache.page(pageIndex, baseScale).bitmap.asImageBitmap()
+    }
+
+    val pointScale = baseScale
 
     fun toPdfPoint(offset: Offset) = PdfPoint(offset.x / pointScale, pageSize.heightPt - offset.y / pointScale)
 
@@ -223,55 +221,74 @@ private fun ReaderPage(
     }
 
     Box(
+        contentAlignment = Alignment.TopStart,
         modifier =
             Modifier
-                .fillMaxWidth()
-                .aspectRatio(pageSize.widthPt / pageSize.heightPt)
-                .background(if (viewModel.nightMode) Color.Black else Color.White)
-                .pointerInput(pageIndex, pointScale) {
-                    detectTapGestures(onTap = { handleTap(toPdfPoint(it)) })
-                }.pointerInput(pageIndex, pointScale) {
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = { offset ->
-                            viewModel.selectionController.startAt(pageIndex, toPdfPoint(offset))
-                        },
-                        onDrag = { change, _ ->
-                            viewModel.selectionController.extendTo(toPdfPoint(change.position))
-                        },
-                    )
+                .fillMaxSize()
+                .clipToBounds()
+                .zoomPanGestures(viewport) {
+                    syncTransform()
+                    onZoomChanged(viewport.zoom)
                 },
     ) {
-        bitmap?.let { image ->
-            Image(
-                bitmap = image,
-                contentDescription = "Page ${pageIndex + 1}",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.FillBounds,
-                colorFilter = if (viewModel.nightMode) NIGHT_FILTER else null,
-            )
+        Box(
+            modifier =
+                Modifier
+                    .size(
+                        with(density) { contentWidthPx.toDp() },
+                        with(density) { contentHeightPx.toDp() },
+                    ).graphicsLayer {
+                        transformOrigin = TransformOrigin(0f, 0f)
+                        scaleX = glScale
+                        scaleY = glScale
+                        translationX = glOffsetX
+                        translationY = glOffsetY
+                    }.background(if (viewModel.nightMode) Color.Black else Color.White)
+                    .pointerInput(pageIndex, pointScale) {
+                        detectTapGestures(onTap = { handleTap(toPdfPoint(it)) })
+                    }.pointerInput(pageIndex, pointScale) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { offset ->
+                                viewModel.selectionController.startAt(pageIndex, toPdfPoint(offset))
+                            },
+                            onDrag = { change, _ ->
+                                viewModel.selectionController.extendTo(toPdfPoint(change.position))
+                            },
+                        )
+                    },
+        ) {
+            bitmap?.let { image ->
+                Image(
+                    bitmap = image,
+                    contentDescription = "Page ${pageIndex + 1}",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds,
+                    colorFilter = if (viewModel.nightMode) NIGHT_FILTER else null,
+                )
+            }
+            if (bucket > 1) {
+                HighZoomStrips(viewModel, pageIndex, baseScale, bucket)
+            }
+            PageDecorations(viewModel, pageIndex, pointScale, pageSize.heightPt)
         }
-        if (bucket > 1) {
-            HighZoomStrips(viewModel, pageIndex, fitScale, bucket)
-        }
-        PageDecorations(viewModel, pageIndex, pointScale, pageSize.heightPt)
     }
 }
 
-/** Crisp tile overlay for zoomed pages: [bucket] bands at [fitScale]×[bucket]. */
+/** Crisp tile overlay for zoomed pages: [bucket] bands at [baseScale]×[bucket]. */
 @Composable
 private fun HighZoomStrips(
     viewModel: PdfEditorViewModel,
     pageIndex: Int,
-    fitScale: Float,
+    baseScale: Float,
     bucket: Int,
 ) {
     val session = viewModel.session ?: return
     Column(modifier = Modifier.fillMaxSize()) {
         repeat(bucket) { strip ->
-            val stripBitmap by produceState<ImageBitmap?>(null, session, pageIndex, fitScale, bucket, strip) {
+            val stripBitmap by produceState<ImageBitmap?>(null, session, pageIndex, baseScale, bucket, strip) {
                 value =
                     session.cache
-                        .strip(pageIndex, fitScale * bucket, strip, bucket)
+                        .strip(pageIndex, baseScale * bucket, strip, bucket)
                         .asImageBitmap()
             }
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -322,32 +339,52 @@ private fun PageDecorations(
 }
 
 /**
- * Two-or-more-finger pinch/pan: reports the gesture centroid, the frame's pan
- * delta and its zoom factor so the caller can zoom about — and pan with — the
- * fingers. Single-finger gestures fall through untouched to the underlying
- * scroll containers, preserving their scroll and fling. Once a pinch begins the
- * rest of the gesture is consumed (even after a finger lifts) so the list does
- * not jump.
+ * Drive [viewport] from raw pointer input the way the overlay editor does: two
+ * or more fingers pinch-zoom about — and pan with — their centroid; a single
+ * finger pans once the page is zoomed past fit and the drag clears touch slop.
+ * A single finger at fit zoom is left unconsumed so it reaches the pager (page
+ * flip) and the tap / long-press detectors below. Once a pinch begins the rest
+ * of the gesture is consumed even after a finger lifts, so the page never jumps.
  */
-private fun Modifier.zoomAndPan(onGesture: (Offset, Offset, Float) -> Unit): Modifier =
+private fun Modifier.zoomPanGestures(
+    viewport: ViewportTransform,
+    onChanged: () -> Unit,
+): Modifier =
     pointerInput(Unit) {
+        val touchSlop = viewConfiguration.touchSlop
         awaitEachGesture {
-            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            awaitFirstDown(requireUnconsumed = false)
             var pinching = false
+            var totalPan = Offset.Zero
             while (true) {
-                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val event = awaitPointerEvent()
                 val pressed = event.changes.count { it.pressed }
                 if (pressed == 0) break
                 if (pressed >= 2) {
                     pinching = true
-                    val zoom = event.calculateZoom()
+                    val zoomChange = event.calculateZoom()
                     val pan = event.calculatePan()
-                    if (zoom != 1f || pan != Offset.Zero) {
-                        onGesture(event.calculateCentroid(useCurrent = true), pan, zoom)
+                    val centroid = event.calculateCentroid(useCurrent = true)
+                    if (zoomChange != 1f || pan != Offset.Zero) {
+                        viewport.pinch(centroid.x, centroid.y, zoomChange, pan.x, pan.y)
+                        onChanged()
                     }
                     event.changes.forEach { it.consume() }
                 } else if (pinching) {
+                    // Finishing a pinch with one finger down: swallow its moves so
+                    // the page does not lurch as the second finger lifts.
                     event.changes.forEach { it.consume() }
+                } else if (viewport.zoom > 1f) {
+                    // One finger on a zoomed page pans it; yield when a child (text
+                    // selection) has already claimed the drag by consuming it.
+                    val change = event.changes.firstOrNull { it.pressed && !it.isConsumed }
+                    val delta = change?.positionChange() ?: Offset.Zero
+                    totalPan += delta
+                    if (change != null && totalPan.getDistance() > touchSlop) {
+                        viewport.panBy(delta.x, delta.y)
+                        onChanged()
+                        change.consume()
+                    }
                 }
             }
         }
@@ -368,10 +405,14 @@ private val NIGHT_FILTER =
 private val MATCH_COLOR = Color(0x66FFEB3B)
 private val CURRENT_MATCH_COLOR = Color(0x99FF9800)
 private val SELECTION_COLOR = Color(0x552196F3)
-private const val MIN_ZOOM = 0.25f
-private const val MAX_ZOOM = 4f
+// Tile sharpness plateaus here: beyond 4× the base tiles upscale rather than
+// re-render, keeping per-strip bitmaps within a sane texture/memory budget even
+// as the viewport zooms to its 8× ceiling.
 private const val MAX_STRIPS = 4
 private const val PAGE_SPACING = 8
+
+// Zoom at (or below) this is treated as "fit", so page-flip swiping is allowed.
+private const val FIT_ZOOM_EPSILON = 1.001f
 
 // Debounce after the last pinch step before committing a crisper tile bucket.
 private const val TILE_SETTLE_MS = 180L

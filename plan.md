@@ -14,7 +14,7 @@ expect from a device-default viewer.
 | Area | Have today | Missing for "default app" status |
 |---|---|---|
 | Getting PDFs in | Own SAF file picker, **"Open with" / share-target intents ✅, recent files ✅** | — |
-| Viewing | **Continuous scroll ✅, pinch-zoom/pan ✅, thumbnails ✅, go-to-page ✅, outline/TOC ✅, night mode ✅, text selection ✅, search ✅, password-protected files ✅** | — |
+| Viewing | **One-page-at-a-time pager ✅, pinch-zoom/pan ✅, thumbnails ✅, go-to-page ✅, outline/TOC ✅, night mode ✅, text selection ✅, search ✅, password-protected files ✅** | — |
 | Annotating | Text overlay, ink signature, undo | Highlight/underline/strikethrough, shapes, sticky notes, highlighter pen, eraser, redo, saved signatures, image stamps |
 | Forms | — | AcroForm fill & save |
 | Organizing | — | Reorder/rotate/delete pages, merge/split, extract |
@@ -161,20 +161,19 @@ links) in `:core-renderer`; `PdfDecryptor` in `:file-persistence`; and a
 DataStore-backed recents/preferences layer in `:app`. Each sub-item's status is
 marked inline below.
 
-### 2.1 Continuous scrolling & fast navigation ✅
-- Replace the single-page prev/next model with a vertically scrolling `LazyColumn`
-  of pages (render on demand, recycle bitmaps; keep pinch-zoom via a shared
-  transform).
+### 2.1 Page navigation & fast jumping ✅
+- Show one page at a time in a horizontal `HorizontalPager` (render on demand,
+  recycle bitmaps), swiping between pages while a page sits at its fit scale.
 - **Page thumbnails grid** for jump-navigation, plus a slider/scrubber and a
   "page X of N — go to page" dialog.
 - Remember last-read page per document (DataStore keyed by URI).
-- **Smooth zoom/pan ✅** — the pinch gesture is focal-anchored on both axes (the
-  content under the fingers stays put) and two-finger drags pan while zooming,
-  while single-finger scroll and fling on both axes are preserved by the
-  underlying scroll containers. Crisp high-zoom tiles follow a debounced settled
-  zoom so a live pinch stretches the base bitmap instead of thrashing the
-  renderer. The focal-anchoring formulas live in a dependency-free `ReaderZoomMath`
-  (unit-tested on the JVM).
+- **Smooth zoom/pan ✅** — each page is fitted, zoomed and panned by the same
+  dependency-free `ViewportTransform` the overlay editor uses (unit-tested on the
+  JVM): two fingers pinch-zoom about — and pan with — their centroid, and a
+  single finger pans once the page is zoomed past its fit scale (page-flip
+  swiping is suspended so the pan never fights the pager). Crisp high-zoom tiles
+  follow a debounced settled scale so a live pinch stretches the base bitmap
+  instead of thrashing the renderer.
 
 ### 2.2 Text search ✅
 - In-document search with match highlighting and next/previous navigation.
