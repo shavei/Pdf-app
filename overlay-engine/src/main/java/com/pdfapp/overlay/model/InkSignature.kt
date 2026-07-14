@@ -23,6 +23,6 @@ data class InkSignature(
 
     companion object {
         const val DEFAULT_STROKE_WIDTH_PT = 2f
-        const val DEFAULT_COLOR = 0xFF001A66.toInt()
+        const val DEFAULT_COLOR = 0xFF000000.toInt()
     }
 }
