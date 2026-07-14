@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -18,7 +22,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
@@ -35,13 +42,20 @@ import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.overlay.OverlayCanvasView
 import com.pdfapp.overlay.model.OverlayLayer
 import com.pdfapp.overlay.model.TextOverlay
+import com.pdfapp.ui.reader.GoToPageDialog
+import com.pdfapp.ui.reader.HomeScreen
+import com.pdfapp.ui.reader.OutlineSheet
+import com.pdfapp.ui.reader.PasswordDialog
+import com.pdfapp.ui.reader.ReaderContent
+import com.pdfapp.ui.reader.ReaderTopBar
+import com.pdfapp.ui.reader.ThumbnailSheet
 
 /**
- * Single-screen editor wiring the three feature modules: open + render
+ * Single-activity screen wiring the three feature modules: open + render
  * (`:core-renderer`), draw overlays (`:overlay-engine`), and flatten + save
- * (`:file-persistence`). The custom [OverlayCanvasView] holds the live overlay
- * layer for the current page and reports changes back to the view-model, which
- * tracks overlays for every page.
+ * (`:file-persistence`). An open document starts in the continuous-scroll
+ * READ mode (search, outline, selection); EDIT mode hosts the interactive
+ * [OverlayCanvasView] for signing and text placement.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,9 +65,12 @@ fun PdfEditorScreen(
 ) {
     val context = LocalContext.current
     var canvasView by remember { mutableStateOf<OverlayCanvasView?>(null) }
-    var mode by remember { mutableStateOf(OverlayCanvasView.Mode.INK) }
+    var editTool by remember { mutableStateOf(OverlayCanvasView.Mode.INK) }
     var pendingTextPoint by remember { mutableStateOf<PdfPoint?>(null) }
     var editingText by remember { mutableStateOf<TextOverlay?>(null) }
+    var showThumbnails by remember { mutableStateOf(false) }
+    var showOutline by remember { mutableStateOf(false) }
+    var showGoToPage by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val openLauncher =
@@ -75,6 +92,118 @@ fun PdfEditorScreen(
         initialUri?.let { viewModel.openInitial(context, it) }
     }
 
+    val view = LocalView.current
+    DisposableEffect(viewModel.keepScreenOn) {
+        view.keepScreenOn = viewModel.keepScreenOn
+        onDispose { view.keepScreenOn = false }
+    }
+
+    EditModeBindings(viewModel, canvasView, editTool)
+    LaunchedEffect(viewModel.userMessage) {
+        viewModel.userMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.messageShown()
+        }
+    }
+
+    val session = viewModel.session
+    Scaffold(
+        topBar = {
+            when {
+                session == null -> AppTitleBar()
+                viewModel.mode == ViewerMode.READ ->
+                    ReaderTopBar(
+                        viewModel = viewModel,
+                        onShowThumbnails = { showThumbnails = true },
+                        onShowOutline = { showOutline = true },
+                        onShowGoToPage = { showGoToPage = true },
+                        onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
+                    )
+                else ->
+                    EditTopBar(
+                        onBack = {
+                            canvasView?.commitSignature()
+                            viewModel.exitEditMode()
+                        },
+                    )
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            when {
+                session == null -> {
+                    val recents by viewModel.recents.collectAsState()
+                    HomeScreen(
+                        recents = recents,
+                        onOpenClick = { openLauncher.launch(arrayOf(MIME_PDF)) },
+                        onRecentClick = { viewModel.open(context, Uri.parse(it.uri)) },
+                    )
+                }
+                viewModel.mode == ViewerMode.READ ->
+                    ReaderContent(
+                        viewModel = viewModel,
+                        snackbarHostState = snackbarHostState,
+                        onShowGoToPage = { showGoToPage = true },
+                    )
+                else ->
+                    EditModeContent(
+                        viewModel = viewModel,
+                        editTool = editTool,
+                        onToolChange = { editTool = it },
+                        onSaveClick = { saveLauncher.launch(DEFAULT_SAVE_NAME) },
+                        onCanvasReady = { view ->
+                            view.onTextPlacementRequested = { point -> pendingTextPoint = point }
+                            view.onTextEditRequested = { overlay -> editingText = overlay }
+                            view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
+                            canvasView = view
+                        },
+                        canvasView = canvasView,
+                    )
+            }
+            if (viewModel.busy) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        }
+    }
+
+    if (showThumbnails) ThumbnailSheet(viewModel) { showThumbnails = false }
+    if (showOutline) OutlineSheet(viewModel) { showOutline = false }
+    if (showGoToPage && viewModel.pageCount > 0) {
+        GoToPageDialog(
+            currentPage = viewModel.currentPageIndex,
+            pageCount = viewModel.pageCount,
+            onDismiss = { showGoToPage = false },
+            onGo = { page ->
+                showGoToPage = false
+                viewModel.goToPage(page)
+            },
+        )
+    }
+    if (viewModel.passwordRequestUri != null) {
+        PasswordDialog(
+            wrongPassword = viewModel.wrongPassword,
+            onDismiss = { viewModel.cancelPasswordRequest() },
+            onSubmit = { viewModel.submitPassword(context, it) },
+        )
+    }
+    TextOverlayDialogs(
+        viewModel = viewModel,
+        canvasView = canvasView,
+        pendingTextPoint = pendingTextPoint,
+        onPendingConsumed = { pendingTextPoint = null },
+        editingText = editingText,
+        onEditingConsumed = { editingText = null },
+    )
+}
+
+/** Feed edit-mode state (page bitmap, tool settings) into the canvas view. */
+@Composable
+private fun EditModeBindings(
+    viewModel: PdfEditorViewModel,
+    canvasView: OverlayCanvasView?,
+    editTool: OverlayCanvasView.Mode,
+) {
     val rendered = viewModel.renderedPage
     LaunchedEffect(rendered, canvasView) {
         val view = canvasView ?: return@LaunchedEffect
@@ -86,87 +215,99 @@ fun PdfEditorScreen(
         canvasView?.inkColorArgb = viewModel.inkColorArgb
         canvasView?.inkStrokeWidthPt = viewModel.inkStrokeWidthPt
     }
-    LaunchedEffect(mode, canvasView) { canvasView?.mode = mode }
-    LaunchedEffect(viewModel.userMessage) {
-        viewModel.userMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.messageShown()
-        }
-    }
+    LaunchedEffect(editTool, canvasView) { canvasView?.mode = editTool }
+}
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.SemiBold) },
-                colors =
-                    TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ),
-            )
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppTitleBar() {
+    CenterAlignedTopAppBar(
+        title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.SemiBold) },
+        colors =
+            TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditTopBar(onBack: () -> Unit) {
+    CenterAlignedTopAppBar(
+        title = { Text("Edit", fontWeight = FontWeight.SemiBold) },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to reading")
+            }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            val controlsEnabled = rendered != null && !viewModel.busy
-            EditorToolbar(
-                mode = mode,
-                enabled = controlsEnabled,
-                onModeChange = { mode = it },
-                onOpen = { openLauncher.launch(arrayOf(MIME_PDF)) },
-                onCommitInk = { canvasView?.commitSignature() },
-                onUndo = { canvasView?.undo() },
-                onClear = { canvasView?.clearOverlays() },
-                onSave = { saveLauncher.launch("signed.pdf") },
-            )
-            if (rendered != null) {
-                ToolSettingsRow(viewModel)
-                PageNavBar(
-                    currentIndex = viewModel.currentPageIndex,
-                    pageCount = viewModel.pageCount,
-                    canPrevious = viewModel.canGoPrevious && !viewModel.busy,
-                    canNext = viewModel.canGoNext && !viewModel.busy,
-                    onPrevious = {
-                        canvasView?.commitSignature()
-                        viewModel.previousPage()
-                    },
-                    onNext = {
-                        canvasView?.commitSignature()
-                        viewModel.nextPage()
-                    },
-                )
-            }
+    )
+}
 
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .weight(1f)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                // The canvas view fills the area and handles pinch-zoom and
-                // panning itself, so no scroll containers wrap it.
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { ctx ->
-                        OverlayCanvasView(ctx).also { view ->
-                            view.onTextPlacementRequested = { point -> pendingTextPoint = point }
-                            view.onTextEditRequested = { overlay -> editingText = overlay }
-                            view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
-                            canvasView = view
-                        }
-                    },
-                )
-                if (viewModel.busy) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-            }
+@Composable
+private fun EditModeContent(
+    viewModel: PdfEditorViewModel,
+    editTool: OverlayCanvasView.Mode,
+    onToolChange: (OverlayCanvasView.Mode) -> Unit,
+    onSaveClick: () -> Unit,
+    onCanvasReady: (OverlayCanvasView) -> Unit,
+    canvasView: OverlayCanvasView?,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        val controlsEnabled = viewModel.renderedPage != null && !viewModel.busy
+        EditorToolbar(
+            mode = editTool,
+            enabled = controlsEnabled,
+            onModeChange = onToolChange,
+            onCommitInk = { canvasView?.commitSignature() },
+            onUndo = { canvasView?.undo() },
+            onClear = { canvasView?.clearOverlays() },
+            onSave = onSaveClick,
+        )
+        ToolSettingsRow(viewModel)
+        PageNavBar(
+            currentIndex = viewModel.currentPageIndex,
+            pageCount = viewModel.pageCount,
+            canPrevious = viewModel.canGoPrevious && !viewModel.busy,
+            canNext = viewModel.canGoNext && !viewModel.busy,
+            onPrevious = {
+                canvasView?.commitSignature()
+                viewModel.previousPage()
+            },
+            onNext = {
+                canvasView?.commitSignature()
+                viewModel.nextPage()
+            },
+        )
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            // The canvas view fills the area and handles pinch-zoom and
+            // panning itself, so no scroll containers wrap it.
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx -> OverlayCanvasView(ctx).also(onCanvasReady) },
+            )
         }
     }
+}
 
+@Composable
+private fun TextOverlayDialogs(
+    viewModel: PdfEditorViewModel,
+    canvasView: OverlayCanvasView?,
+    pendingTextPoint: PdfPoint?,
+    onPendingConsumed: () -> Unit,
+    editingText: TextOverlay?,
+    onEditingConsumed: () -> Unit,
+) {
     pendingTextPoint?.let { point ->
         TextEntryDialog(
-            onDismiss = { pendingTextPoint = null },
+            onDismiss = onPendingConsumed,
             onConfirm = { text ->
                 canvasView?.let { view ->
                     view.layer =
@@ -179,7 +320,7 @@ fun PdfEditorScreen(
                             ),
                         )
                 }
-                pendingTextPoint = null
+                onPendingConsumed()
             },
         )
     }
@@ -189,21 +330,22 @@ fun PdfEditorScreen(
             title = "Edit text",
             confirmLabel = "Save",
             initialText = overlay.text,
-            onDismiss = { editingText = null },
+            onDismiss = onEditingConsumed,
             onConfirm = { text ->
                 canvasView?.let { view ->
                     view.layer = view.layer.updateText(overlay.copy(text = text))
                 }
-                editingText = null
+                onEditingConsumed()
             },
             onDelete = {
                 canvasView?.let { view ->
                     view.layer = view.layer.removeText(overlay.id)
                 }
-                editingText = null
+                onEditingConsumed()
             },
         )
     }
 }
 
 private const val MIME_PDF = "application/pdf"
+private const val DEFAULT_SAVE_NAME = "signed.pdf"

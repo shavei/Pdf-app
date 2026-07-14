@@ -11,6 +11,8 @@ data class RecentFile(
     val pageCount: Int,
     val lastPageIndex: Int,
     val lastOpenedEpochMillis: Long,
+    /** App-private PNG of page 1, or null when none was captured. */
+    val thumbnailPath: String? = null,
 )
 
 /** JSON (de)serialisation for the recents list persisted in DataStore. */
@@ -24,7 +26,8 @@ object RecentFilesCodec {
                     .put("name", file.displayName)
                     .put("pages", file.pageCount)
                     .put("lastPage", file.lastPageIndex)
-                    .put("openedAt", file.lastOpenedEpochMillis),
+                    .put("openedAt", file.lastOpenedEpochMillis)
+                    .putOpt("thumb", file.thumbnailPath),
             )
         }
         return array.toString()
@@ -42,6 +45,7 @@ object RecentFilesCodec {
                     pageCount = item.getInt("pages"),
                     lastPageIndex = item.getInt("lastPage"),
                     lastOpenedEpochMillis = item.getLong("openedAt"),
+                    thumbnailPath = item.optString("thumb").takeIf { it.isNotEmpty() },
                 )
             }
         } catch (_: JSONException) {

@@ -1,5 +1,6 @@
 package com.pdfapp.core.renderer
 
+import android.graphics.Bitmap
 import android.util.LruCache
 import com.pdfapp.core.renderer.model.PageSize
 import kotlinx.coroutines.sync.Mutex
@@ -27,16 +28,25 @@ class RenderedPageCache(
     private data class Key(
         val pageIndex: Int,
         val scaleCentiPixelsPerPoint: Int,
+        val stripIndex: Int = 0,
+        val stripCount: Int = 1,
     )
 
     private val renderMutex = Mutex()
     private val pageSizes = HashMap<Int, PageSize>()
-    private val cache =
+    private val fullPages =
         object : LruCache<Key, RenderedPage>(maxBytes) {
             override fun sizeOf(
                 key: Key,
                 value: RenderedPage,
             ): Int = value.bitmap.byteCount
+        }
+    private val strips =
+        object : LruCache<Key, Bitmap>(maxBytes) {
+            override fun sizeOf(
+                key: Key,
+                value: Bitmap,
+            ): Int = value.byteCount
         }
 
     /**
@@ -47,12 +57,35 @@ class RenderedPageCache(
         pageIndex: Int,
         pixelsPerPoint: Float,
     ): RenderedPage {
-        val key = Key(pageIndex, (pixelsPerPoint * SCALE_QUANTUM).roundToInt().coerceAtLeast(1))
-        cache.get(key)?.let { return it }
+        val key = Key(pageIndex, quantise(pixelsPerPoint))
+        fullPages.get(key)?.let { return it }
         return renderMutex.withLock {
-            cache.get(key) ?: renderer
+            fullPages.get(key) ?: renderer
                 .renderPage(pageIndex, key.scaleCentiPixelsPerPoint / SCALE_QUANTUM)
-                .also { cache.put(key, it) }
+                .also { fullPages.put(key, it) }
+        }
+    }
+
+    /**
+     * One high-zoom tile: band [stripIndex] of [stripCount] equal-height
+     * bands of [pageIndex] at [pixelsPerPoint] (see [PageRendering.renderStrip]).
+     */
+    suspend fun strip(
+        pageIndex: Int,
+        pixelsPerPoint: Float,
+        stripIndex: Int,
+        stripCount: Int,
+    ): Bitmap {
+        val key = Key(pageIndex, quantise(pixelsPerPoint), stripIndex, stripCount)
+        strips.get(key)?.let { return it }
+        return renderMutex.withLock {
+            strips.get(key) ?: renderer
+                .renderStrip(
+                    pageIndex,
+                    key.scaleCentiPixelsPerPoint / SCALE_QUANTUM,
+                    stripIndex,
+                    stripCount,
+                ).also { strips.put(key, it) }
         }
     }
 
@@ -66,9 +99,12 @@ class RenderedPageCache(
 
     /** Drop every cached bitmap (e.g. when the document closes). */
     fun clear() {
-        cache.evictAll()
+        fullPages.evictAll()
+        strips.evictAll()
         synchronized(pageSizes) { pageSizes.clear() }
     }
+
+    private fun quantise(pixelsPerPoint: Float): Int = (pixelsPerPoint * SCALE_QUANTUM).roundToInt().coerceAtLeast(1)
 
     companion object {
         private const val SCALE_QUANTUM = 100f

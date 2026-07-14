@@ -42,6 +42,17 @@ class RenderedPageCacheTest {
             )
         }
 
+        override suspend fun renderStrip(
+            index: Int,
+            pixelsPerPoint: Float,
+            stripIndex: Int,
+            stripCount: Int,
+        ): Bitmap {
+            renderCalls.incrementAndGet()
+            val px = (PAGE_SIDE_PT * pixelsPerPoint).toInt().coerceAtLeast(1)
+            return Bitmap.createBitmap(px, (px / stripCount).coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        }
+
         override suspend fun pageSize(index: Int): PageSize {
             sizeCalls.incrementAndGet()
             return PageSize(PAGE_SIDE_PT, PAGE_SIDE_PT)
@@ -105,6 +116,21 @@ class RenderedPageCacheTest {
 
             assertThat(renderer.maxObservedConcurrency).isEqualTo(1)
             assertThat(renderer.renderCalls.get()).isEqualTo(8)
+        }
+
+    @Test
+    fun `strips cache independently per band and scale`() =
+        runTest {
+            val renderer = FakeRenderer()
+            val cache = RenderedPageCache(renderer)
+
+            val first = cache.strip(0, 4f, stripIndex = 0, stripCount = 4)
+            val again = cache.strip(0, 4f, stripIndex = 0, stripCount = 4)
+            assertThat(again).isSameInstanceAs(first)
+            assertThat(renderer.renderCalls.get()).isEqualTo(1)
+
+            cache.strip(0, 4f, stripIndex = 1, stripCount = 4)
+            assertThat(renderer.renderCalls.get()).isEqualTo(2)
         }
 
     @Test
