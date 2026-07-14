@@ -7,6 +7,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -50,13 +52,20 @@ import com.pdfapp.core.renderer.model.PdfRect
 import com.pdfapp.core.renderer.text.PdfLink
 import com.pdfapp.ui.PdfEditorViewModel
 import com.pdfapp.ui.ZoomPreset
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 
 /**
  * Continuous-scroll reader (plan 2.1): a lazy column of on-demand rendered
- * pages with pinch-zoom, search-match highlighting, long-press text
- * selection, tappable links, and night-mode page inversion.
+ * pages with focal-anchored pinch-zoom and two-finger pan, search-match
+ * highlighting, long-press text selection, tappable links, and night-mode page
+ * inversion.
+ *
+ * Zoom drives the page width; the horizontal scroll container and the lazy list
+ * carry pan (and their own fling) for single-finger gestures, while a two-finger
+ * gesture zooms about — and pans with — its centroid so the content under the
+ * fingers stays put.
  */
 @Composable
 fun ReaderView(
@@ -80,9 +89,22 @@ fun ReaderView(
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val density = LocalDensity.current
         val viewportWidthPx = constraints.maxWidth.toFloat()
         val viewportHeightPx = constraints.maxHeight.toFloat()
+        val hScrollState = rememberScrollState()
         var zoom by remember { mutableFloatStateOf(1f) }
+
+        // Crisp tiles follow a *settled* zoom: a live pinch changes [zoom] every
+        // frame, but re-rendering strips each time it crosses an integer level
+        // would stutter the gesture. The stretched base bitmap covers the gap
+        // until the pinch pauses, then the debounced value commits a sharp bucket.
+        var tileZoom by remember { mutableFloatStateOf(1f) }
+        LaunchedEffect(zoom) {
+            delay(TILE_SETTLE_MS)
+            tileZoom = zoom
+        }
+
         // Fit-width / fit-page presets from the reader menu (plan 2.6).
         LaunchedEffect(viewModel.pendingZoomPreset) {
             val preset = viewModel.pendingZoomPreset ?: return@LaunchedEffect
@@ -98,20 +120,47 @@ fun ReaderView(
                 }.coerceIn(MIN_ZOOM, MAX_ZOOM)
             viewModel.zoomPresetConsumed()
         }
+
         val pageWidthPx = viewportWidthPx * zoom
+        val spacingPx = with(density) { PAGE_SPACING.dp.toPx() }
+        val pageAspect = viewModel.defaultPageSize.heightPt / viewModel.defaultPageSize.widthPt
+
+        // One pinch/two-finger-pan step: zoom about the gesture centroid and pan
+        // with it, keeping the content under the fingers fixed on both axes. The
+        // horizontal scroll container anchors exactly; the lazy list is anchored
+        // from an estimate of the absolute scroll (uniform page stride).
+        fun onZoomPan(
+            centroid: Offset,
+            pan: Offset,
+            zoomChange: Float,
+        ) {
+            val old = zoom
+            val newZoom = (old * zoomChange).coerceIn(MIN_ZOOM, MAX_ZOOM)
+            val ratio = newZoom / old
+            val hOffset =
+                ReaderZoomMath.horizontalOffset(hScrollState.value.toFloat(), centroid.x, ratio, pan.x)
+            val stridePx = viewportWidthPx * old * pageAspect + spacingPx
+            val vScroll =
+                listState.firstVisibleItemIndex * stridePx + listState.firstVisibleItemScrollOffset
+            val vDelta = ReaderZoomMath.verticalDelta(vScroll, centroid.y, ratio, pan.y)
+            zoom = newZoom
+            hScrollState.dispatchRawDelta(hOffset - hScrollState.value.toFloat())
+            listState.dispatchRawDelta(vDelta)
+        }
+
         Box(
             contentAlignment = Alignment.TopCenter,
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .pinchZoom { change -> zoom = (zoom * change).coerceIn(MIN_ZOOM, MAX_ZOOM) }
-                    .horizontalScroll(rememberScrollState()),
+                    .zoomAndPan(onGesture = ::onZoomPan)
+                    .horizontalScroll(hScrollState),
         ) {
             LazyColumn(
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(PAGE_SPACING.dp),
                 modifier =
-                    Modifier.width(with(LocalDensity.current) { pageWidthPx.toDp() }),
+                    Modifier.width(with(density) { pageWidthPx.toDp() }),
             ) {
                 items(count = session.pageCount, key = { it }) { index ->
                     ReaderPage(
@@ -119,7 +168,7 @@ fun ReaderView(
                         pageIndex = index,
                         pageWidthPx = pageWidthPx,
                         viewportWidthPx = viewportWidthPx,
-                        zoom = zoom,
+                        tileZoom = tileZoom,
                     )
                 }
             }
@@ -134,7 +183,7 @@ private fun ReaderPage(
     pageIndex: Int,
     pageWidthPx: Float,
     viewportWidthPx: Float,
-    zoom: Float,
+    tileZoom: Float,
 ) {
     val session = viewModel.session ?: return
     val context = LocalContext.current
@@ -148,7 +197,7 @@ private fun ReaderPage(
     // cut into ceil(zoom) horizontal strips rendered at the zoom's scale, so
     // no single high-zoom bitmap ever exceeds roughly a screen in size (2.8).
     val fitScale = viewportWidthPx / pageSize.widthPt
-    val bucket = ceil(zoom.toDouble()).toInt().coerceIn(1, MAX_STRIPS)
+    val bucket = ceil(tileZoom.toDouble()).toInt().coerceIn(1, MAX_STRIPS)
     val bitmap by produceState<ImageBitmap?>(null, session, pageIndex, fitScale) {
         value = session.cache.page(pageIndex, fitScale).bitmap.asImageBitmap()
     }
@@ -272,8 +321,15 @@ private fun PageDecorations(
     }
 }
 
-/** Two-plus fingers zoom the reader; single-finger gestures stay untouched. */
-private fun Modifier.pinchZoom(onZoom: (Float) -> Unit): Modifier =
+/**
+ * Two-or-more-finger pinch/pan: reports the gesture centroid, the frame's pan
+ * delta and its zoom factor so the caller can zoom about — and pan with — the
+ * fingers. Single-finger gestures fall through untouched to the underlying
+ * scroll containers, preserving their scroll and fling. Once a pinch begins the
+ * rest of the gesture is consumed (even after a finger lifts) so the list does
+ * not jump.
+ */
+private fun Modifier.zoomAndPan(onGesture: (Offset, Offset, Float) -> Unit): Modifier =
     pointerInput(Unit) {
         awaitEachGesture {
             awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -284,12 +340,13 @@ private fun Modifier.pinchZoom(onZoom: (Float) -> Unit): Modifier =
                 if (pressed == 0) break
                 if (pressed >= 2) {
                     pinching = true
-                    val change = event.calculateZoom()
-                    if (change != 1f) onZoom(change)
+                    val zoom = event.calculateZoom()
+                    val pan = event.calculatePan()
+                    if (zoom != 1f || pan != Offset.Zero) {
+                        onGesture(event.calculateCentroid(useCurrent = true), pan, zoom)
+                    }
                     event.changes.forEach { it.consume() }
                 } else if (pinching) {
-                    // A finger lifted mid-pinch: swallow the tail of the gesture
-                    // so the list does not jump.
                     event.changes.forEach { it.consume() }
                 }
             }
@@ -315,3 +372,6 @@ private const val MIN_ZOOM = 0.25f
 private const val MAX_ZOOM = 4f
 private const val MAX_STRIPS = 4
 private const val PAGE_SPACING = 8
+
+// Debounce after the last pinch step before committing a crisper tile bucket.
+private const val TILE_SETTLE_MS = 180L
