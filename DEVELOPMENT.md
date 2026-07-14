@@ -2,6 +2,9 @@
 
 Native Android (Kotlin) app: view PDFs, add text overlays, draw + flatten an ink signature, save via SAF. Offline, open-source libs only.
 
+## Roadmap
+The full product roadmap — where the app is and where it's going, phase by phase — lives in [`plan.md`](plan.md). Phases 1 (system integration) and 2 (reading experience) are shipped; Phase 3 (annotation suite) onward is next.
+
 ## Build & Verify
 - Build:   `./gradlew assembleDebug`
 - Unit:    `./gradlew testDebugUnitTest`
