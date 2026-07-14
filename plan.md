@@ -13,8 +13,8 @@ expect from a device-default viewer.
 
 | Area | Have today | Missing for "default app" status |
 |---|---|---|
-| Getting PDFs in | Own SAF file picker | **"Open with" / share-target intents, recent files** |
-| Viewing | Single page, pinch-zoom/pan, prev/next | Continuous scroll, thumbnails, go-to-page, outline/TOC, night mode, text selection, search, password-protected files |
+| Getting PDFs in | Own SAF file picker, **"Open with" / share-target intents ✅, recent files ✅** | — |
+| Viewing | **Continuous scroll ✅, pinch-zoom/pan ✅, thumbnails ✅, go-to-page ✅, outline/TOC ✅, night mode ✅, text selection ✅, search ✅, password-protected files ✅** | — |
 | Annotating | Text overlay, ink signature, undo | Highlight/underline/strikethrough, shapes, sticky notes, highlighter pen, eraser, redo, saved signatures, image stamps |
 | Forms | — | AcroForm fill & save |
 | Organizing | — | Reorder/rotate/delete pages, merge/split, extract |
@@ -27,9 +27,20 @@ that differentiates us.
 
 ---
 
-## Phase 1 — System integration: "Open with" support
+## Phase 1 — System integration: "Open with" support ✅ *shipped*
 
-*(Designed in detail below; unchanged from the merged plan.)*
+**Status:** delivered. `MainActivity` now declares `VIEW` (`content`/`file`
+`application/pdf`) and `SEND` intent filters with the `DEFAULT` category, so
+Signet appears in the "Open with" and share sheets and can be set as the
+**Always** default PDF app. Incoming intents are parsed by a unit-testable
+`Intent.pdfUri()` helper (`IncomingIntent.kt`) and routed into
+`PdfEditorScreen(initialUri = …)`. `PdfEditorViewModel.open()` takes the
+persistable URI grant best-effort (`runCatching`), so an intent-delivered URI
+that carries only a temporary grant no longer crashes the open coroutine, and
+open failures fall back to the snackbar/pick-a-PDF screen. Verified across all
+three layers: manifest lint, unit tests (`IncomingIntentTest`,
+`PdfEditorViewModelOpenTest`), and an Espresso E2E launch
+(`OpenWithIntentTest`). The design detail below is retained for reference.
 
 ### Goal
 
@@ -206,10 +217,12 @@ marked inline below.
 
 ---
 
-## Phase 3 — Full annotation suite
+## Phase 3 — Full annotation suite ⏳ *next — not started*
 
 Extends `:overlay-engine`, reusing the existing PDF-point coordinate model and the
-flatten-on-save pipeline in `:file-persistence`.
+flatten-on-save pipeline in `:file-persistence`. Today the module ships only
+`TextOverlay` and `InkSignature` with an **undo-only** stack — none of the items
+below exist yet.
 
 - **Text markup**: highlight, underline, strikethrough over selected text (needs
   2.3's text geometry). Flatten as translucent quads / lines via PdfBox content
