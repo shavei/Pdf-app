@@ -16,19 +16,44 @@
 > to `main` that passes all checks updates this download automatically. You can
 > also rebuild on demand from your phone: **Actions → CI → Run workflow**.
 
-A native Android app for viewing PDFs, adding **text overlays**, and applying a
-hand-drawn **ink signature**, then flattening and saving the result back to
-storage. Offline-first, open-source libraries only.
+A native Android app for reading PDFs — continuous scrolling, search, text
+selection, an outline drawer, night mode — and for signing and annotating them
+with **text overlays** and a hand-drawn **ink signature**, then flattening and
+saving the result back to storage. Signet also registers as a system "Open
+with" / share target for `application/pdf`. Offline-first, open-source
+libraries only.
 
 ## Features
 
-- 📄 **View PDFs** — open any PDF via the system file picker and navigate its pages.
-- 🔍 **Pinch to zoom** — zoom and pan the page with touch; two fingers always work, even mid-signature.
+### Reading
+
+- 📄 **Open anywhere** — the system file picker, the "Open with" sheet, or the
+  share sheet; recently opened files are one tap away on the home screen and
+  reopen at the page you left off.
+- 📜 **Continuous scrolling** — a vertical reader that renders pages on demand
+  and recycles bitmaps, with a page indicator and thumbnail-grid / go-to-page
+  jump navigation.
+- 🔍 **Pinch to zoom** — zoom and pan with touch, plus fit-width / fit-page
+  presets; zoomed pages are re-rendered crisply as tiles.
+- 🔎 **Search** — find text across the document with match highlighting and
+  next/previous navigation.
+- 🖱️ **Select & copy** — long-press to select text, drag to extend, copy to
+  the clipboard.
+- 🔖 **Outline & links** — jump via the document's table of contents; tap
+  internal links to navigate and external links to open the browser.
+- 🔐 **Password-protected PDFs** — unlock encrypted files with a password
+  prompt (decrypted only to a private cache copy, wiped on close).
+- 🌙 **Night mode & comfort** — invert the page for dark reading; keep the
+  screen awake.
+
+### Signing & annotating
+
 - ✍️ **Sign** — draw your signature with your finger; pick ink color and stroke width.
 - 🔤 **Add text** — tap to place text anywhere on the page; choose size and color.
 - ✏️ **Edit & move** — drag placed text to reposition it, tap to edit or delete it.
 - ↩️ **Undo & clear** — step back a stroke or wipe the page's overlays.
 - 💾 **Save a flattened copy** — overlays are baked into a new PDF; your original is untouched.
+
 - 🔒 **Private by design** — works completely offline, no ads, no telemetry, no account.
 
 ## Architecture
@@ -39,10 +64,10 @@ the feature modules; feature modules share only the small model/geometry types i
 
 | Module | Responsibility | Key types |
 |---|---|---|
-| **`:core-renderer`** | Load a PDF from a SAF `Uri` and render pages to `Bitmap`. Owns the shared coordinate system. | `PdfDocumentSource`, `PageRenderer`, `CoordinateMapper` |
+| **`:core-renderer`** | Load a PDF from a SAF `Uri` and render pages (and tiles) to `Bitmap`; a memory-bounded page cache; a read-only PdfBox facade for text geometry, search, outline and links. Owns the shared coordinate system. | `PdfDocumentSource`, `PageRenderer`, `RenderedPageCache`, `PdfTextDocument`, `CoordinateMapper` |
 | **`:overlay-engine`** | Interactive text + ink layer captured in PDF-point coordinates. | `TextOverlay`, `InkSignature`, `OverlayLayer`, `OverlayCanvasView` |
-| **`:file-persistence`** | Flatten overlays into the PDF with PdfBox-Android and write via SAF. | `PdfFlattener`, `PdfSaver` |
-| **`:app`** | UI shell wiring the modules; initializes PdfBox at startup. | `MainActivity` |
+| **`:file-persistence`** | Flatten overlays into the PDF with PdfBox-Android and write via SAF; decrypt password-protected PDFs. | `PdfFlattener`, `PdfSaver`, `PdfDecryptor` |
+| **`:app`** | UI shell wiring the modules: the continuous-scroll reader (search, selection, outline, night mode, recents) and the overlay editor. Initializes PdfBox at startup. | `MainActivity`, `PdfEditorViewModel`, `ReaderView` |
 
 ### The key technical detail: coordinate mapping
 
@@ -106,20 +131,17 @@ signing secrets to configure.
 
 ## Status
 
-Feature-complete for the core flow: open a PDF, zoom and pan with touch,
-navigate pages, add styled text and a hand-drawn signature, move/edit placed
-text, undo/clear, and save a flattened copy via SAF. Verification runs as three
-CI layers (Lint, Unit + PDF-Test-Harness, and an on-device emulator E2E).
+**Phase 1 (system integration) and Phase 2 (table-stakes reading) are done.**
+Signet opens PDFs from the picker, the "Open with" sheet, and the share sheet;
+reads them with continuous scrolling, pinch-zoom, in-document search, text
+selection, an outline drawer, tappable links, password unlocking, night mode,
+and a recents list that resumes the last-read page; and still signs, adds and
+edits text overlays, and saves a flattened copy via SAF. Verification runs as
+three CI layers (Lint, Unit + PDF-Test-Harness, and an on-device emulator E2E).
 
-Next up — the roadmap from editor to full default PDF app, detailed phase by
-phase in [`plan.md`](plan.md):
+Next up — the remaining roadmap from reader to full default PDF app, detailed
+phase by phase in [`plan.md`](plan.md):
 
-1. **System "Open with" support** — `ACTION_VIEW`/`ACTION_SEND` intent filters
-   for `application/pdf`, so Signet appears in the "Open with" sheet and can be
-   set as the device's default PDF viewer.
-2. **Table-stakes reading** — continuous scrolling, thumbnails, in-document
-   search, text selection, outline/TOC, password-protected files, night mode,
-   recent files.
 3. **Full annotation suite** — highlight/underline/strikethrough, shapes,
    sticky notes, highlighter, eraser, redo, saved signatures, image stamps.
 4. **Forms** — AcroForm fill & save.

@@ -137,12 +137,20 @@ normal "pick a PDF" screen.
 
 ---
 
-## Phase 2 — Table-stakes reading experience
+## Phase 2 — Table-stakes reading experience ✅ *shipped*
 
 Most sessions with a default PDF app are *read-only*. These are the features every
 competitor ships and users notice within the first minute.
 
-### 2.1 Continuous scrolling & fast navigation
+**Status:** delivered. The app now opens into a continuous-scroll READ mode
+(the overlay editor moved behind an EDIT action). New building blocks:
+`RenderedPageCache` (memory-bounded, serialized rendering + high-zoom tiles) and
+`PdfTextDocument` (read-only PdfBox facade for text geometry, search, outline and
+links) in `:core-renderer`; `PdfDecryptor` in `:file-persistence`; and a
+DataStore-backed recents/preferences layer in `:app`. Each sub-item's status is
+marked inline below.
+
+### 2.1 Continuous scrolling & fast navigation ✅
 - Replace the single-page prev/next model with a vertically scrolling `LazyColumn`
   of pages (render on demand, recycle bitmaps; keep pinch-zoom via a shared
   transform).
@@ -150,39 +158,39 @@ competitor ships and users notice within the first minute.
   "page X of N — go to page" dialog.
 - Remember last-read page per document (DataStore keyed by URI).
 
-### 2.2 Text search
+### 2.2 Text search ✅
 - In-document search with match highlighting and next/previous navigation.
 - Engine: PdfBox-Android's `PDFTextStripper` subclassed to capture glyph positions
   (`TextPosition`) per page → rectangles in PDF points → reuse `CoordinateMapper`
   to draw highlight quads over the rendered bitmap. Index lazily per page on
   `Dispatchers.IO`; cache per document.
 
-### 2.3 Text selection & copy
+### 2.3 Text selection & copy ✅
 - Long-press to select rendered text, drag handles, copy to clipboard.
 - Same `TextPosition` data as search; selection rectangles snap to word/line boxes.
 
-### 2.4 Outline (table of contents) & link taps
+### 2.4 Outline (table of contents) & link taps ✅
 - Read `PDDocumentOutline` from PdfBox → bookmark drawer; tapping jumps to the page.
 - Handle internal link annotations (`PDAnnotationLink` with go-to actions) as taps;
   external `http(s)` links open the browser via `Intent.ACTION_VIEW`.
 
-### 2.5 Password-protected PDFs
+### 2.5 Password-protected PDFs ✅
 - `android.graphics.pdf.PdfRenderer` cannot open encrypted files. Flow: catch the
   renderer's `SecurityException` → password dialog → open with
   `PDDocument.load(stream, password)` → save a decrypted copy to app-private cache
   → render that. Wipe the cache copy when the document closes.
 
-### 2.6 Night mode & reading comfort
+### 2.6 Night mode & reading comfort ✅
 - Dark *page* rendering (the UI already has dark theme): invert rendered bitmaps via
   `ColorMatrix` (`-1` scale + offset), toggle in the top bar; persists per app.
 - Keep-screen-on toggle; fit-width vs fit-page zoom presets.
 
-### 2.7 Recent files
+### 2.7 Recent files ✅
 - Home screen shows recently opened documents (name, page count, last-read page,
   thumbnail). Store SAF URIs — we already take persistable permissions for
   picker-opened files; intent-delivered ones appear only while their grant lives.
 
-### 2.8 Performance guardrails
+### 2.8 Performance guardrails ✅ *(tile rendering + LRU cache)*
 - Tile-based rendering at high zoom (render only the visible rect at scale instead
   of one huge bitmap) — `PdfRenderer.Page.render` accepts a transform matrix, so
   this fits the existing `PageRenderer`.
