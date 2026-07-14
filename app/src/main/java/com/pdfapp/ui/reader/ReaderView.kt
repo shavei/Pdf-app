@@ -405,6 +405,7 @@ private val NIGHT_FILTER =
 private val MATCH_COLOR = Color(0x66FFEB3B)
 private val CURRENT_MATCH_COLOR = Color(0x99FF9800)
 private val SELECTION_COLOR = Color(0x552196F3)
+
 // Tile sharpness plateaus here: beyond 4× the base tiles upscale rather than
 // re-render, keeping per-strip bitmaps within a sane texture/memory budget even
 // as the viewport zooms to its 8× ceiling.
