@@ -4,6 +4,8 @@ import com.google.common.truth.Truth.assertThat
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.overlay.model.InkSignature
 import com.pdfapp.overlay.model.OverlayLayer
+import com.pdfapp.overlay.model.Shape
+import com.pdfapp.overlay.model.ShapeKind
 import com.pdfapp.overlay.model.TextOverlay
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
@@ -160,6 +162,40 @@ class PdfTestHarnessTest {
     }
 
     @Test
+    fun `shapes are flattened as stroked vector paths`() {
+        val file = File.createTempFile("harness-shapes", ".pdf")
+        try {
+            val document = PDDocument().apply { addPage(PDPage(PDRectangle.A4)) }
+            val layer =
+                OverlayLayer(pageIndex = 0)
+                    .withShape(Shape(ShapeKind.RECTANGLE, PdfPoint(72f, 600f), PdfPoint(200f, 700f)))
+                    .withShape(Shape(ShapeKind.ELLIPSE, PdfPoint(72f, 400f), PdfPoint(200f, 500f)))
+                    .withShape(Shape(ShapeKind.LINE, PdfPoint(72f, 300f), PdfPoint(200f, 350f)))
+                    .withShape(Shape(ShapeKind.ARROW, PdfPoint(72f, 150f), PdfPoint(200f, 250f)))
+
+            flattener().flattenInto(document, layer)
+            PdfSaver().writeTo(document, file.outputStream())
+            document.close()
+
+            PDDocument.load(file).use { reloaded ->
+                val content =
+                    reloaded
+                        .getPage(0)
+                        .contents
+                        .bufferedReader()
+                        .use { it.readText() }
+                // Rectangle emits a rectangle operator, the ellipse emits cubic
+                // Béziers, and every shape is stroked.
+                assertThat(RECT_OPERATOR.containsMatchIn(content)).isTrue()
+                assertThat(CURVE_OPERATOR.containsMatchIn(content)).isTrue()
+                assertThat(STROKE_OPERATOR.containsMatchIn(content)).isTrue()
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    @Test
     fun `flattening an empty layer leaves the page text unchanged`() {
         val file = File.createTempFile("harness-empty", ".pdf")
         try {
@@ -180,6 +216,10 @@ class PdfTestHarnessTest {
         // A standalone PDF stroke operator "S" surrounded by whitespace — avoids
         // matching the "S" inside the overlay text string "PDF-TEST-OVERLAY".
         val STROKE_OPERATOR = Regex("""(^|\s)S(\s|$)""")
+
+        // Standalone rectangle ("re") and cubic-Bézier ("c") path operators.
+        val RECT_OPERATOR = Regex("""(^|\s)re(\s|$)""")
+        val CURVE_OPERATOR = Regex("""(^|\s)c(\s|$)""")
 
         // A blank page + Helvetica text is ~1 KB; even a subset font program
         // adds tens of KB. Anything under this cannot contain an embedded font.

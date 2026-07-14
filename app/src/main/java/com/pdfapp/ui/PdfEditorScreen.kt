@@ -215,6 +215,16 @@ private fun EditModeBindings(
         canvasView?.inkColorArgb = viewModel.inkColorArgb
         canvasView?.inkStrokeWidthPt = viewModel.inkStrokeWidthPt
     }
+    LaunchedEffect(
+        viewModel.shapeKind,
+        viewModel.shapeColorArgb,
+        viewModel.shapeStrokeWidthPt,
+        canvasView,
+    ) {
+        canvasView?.shapeKind = viewModel.shapeKind
+        canvasView?.shapeColorArgb = viewModel.shapeColorArgb
+        canvasView?.shapeStrokeWidthPt = viewModel.shapeStrokeWidthPt
+    }
     LaunchedEffect(editTool, canvasView) { canvasView?.mode = editTool }
 }
 
@@ -264,7 +274,7 @@ private fun EditModeContent(
             onClear = { canvasView?.clearOverlays() },
             onSave = onSaveClick,
         )
-        ToolSettingsRow(viewModel)
+        ToolSettingsRow(viewModel, editTool)
         PageNavBar(
             currentIndex = viewModel.currentPageIndex,
             pageCount = viewModel.pageCount,

@@ -8,9 +8,11 @@ data class OverlayLayer(
     val pageIndex: Int,
     val texts: List<TextOverlay> = emptyList(),
     val signatures: List<InkSignature> = emptyList(),
+    val shapes: List<Shape> = emptyList(),
 ) {
     /** True when the page has no overlays to flatten. */
-    val isEmpty: Boolean get() = texts.isEmpty() && signatures.all { it.isEmpty }
+    val isEmpty: Boolean
+        get() = texts.isEmpty() && signatures.all { it.isEmpty } && shapes.all { it.isEmpty }
 
     fun withText(text: TextOverlay): OverlayLayer = copy(texts = texts + text)
 
@@ -19,7 +21,11 @@ data class OverlayLayer(
 
     fun withSignature(signature: InkSignature): OverlayLayer = copy(signatures = signatures + signature)
 
+    fun withShape(shape: Shape): OverlayLayer = copy(shapes = shapes + shape)
+
     fun removeText(id: String): OverlayLayer = copy(texts = texts.filterNot { it.id == id })
 
     fun removeSignature(id: String): OverlayLayer = copy(signatures = signatures.filterNot { it.id == id })
+
+    fun removeShape(id: String): OverlayLayer = copy(shapes = shapes.filterNot { it.id == id })
 }

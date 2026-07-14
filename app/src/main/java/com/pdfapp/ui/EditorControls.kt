@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pdfapp.overlay.OverlayCanvasView
+import com.pdfapp.overlay.model.ShapeKind
 
 /** Ink/text colour choices offered in the settings row. */
 private val PALETTE: List<Int> =
@@ -56,19 +57,25 @@ fun EditorToolbar(
             SegmentedButton(
                 selected = mode == OverlayCanvasView.Mode.INK,
                 onClick = { onModeChange(OverlayCanvasView.Mode.INK) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 4),
                 enabled = enabled,
             ) { Text("Sign") }
             SegmentedButton(
                 selected = mode == OverlayCanvasView.Mode.TEXT,
                 onClick = { onModeChange(OverlayCanvasView.Mode.TEXT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 4),
                 enabled = enabled,
             ) { Text("Text") }
             SegmentedButton(
+                selected = mode == OverlayCanvasView.Mode.SHAPE,
+                onClick = { onModeChange(OverlayCanvasView.Mode.SHAPE) },
+                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 4),
+                enabled = enabled,
+            ) { Text("Shape") }
+            SegmentedButton(
                 selected = mode == OverlayCanvasView.Mode.EDIT,
                 onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                shape = SegmentedButtonDefaults.itemShape(index = 3, count = 4),
                 enabled = enabled,
             ) { Text("Edit") }
         }
@@ -79,9 +86,13 @@ fun EditorToolbar(
     }
 }
 
-/** Ink/text colour and size controls. */
+/** Tool colour/size controls; the shown set follows the active [mode]. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToolSettingsRow(viewModel: PdfEditorViewModel) {
+fun ToolSettingsRow(
+    viewModel: PdfEditorViewModel,
+    mode: OverlayCanvasView.Mode,
+) {
     Row(
         modifier =
             Modifier
@@ -91,22 +102,63 @@ fun ToolSettingsRow(viewModel: PdfEditorViewModel) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("Ink")
-        ColorSwatches(selected = viewModel.inkColorArgb, onSelect = viewModel::setInkColor)
-        Stepper(
-            value = "${viewModel.inkStrokeWidthPt.toInt()}pt",
-            onMinus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt - 1f) },
-            onPlus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt + 1f) },
-        )
-        Text("Text")
-        ColorSwatches(selected = viewModel.textColorArgb, onSelect = viewModel::setTextColor)
-        Stepper(
-            value = "${viewModel.textSizePt.toInt()}pt",
-            onMinus = { viewModel.setTextSize(viewModel.textSizePt - 2f) },
-            onPlus = { viewModel.setTextSize(viewModel.textSizePt + 2f) },
-        )
+        when (mode) {
+            OverlayCanvasView.Mode.SHAPE -> {
+                ShapeKindPicker(selected = viewModel.shapeKind, onSelect = viewModel::selectShapeKind)
+                ColorSwatches(selected = viewModel.shapeColorArgb, onSelect = viewModel::setShapeColor)
+                Stepper(
+                    value = "${viewModel.shapeStrokeWidthPt.toInt()}pt",
+                    onMinus = { viewModel.setShapeStrokeWidth(viewModel.shapeStrokeWidthPt - 1f) },
+                    onPlus = { viewModel.setShapeStrokeWidth(viewModel.shapeStrokeWidthPt + 1f) },
+                )
+            }
+            else -> {
+                Text("Ink")
+                ColorSwatches(selected = viewModel.inkColorArgb, onSelect = viewModel::setInkColor)
+                Stepper(
+                    value = "${viewModel.inkStrokeWidthPt.toInt()}pt",
+                    onMinus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt - 1f) },
+                    onPlus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt + 1f) },
+                )
+                Text("Text")
+                ColorSwatches(selected = viewModel.textColorArgb, onSelect = viewModel::setTextColor)
+                Stepper(
+                    value = "${viewModel.textSizePt.toInt()}pt",
+                    onMinus = { viewModel.setTextSize(viewModel.textSizePt - 2f) },
+                    onPlus = { viewModel.setTextSize(viewModel.textSizePt + 2f) },
+                )
+            }
+        }
     }
 }
+
+/** Rectangle / ellipse / line / arrow selector for [OverlayCanvasView.Mode.SHAPE]. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ShapeKindPicker(
+    selected: ShapeKind,
+    onSelect: (ShapeKind) -> Unit,
+) {
+    val kinds = ShapeKind.entries
+    SingleChoiceSegmentedButtonRow {
+        kinds.forEachIndexed { index, kind ->
+            SegmentedButton(
+                selected = kind == selected,
+                onClick = { onSelect(kind) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = kinds.size),
+            ) { Text(kind.label) }
+        }
+    }
+}
+
+private val ShapeKind.label: String
+    get() =
+        when (this) {
+            ShapeKind.RECTANGLE -> "Rect"
+            ShapeKind.ELLIPSE -> "Oval"
+            ShapeKind.LINE -> "Line"
+            ShapeKind.ARROW -> "Arrow"
+        }
 
 /** Previous / next page navigation with a page indicator. */
 @Composable
