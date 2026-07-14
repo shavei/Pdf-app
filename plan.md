@@ -157,6 +157,13 @@ marked inline below.
 - **Page thumbnails grid** for jump-navigation, plus a slider/scrubber and a
   "page X of N — go to page" dialog.
 - Remember last-read page per document (DataStore keyed by URI).
+- **Smooth zoom/pan ✅** — the pinch gesture is focal-anchored on both axes (the
+  content under the fingers stays put) and two-finger drags pan while zooming,
+  while single-finger scroll and fling on both axes are preserved by the
+  underlying scroll containers. Crisp high-zoom tiles follow a debounced settled
+  zoom so a live pinch stretches the base bitmap instead of thrashing the
+  renderer. The focal-anchoring formulas live in a dependency-free `ReaderZoomMath`
+  (unit-tested on the JVM).
 
 ### 2.2 Text search ✅
 - In-document search with match highlighting and next/previous navigation.
