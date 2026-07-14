@@ -39,6 +39,9 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
+    // Read-only PdfBox use (text geometry, outline, links). Rasterisation
+    // stays on PdfRenderer; writing stays in :file-persistence.
+    implementation(libs.pdfbox.android)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

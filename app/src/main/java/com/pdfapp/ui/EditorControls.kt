@@ -14,7 +14,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -32,14 +31,13 @@ import com.pdfapp.overlay.OverlayCanvasView
 private val PALETTE: List<Int> =
     listOf(0xFF000000L, 0xFF001A66L, 0xFFB00020L, 0xFF1B5E20L).map { it.toInt() }
 
-/** Primary action toolbar: open, mode toggle, commit ink, undo, clear, save. */
+/** Primary edit-mode toolbar: tool toggle, commit ink, undo, clear, save. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditorToolbar(
     mode: OverlayCanvasView.Mode,
     enabled: Boolean,
     onModeChange: (OverlayCanvasView.Mode) -> Unit,
-    onOpen: () -> Unit,
     onCommitInk: () -> Unit,
     onUndo: () -> Unit,
     onClear: () -> Unit,
@@ -54,7 +52,6 @@ fun EditorToolbar(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FilledTonalButton(onClick = onOpen) { Text("Open") }
         SingleChoiceSegmentedButtonRow {
             SegmentedButton(
                 selected = mode == OverlayCanvasView.Mode.INK,

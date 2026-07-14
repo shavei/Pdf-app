@@ -7,6 +7,14 @@ import android.os.ParcelFileDescriptor
 import java.io.Closeable
 
 /**
+ * The document is password-protected: [PdfRenderer] refuses encrypted files.
+ * Callers should ask for a password and open a decrypted copy instead.
+ */
+class PdfPasswordRequiredException(
+    cause: SecurityException,
+) : Exception("Document is password-protected", cause)
+
+/**
  * Owns the open [PdfRenderer] and the file descriptor backing it for a single
  * document opened from a SAF [Uri].
  *
@@ -36,7 +44,11 @@ class PdfDocumentSource private constructor(
     }
 
     companion object {
-        /** Open a document from a SAF [Uri] for read access. */
+        /**
+         * Open a document from a SAF [Uri] for read access.
+         *
+         * @throws PdfPasswordRequiredException if the PDF is encrypted.
+         */
         fun fromUri(
             resolver: ContentResolver,
             uri: Uri,
@@ -44,7 +56,16 @@ class PdfDocumentSource private constructor(
             val pfd =
                 resolver.openFileDescriptor(uri, "r")
                     ?: error("Unable to open file descriptor for $uri")
-            return PdfDocumentSource(pfd, PdfRenderer(pfd))
+            val renderer =
+                try {
+                    PdfRenderer(pfd)
+                } catch (e: SecurityException) {
+                    // Encryption, not a permissions problem: the descriptor
+                    // opened fine but PdfRenderer rejected the content.
+                    pfd.close()
+                    throw PdfPasswordRequiredException(e)
+                }
+            return PdfDocumentSource(pfd, renderer)
         }
     }
 }
