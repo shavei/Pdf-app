@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
@@ -360,35 +361,57 @@ private fun Modifier.zoomPanGestures(
                 val event = awaitPointerEvent()
                 val pressed = event.changes.count { it.pressed }
                 if (pressed == 0) break
-                if (pressed >= 2) {
-                    pinching = true
-                    val zoomChange = event.calculateZoom()
-                    val pan = event.calculatePan()
-                    val centroid = event.calculateCentroid(useCurrent = true)
-                    if (zoomChange != 1f || pan != Offset.Zero) {
-                        viewport.pinch(centroid.x, centroid.y, zoomChange, pan.x, pan.y)
-                        onChanged()
+                when {
+                    pressed >= 2 -> {
+                        pinching = true
+                        viewport.applyPinch(event, onChanged)
+                        event.changes.forEach { it.consume() }
                     }
-                    event.changes.forEach { it.consume() }
-                } else if (pinching) {
                     // Finishing a pinch with one finger down: swallow its moves so
                     // the page does not lurch as the second finger lifts.
-                    event.changes.forEach { it.consume() }
-                } else if (viewport.zoom > 1f) {
-                    // One finger on a zoomed page pans it; yield when a child (text
-                    // selection) has already claimed the drag by consuming it.
-                    val change = event.changes.firstOrNull { it.pressed && !it.isConsumed }
-                    val delta = change?.positionChange() ?: Offset.Zero
-                    totalPan += delta
-                    if (change != null && totalPan.getDistance() > touchSlop) {
-                        viewport.panBy(delta.x, delta.y)
-                        onChanged()
-                        change.consume()
-                    }
+                    pinching -> event.changes.forEach { it.consume() }
+                    // One finger on a zoomed page pans it (fit-zoom drags fall
+                    // through to the pager / tap / long-press handlers instead).
+                    viewport.zoom > 1f -> totalPan = viewport.applyPan(event, totalPan, touchSlop, onChanged)
                 }
             }
         }
     }
+
+/** Apply one pinch step (zoom about the centroid, pan with it) to [this]. */
+private fun ViewportTransform.applyPinch(
+    event: PointerEvent,
+    onChanged: () -> Unit,
+) {
+    val zoomChange = event.calculateZoom()
+    val pan = event.calculatePan()
+    if (zoomChange == 1f && pan == Offset.Zero) return
+    val centroid = event.calculateCentroid(useCurrent = true)
+    pinch(centroid.x, centroid.y, zoomChange, pan.x, pan.y)
+    onChanged()
+}
+
+/**
+ * Pan [this] by one finger's movement once the accumulated drag clears
+ * [touchSlop], yielding when a child (text selection) already consumed it.
+ * Returns the running pan total for the next event.
+ */
+private fun ViewportTransform.applyPan(
+    event: PointerEvent,
+    totalPan: Offset,
+    touchSlop: Float,
+    onChanged: () -> Unit,
+): Offset {
+    val change = event.changes.firstOrNull { it.pressed && !it.isConsumed } ?: return totalPan
+    val delta = change.positionChange()
+    val accumulated = totalPan + delta
+    if (accumulated.getDistance() > touchSlop) {
+        panBy(delta.x, delta.y)
+        onChanged()
+        change.consume()
+    }
+    return accumulated
+}
 
 private val NIGHT_FILTER =
     ColorFilter.colorMatrix(
