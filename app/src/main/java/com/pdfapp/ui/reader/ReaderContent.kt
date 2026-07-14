@@ -29,7 +29,7 @@ import com.pdfapp.ui.PdfEditorViewModel
 import kotlinx.coroutines.launch
 
 /**
- * READ-mode body: the continuous reader plus its floating chrome — the
+ * READ-mode body: the one-page-at-a-time reader plus its floating chrome — the
  * "Page X / N" chip (tap to jump) and the copy bar for an active selection.
  */
 @Composable

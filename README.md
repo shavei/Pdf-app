@@ -16,8 +16,9 @@
 > to `main` that passes all checks updates this download automatically. You can
 > also rebuild on demand from your phone: **Actions → CI → Run workflow**.
 
-A native Android app for reading PDFs — continuous scrolling, search, text
-selection, an outline drawer, night mode — and for signing and annotating them
+A native Android app for reading PDFs — a one-page-at-a-time viewer with
+pinch-zoom, search, text selection, an outline drawer, night mode — and for
+signing and annotating them
 with **text overlays** and a hand-drawn **ink signature**, then flattening and
 saving the result back to storage. Signet also registers as a system "Open
 with" / share target for `application/pdf`. Offline-first, open-source
@@ -30,11 +31,12 @@ libraries only.
 - 📄 **Open anywhere** — the system file picker, the "Open with" sheet, or the
   share sheet; recently opened files are one tap away on the home screen and
   reopen at the page you left off.
-- 📜 **Continuous scrolling** — a vertical reader that renders pages on demand
-  and recycles bitmaps, with a page indicator and thumbnail-grid / go-to-page
-  jump navigation.
-- 🔍 **Pinch to zoom** — zoom and pan with touch, plus fit-width / fit-page
-  presets; zoomed pages are re-rendered crisply as tiles.
+- 📄 **One page at a time** — a horizontal pager that renders pages on demand
+  and recycles bitmaps, swiping between pages, with a page indicator and
+  thumbnail-grid / go-to-page jump navigation.
+- 🔍 **Pinch to zoom & pan** — the same focal-anchored zoom the editor uses:
+  two fingers pinch-zoom and pan, one finger pans a zoomed page, plus fit-width /
+  fit-page presets; zoomed pages are re-rendered crisply as tiles.
 - 🔎 **Search** — find text across the document with match highlighting and
   next/previous navigation.
 - 🖱️ **Select & copy** — long-press to select text, drag to extend, copy to
@@ -67,7 +69,7 @@ the feature modules; feature modules share only the small model/geometry types i
 | **`:core-renderer`** | Load a PDF from a SAF `Uri` and render pages (and tiles) to `Bitmap`; a memory-bounded page cache; a read-only PdfBox facade for text geometry, search, outline and links. Owns the shared coordinate system. | `PdfDocumentSource`, `PageRenderer`, `RenderedPageCache`, `PdfTextDocument`, `CoordinateMapper` |
 | **`:overlay-engine`** | Interactive text + ink layer captured in PDF-point coordinates. | `TextOverlay`, `InkSignature`, `OverlayLayer`, `OverlayCanvasView` |
 | **`:file-persistence`** | Flatten overlays into the PDF with PdfBox-Android and write via SAF; decrypt password-protected PDFs. | `PdfFlattener`, `PdfSaver`, `PdfDecryptor` |
-| **`:app`** | UI shell wiring the modules: the continuous-scroll reader (search, selection, outline, night mode, recents) and the overlay editor. Initializes PdfBox at startup. | `MainActivity`, `PdfEditorViewModel`, `ReaderView` |
+| **`:app`** | UI shell wiring the modules: the one-page-at-a-time reader (search, selection, outline, night mode, recents) and the overlay editor. Initializes PdfBox at startup. | `MainActivity`, `PdfEditorViewModel`, `ReaderView` |
 
 ### The key technical detail: coordinate mapping
 
@@ -133,7 +135,7 @@ signing secrets to configure.
 
 **Phase 1 (system integration) and Phase 2 (table-stakes reading) are done.**
 Signet opens PDFs from the picker, the "Open with" sheet, and the share sheet;
-reads them with continuous scrolling, pinch-zoom, in-document search, text
+reads them one page at a time with pinch-zoom, in-document search, text
 selection, an outline drawer, tappable links, password unlocking, night mode,
 and a recents list that resumes the last-read page; and still signs, adds and
 edits text overlays, and saves a flattened copy via SAF. Verification runs as

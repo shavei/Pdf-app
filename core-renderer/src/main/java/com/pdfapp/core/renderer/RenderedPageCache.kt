@@ -10,7 +10,7 @@ import kotlin.math.roundToInt
 /**
  * Memory-bounded page cache in front of a [PageRendering].
  *
- * Serves the continuous-scroll reader and the thumbnail grid: pages are
+ * Serves the page reader and the thumbnail grid: pages are
  * rendered on demand, keyed by (page, quantised scale) so a zoom change
  * re-renders crisply while the fit-width and thumbnail variants of other
  * pages stay warm. An LRU sized in bytes (default: a quarter of the heap)
