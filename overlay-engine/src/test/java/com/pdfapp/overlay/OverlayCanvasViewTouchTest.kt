@@ -10,6 +10,7 @@ import com.pdfapp.core.renderer.model.CoordinateMapper
 import com.pdfapp.core.renderer.model.PageSize
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.overlay.model.OverlayLayer
+import com.pdfapp.overlay.model.ShapeKind
 import com.pdfapp.overlay.model.TextOverlay
 import org.junit.Before
 import org.junit.Test
@@ -231,5 +232,46 @@ class OverlayCanvasViewTouchTest {
         touch(MotionEvent.ACTION_MOVE, 150f, 150f)
         assertThat(view.layer.texts.single().position).isEqualTo(positionAfterCancel)
         assertThat(parent.disallowIntercept).isFalse()
+    }
+
+    @Test
+    fun `shape drag claims the touch stream and commits one shape at page coordinates`() {
+        view.shapeKind = ShapeKind.RECTANGLE
+        view.mode = OverlayCanvasView.Mode.SHAPE
+
+        touch(MotionEvent.ACTION_DOWN, 10f, 10f)
+        assertThat(parent.disallowIntercept).isTrue()
+
+        touch(MotionEvent.ACTION_MOVE, 60f, 80f)
+        touch(MotionEvent.ACTION_UP, 60f, 80f)
+        assertThat(parent.disallowIntercept).isFalse()
+
+        val shape = view.layer.shapes.single()
+        assertThat(shape.kind).isEqualTo(ShapeKind.RECTANGLE)
+        // 200pt page at 1px/pt: pixel y flips to 200 - y.
+        assertThat(shape.start).isEqualTo(PdfPoint(10f, 190f))
+        assertThat(shape.end).isEqualTo(PdfPoint(60f, 120f))
+    }
+
+    @Test
+    fun `a shape that never leaves its start point is discarded`() {
+        view.shapeKind = ShapeKind.ELLIPSE
+        view.mode = OverlayCanvasView.Mode.SHAPE
+
+        touch(MotionEvent.ACTION_DOWN, 40f, 40f)
+        touch(MotionEvent.ACTION_UP, 40f, 40f)
+
+        assertThat(view.layer.shapes).isEmpty()
+    }
+
+    @Test
+    fun `undo removes the most recent shape`() {
+        view.mode = OverlayCanvasView.Mode.SHAPE
+        touch(MotionEvent.ACTION_DOWN, 10f, 10f)
+        touch(MotionEvent.ACTION_UP, 50f, 50f)
+        assertThat(view.layer.shapes).hasSize(1)
+
+        view.undo()
+        assertThat(view.layer.shapes).isEmpty()
     }
 }

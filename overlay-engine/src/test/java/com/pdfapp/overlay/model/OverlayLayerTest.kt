@@ -65,4 +65,27 @@ class OverlayLayerTest {
         val stray = TextOverlay("Ghost", PdfPoint(9f, 9f))
         assertThat(layer.updateText(stray).texts).containsExactly(text)
     }
+
+    @Test
+    fun `withShape adds a shape immutably`() {
+        val base = OverlayLayer(pageIndex = 2)
+        val shape = Shape(ShapeKind.RECTANGLE, PdfPoint(0f, 0f), PdfPoint(10f, 10f))
+        val updated = base.withShape(shape)
+        assertThat(base.shapes).isEmpty()
+        assertThat(updated.shapes).containsExactly(shape)
+        assertThat(updated.isEmpty).isFalse()
+    }
+
+    @Test
+    fun `removeShape drops the matching shape by id`() {
+        val shape = Shape(ShapeKind.LINE, PdfPoint(0f, 0f), PdfPoint(5f, 5f))
+        val layer = OverlayLayer(pageIndex = 0).withShape(shape).removeShape(shape.id)
+        assertThat(layer.shapes).isEmpty()
+    }
+
+    @Test
+    fun `layer with only a degenerate shape is still empty`() {
+        val degenerate = Shape(ShapeKind.ELLIPSE, PdfPoint(3f, 3f), PdfPoint(3f, 3f))
+        assertThat(OverlayLayer(pageIndex = 0).withShape(degenerate).isEmpty).isTrue()
+    }
 }

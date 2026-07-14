@@ -217,12 +217,12 @@ marked inline below.
 
 ---
 
-## Phase 3 — Full annotation suite ⏳ *next — not started*
+## Phase 3 — Full annotation suite ⏳ *in progress*
 
 Extends `:overlay-engine`, reusing the existing PDF-point coordinate model and the
-flatten-on-save pipeline in `:file-persistence`. Today the module ships only
-`TextOverlay` and `InkSignature` with an **undo-only** stack — none of the items
-below exist yet.
+flatten-on-save pipeline in `:file-persistence`. The module started with only
+`TextOverlay` and `InkSignature` on an **undo-only** stack; **shapes have now
+shipped** (see below) and the remaining items are still to come.
 
 - **Text markup**: highlight, underline, strikethrough over selected text (needs
   2.3's text geometry). Flatten as translucent quads / lines via PdfBox content
@@ -232,7 +232,13 @@ below exist yet.
 - **Freehand pen & highlighter**: generalize `InkSignature` into an ink tool with
   per-stroke color/width/alpha; highlighter = wide translucent stroke with
   multiply-style blending.
-- **Shapes**: rectangle, ellipse, line, arrow with stroke/fill pickers.
+- **Shapes ✅** *shipped*: rectangle, ellipse, line, and arrow drawn by dragging in a
+  new SHAPE tool, with stroke colour/width pickers. Modelled as a `Shape`
+  (`ShapeKind` + two PDF-point anchors) on `OverlayLayer`; flattened as stroked
+  vector paths by `PdfFlattener` (ellipses as four cubic Béziers, arrowheads via
+  the shared `ShapeGeometry`), and covered by the undo stack. Verified across
+  lint, unit/touch tests, and the PDF-Test-Harness. *Fill pickers are deferred to a
+  follow-up increment.*
 - **Sticky notes**: tappable note icon anchored in PDF points; note text editable
   in a dialog; export as `PDAnnotationText` (popup note) so other viewers see it.
 - **Eraser & redo**: stroke-level eraser; extend the undo stack (currently

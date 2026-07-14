@@ -3,6 +3,9 @@ package com.pdfapp.persistence
 import android.content.Context
 import com.pdfapp.overlay.model.InkSignature
 import com.pdfapp.overlay.model.OverlayLayer
+import com.pdfapp.overlay.model.Shape
+import com.pdfapp.overlay.model.ShapeGeometry
+import com.pdfapp.overlay.model.ShapeKind
 import com.pdfapp.overlay.model.TextOverlay
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
@@ -10,6 +13,7 @@ import com.tom_roush.pdfbox.pdmodel.font.PDFont
 import com.tom_roush.pdfbox.pdmodel.font.PDType0Font
 import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
 import java.io.InputStream
+import kotlin.math.abs
 
 /**
  * Burns an [OverlayLayer] permanently into a PDF page using PdfBox-Android.
@@ -58,6 +62,7 @@ class PdfFlattener(private val openUnicodeFont: () -> InputStream) {
             // resetContext =
             true,
         ).use { stream ->
+            layer.shapes.forEach { drawShape(stream, it) }
             layer.texts.forEach { drawText(document, stream, it) }
             layer.signatures.forEach { drawSignature(stream, it) }
         }
@@ -107,6 +112,73 @@ class PdfFlattener(private val openUnicodeFont: () -> InputStream) {
         text: String,
     ): Boolean = runCatching { font.encode(text) }.isSuccess
 
+    /**
+     * Draw a vector [shape] as a stroked path. Anchors are already in PDF points
+     * (bottom-left origin), so they pass straight into the content stream. Ellipses
+     * are approximated by four cubic Béziers — PdfBox has no oval primitive.
+     */
+    private fun drawShape(
+        stream: PDPageContentStream,
+        shape: Shape,
+    ) {
+        if (shape.isEmpty) return
+        val (r, g, b) = shape.strokeColorArgb.toRgb()
+        stream.setStrokingColor(r, g, b)
+        stream.setLineWidth(shape.strokeWidthPt)
+        stream.setLineCapStyle(LINE_CAP_ROUND)
+        stream.setLineJoinStyle(LINE_JOIN_ROUND)
+        val start = shape.start
+        val end = shape.end
+        when (shape.kind) {
+            ShapeKind.RECTANGLE -> {
+                stream.addRect(
+                    minOf(start.x, end.x),
+                    minOf(start.y, end.y),
+                    abs(end.x - start.x),
+                    abs(end.y - start.y),
+                )
+                stream.stroke()
+            }
+            ShapeKind.ELLIPSE -> drawEllipse(stream, shape)
+            ShapeKind.LINE -> {
+                stream.moveTo(start.x, start.y)
+                stream.lineTo(end.x, end.y)
+                stream.stroke()
+            }
+            ShapeKind.ARROW -> {
+                stream.moveTo(start.x, start.y)
+                stream.lineTo(end.x, end.y)
+                stream.stroke()
+                val (barb1, barb2) = ShapeGeometry.arrowHeadBarbs(start, end)
+                stream.moveTo(end.x, end.y)
+                stream.lineTo(barb1.x, barb1.y)
+                stream.stroke()
+                stream.moveTo(end.x, end.y)
+                stream.lineTo(barb2.x, barb2.y)
+                stream.stroke()
+            }
+        }
+    }
+
+    /** Trace [shape]'s bounding ellipse with four cubic Bézier quadrants. */
+    private fun drawEllipse(
+        stream: PDPageContentStream,
+        shape: Shape,
+    ) {
+        val cx = (shape.start.x + shape.end.x) / 2f
+        val cy = (shape.start.y + shape.end.y) / 2f
+        val rx = abs(shape.end.x - shape.start.x) / 2f
+        val ry = abs(shape.end.y - shape.start.y) / 2f
+        val ox = rx * ELLIPSE_KAPPA
+        val oy = ry * ELLIPSE_KAPPA
+        stream.moveTo(cx + rx, cy)
+        stream.curveTo(cx + rx, cy + oy, cx + ox, cy + ry, cx, cy + ry)
+        stream.curveTo(cx - ox, cy + ry, cx - rx, cy + oy, cx - rx, cy)
+        stream.curveTo(cx - rx, cy - oy, cx - ox, cy - ry, cx, cy - ry)
+        stream.curveTo(cx + ox, cy - ry, cx + rx, cy - oy, cx + rx, cy)
+        stream.stroke()
+    }
+
     private fun drawSignature(
         stream: PDPageContentStream,
         signature: InkSignature,
@@ -131,6 +203,10 @@ class PdfFlattener(private val openUnicodeFont: () -> InputStream) {
         const val LINE_JOIN_ROUND = 1
         const val UNICODE_FONT_ASSET = "fonts/Arimo-Regular.ttf"
         const val EMBED_SUBSET = true
+
+        // Control-point offset for approximating a circular quadrant with a cubic
+        // Bézier: 4/3 · (√2 − 1). Scaled by each radius for the ellipse.
+        const val ELLIPSE_KAPPA = 0.5522848f
     }
 }
 

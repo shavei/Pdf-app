@@ -25,6 +25,8 @@ import com.pdfapp.data.readerDataStore
 import com.pdfapp.overlay.model.InkSignature
 import com.pdfapp.overlay.model.OverlayDocument
 import com.pdfapp.overlay.model.OverlayLayer
+import com.pdfapp.overlay.model.Shape
+import com.pdfapp.overlay.model.ShapeKind
 import com.pdfapp.overlay.model.TextOverlay
 import com.pdfapp.persistence.PdfDecryptor
 import com.pdfapp.persistence.PdfFlattener
@@ -113,6 +115,13 @@ class PdfEditorViewModel(
     var textColorArgb: Int by mutableStateOf(TextOverlay.DEFAULT_COLOR)
         private set
     var textSizePt: Float by mutableStateOf(TextOverlay.DEFAULT_FONT_SIZE_PT)
+        private set
+
+    var shapeKind: ShapeKind by mutableStateOf(ShapeKind.RECTANGLE)
+        private set
+    var shapeColorArgb: Int by mutableStateOf(Shape.DEFAULT_COLOR)
+        private set
+    var shapeStrokeWidthPt: Float by mutableStateOf(Shape.DEFAULT_STROKE_WIDTH_PT)
         private set
 
     val pageCount: Int get() = session?.pageCount ?: 0
@@ -296,6 +305,18 @@ class PdfEditorViewModel(
         textSizePt = sizePt.coerceIn(MIN_TEXT_PT, MAX_TEXT_PT)
     }
 
+    fun selectShapeKind(kind: ShapeKind) {
+        shapeKind = kind
+    }
+
+    fun setShapeColor(argb: Int) {
+        shapeColorArgb = argb
+    }
+
+    fun setShapeStrokeWidth(widthPt: Float) {
+        shapeStrokeWidthPt = widthPt.coerceIn(MIN_STROKE_PT, MAX_STROKE_PT)
+    }
+
     /** Flatten every page's overlays into a fresh copy of the source PDF and save to [destUri]. */
     fun save(
         context: Context,
@@ -308,7 +329,7 @@ class PdfEditorViewModel(
             return
         }
         if (!document.hasOverlays) {
-            userMessage = "Add text or a signature first"
+            userMessage = "Add text, a shape, or a signature first"
             return
         }
         launchBusy {
