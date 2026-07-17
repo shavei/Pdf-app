@@ -1,8 +1,6 @@
 package com.pdfapp.ui.reader
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,56 +27,29 @@ import com.pdfapp.ui.PdfEditorViewModel
 import kotlinx.coroutines.launch
 
 /**
- * READ-mode body: the one-page-at-a-time reader plus its floating chrome — the
- * "Page X / N" chip (tap to jump) and the copy bar for an active selection.
+ * READ-mode body: the continuous Drive-style reader plus its floating chrome —
+ * the copy bar for an active selection. The transient page bubble lives on the
+ * fast scroller inside [ReaderView].
  */
 @Composable
 fun ReaderContent(
     viewModel: PdfEditorViewModel,
     snackbarHostState: SnackbarHostState,
-    onShowGoToPage: () -> Unit,
+    onToggleChrome: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         ReaderView(
             viewModel = viewModel,
+            onToggleChrome = onToggleChrome,
             modifier = Modifier.fillMaxSize(),
         )
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp),
-        ) {
+        Box(modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp)) {
             SelectionCopyBar(viewModel, snackbarHostState)
-            PageChip(
-                currentPage = viewModel.currentPageIndex,
-                pageCount = viewModel.pageCount,
-                onClick = onShowGoToPage,
-            )
         }
     }
 }
 
-@Composable
-private fun PageChip(
-    currentPage: Int,
-    pageCount: Int,
-    onClick: () -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        tonalElevation = 3.dp,
-        modifier = Modifier.clickable(onClick = onClick),
-    ) {
-        Text(
-            text = "Page ${currentPage + 1} / $pageCount",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
-    }
-}
-
-/** Floating bar offering to copy the current text selection (plan 2.3). */
+/** Floating bar offering to copy the current text selection. */
 @Composable
 private fun SelectionCopyBar(
     viewModel: PdfEditorViewModel,

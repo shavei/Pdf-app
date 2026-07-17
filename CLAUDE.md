@@ -1,12 +1,13 @@
 # PDF-App — Agent Guide
 
-Native Android (Kotlin) app: view PDFs, add text overlays, draw + flatten an ink signature, save via SAF. Offline, open-source libs only.
+Native Android (Kotlin) app: a Google-Drive-style PDF viewer (continuous scroll, document zoom, immersive chrome) plus focused editing — text overlays and a flattened ink signature, saved via SAF. Offline, open-source libs only.
 
 ## Start here
 - **Roadmap — read before planning or starting any feature:** [`plan.md`](plan.md).
-  The phase-by-phase path from PDF editor to full default PDF app. Phases 1 (system
-  integration) and 2 (reading experience) are **shipped**; Phase 3 (annotation suite)
-  is next. Check a phase's status there before assuming work is (un)done.
+  The phase-by-phase path to a full default PDF app. Phases 1 (system
+  integration) and 2 (Drive-style reading experience) are **shipped**; Phase 3
+  (annotation suite) was **removed by product decision** — Signet stays a
+  viewer + signer. Check a phase's status there before assuming work is (un)done.
 - **Development guide — build commands, module map, style, guardrails:** [`DEVELOPMENT.md`](DEVELOPMENT.md).
 
 ## Build & Verify

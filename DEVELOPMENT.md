@@ -1,9 +1,9 @@
 # PDF-App — Development Guide
 
-Native Android (Kotlin) app: view PDFs, add text overlays, draw + flatten an ink signature, save via SAF. Offline, open-source libs only.
+Native Android (Kotlin) app: a Google-Drive-style PDF viewer (continuous scroll, document zoom, immersive chrome) plus focused editing — text overlays and a flattened ink signature, saved via SAF. Offline, open-source libs only.
 
 ## Roadmap
-The full product roadmap — where the app is and where it's going, phase by phase — lives in [`plan.md`](plan.md). Phases 1 (system integration) and 2 (reading experience) are shipped; Phase 3 (annotation suite) onward is next.
+The full product roadmap — where the app is and where it's going, phase by phase — lives in [`plan.md`](plan.md). Phases 1 (system integration) and 2 (Drive-style reading experience) are shipped; Phase 3 (annotation suite) was removed by product decision, so Phase 4 (forms) onward is next.
 
 ## Build & Verify
 - Build:   `./gradlew assembleDebug`
@@ -17,8 +17,8 @@ PdfRenderer (view) · Canvas (overlay) · PdfBox-Android / Tom Roush (write) · 
 
 ## Modules
 - `:core-renderer` — load + render PDF pages; owns the shared `CoordinateMapper`.
-- `:overlay-engine` — text + ink overlay models and the interactive canvas view.
-- `:file-persistence` — flatten overlays into the PDF and save via SAF.
+- `:overlay-engine` — text + ink-signature overlay models and the interactive canvas view.
+- `:file-persistence` — flatten overlays into the PDF, decrypt password-protected files, save via SAF.
 - `:app` — UI shell wiring the three modules; calls `PDFBoxResourceLoader.init` at startup.
 
 ## Style

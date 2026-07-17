@@ -24,8 +24,6 @@ import com.pdfapp.data.readerDataStore
 import com.pdfapp.overlay.model.InkSignature
 import com.pdfapp.overlay.model.OverlayDocument
 import com.pdfapp.overlay.model.OverlayLayer
-import com.pdfapp.overlay.model.Shape
-import com.pdfapp.overlay.model.ShapeKind
 import com.pdfapp.overlay.model.TextOverlay
 import com.pdfapp.persistence.PdfDecryptor
 import com.pdfapp.persistence.PdfFlattener
@@ -41,6 +39,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.sqrt
 
 /** UI state for viewing (one-page-at-a-time reader) and editing a multi-page PDF. */
 class PdfEditorViewModel(
@@ -110,13 +109,6 @@ class PdfEditorViewModel(
     var textColorArgb: Int by mutableStateOf(TextOverlay.DEFAULT_COLOR)
         private set
     var textSizePt: Float by mutableStateOf(TextOverlay.DEFAULT_FONT_SIZE_PT)
-        private set
-
-    var shapeKind: ShapeKind by mutableStateOf(ShapeKind.RECTANGLE)
-        private set
-    var shapeColorArgb: Int by mutableStateOf(Shape.DEFAULT_COLOR)
-        private set
-    var shapeStrokeWidthPt: Float by mutableStateOf(Shape.DEFAULT_STROKE_WIDTH_PT)
         private set
 
     val pageCount: Int get() = session?.pageCount ?: 0
@@ -300,18 +292,6 @@ class PdfEditorViewModel(
         textSizePt = sizePt.coerceIn(MIN_TEXT_PT, MAX_TEXT_PT)
     }
 
-    fun selectShapeKind(kind: ShapeKind) {
-        shapeKind = kind
-    }
-
-    fun setShapeColor(argb: Int) {
-        shapeColorArgb = argb
-    }
-
-    fun setShapeStrokeWidth(widthPt: Float) {
-        shapeStrokeWidthPt = widthPt.coerceIn(MIN_STROKE_PT, MAX_STROKE_PT)
-    }
-
     /** Flatten every page's overlays into a fresh copy of the source PDF and save to [destUri]. */
     fun save(
         context: Context,
@@ -324,7 +304,7 @@ class PdfEditorViewModel(
             return
         }
         if (!document.hasOverlays) {
-            userMessage = "Add text, a shape, or a signature first"
+            userMessage = "Add text or a signature first"
             return
         }
         launchBusy {
@@ -413,8 +393,23 @@ class PdfEditorViewModel(
         if (index !in 0 until active.pageCount) return
         launchBusy {
             currentPageIndex = index
-            renderedPage = active.cache.page(index, EDIT_RENDER_SCALE)
+            val size = active.cache.pageSize(index)
+            renderedPage = active.cache.page(index, editRenderScale(size))
         }
+    }
+
+    /**
+     * Edit-mode render scale: twice the fit-width device resolution, so the
+     * page stays crisp while pinch-zoomed in the editor. Floored at the old
+     * 216 dpi baseline and capped so one page bitmap never busts the budget.
+     */
+    private fun editRenderScale(size: PageSize): Float {
+        val metrics = getApplication<Application>().resources.displayMetrics
+        val fitScale = metrics.widthPixels / size.widthPt
+        val memoryCap =
+            sqrt(MAX_EDIT_BITMAP_BYTES / (size.widthPt * size.heightPt * BYTES_PER_PIXEL))
+                .coerceAtLeast(MIN_EDIT_RENDER_SCALE)
+        return (fitScale * EDIT_ZOOM_HEADROOM).coerceIn(MIN_EDIT_RENDER_SCALE, memoryCap)
     }
 
     private fun closeSession() {
@@ -443,8 +438,13 @@ class PdfEditorViewModel(
     }
 
     private companion object {
-        // 3 px/pt ≈ 216 dpi keeps the page crisp while pinch-zoomed in.
-        const val EDIT_RENDER_SCALE = 3f
+        // 3 px/pt ≈ 216 dpi is the quality floor for the edit-mode page.
+        const val MIN_EDIT_RENDER_SCALE = 3f
+
+        // Render at 2x the screen's fit-width resolution so pinch zoom stays sharp.
+        const val EDIT_ZOOM_HEADROOM = 2f
+        const val MAX_EDIT_BITMAP_BYTES = 96f * 1024 * 1024
+        const val BYTES_PER_PIXEL = 4f
         const val MIN_STROKE_PT = 1f
         const val MAX_STROKE_PT = 8f
         const val MIN_TEXT_PT = 8f
