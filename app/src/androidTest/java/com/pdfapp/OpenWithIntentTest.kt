@@ -5,7 +5,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.StrictMode
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -65,9 +65,12 @@ class OpenWithIntentTest {
                 }
 
             ActivityScenario.launch<MainActivity>(intent).use {
+                // The continuous reader renders each page as an Image whose
+                // content description is "Page N"; page 1 appearing proves the
+                // intent-delivered document loaded and rendered.
                 composeRule.waitUntil(timeoutMillis = LOAD_TIMEOUT_MS) {
                     composeRule
-                        .onAllNodesWithText("Page 1 / 1")
+                        .onAllNodesWithContentDescription("Page 1")
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
