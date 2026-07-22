@@ -14,9 +14,6 @@ import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.core.renderer.model.PixelPoint
 import com.pdfapp.overlay.model.InkSignature
 import com.pdfapp.overlay.model.OverlayLayer
-import com.pdfapp.overlay.model.Shape
-import com.pdfapp.overlay.model.ShapeGeometry
-import com.pdfapp.overlay.model.ShapeKind
 import com.pdfapp.overlay.model.TextOverlay
 
 /**
@@ -41,17 +38,15 @@ class OverlayCanvasView
         attrs: AttributeSet? = null,
         defStyleAttr: Int = 0,
     ) : View(context, attrs, defStyleAttr) {
-        enum class Mode { INK, TEXT, EDIT, SHAPE }
+        enum class Mode { INK, TEXT, EDIT }
 
         var mode: Mode = Mode.INK
             set(value) {
                 if (field != value) {
                     field = value
-                    // Leaving edit mode clears any selection highlight, and
-                    // switching tools abandons a half-drawn shape.
+                    // Leaving edit mode clears any selection highlight.
                     selectedTextId = null
                     draggingText = null
-                    activeShape = null
                     invalidate()
                 }
             }
@@ -70,15 +65,6 @@ class OverlayCanvasView
 
         /** Ink stroke width (PDF points) used for new strokes. */
         var inkStrokeWidthPt: Float = InkSignature.DEFAULT_STROKE_WIDTH_PT
-
-        /** Shape kind drawn in [Mode.SHAPE]. */
-        var shapeKind: ShapeKind = ShapeKind.RECTANGLE
-
-        /** Stroke colour used for new shapes. */
-        var shapeColorArgb: Int = Shape.DEFAULT_COLOR
-
-        /** Stroke width (PDF points) used for new shapes. */
-        var shapeStrokeWidthPt: Float = Shape.DEFAULT_STROKE_WIDTH_PT
 
         /** Current overlays. Assigning triggers a redraw and notifies [onLayerChanged]. */
         var layer: OverlayLayer = OverlayLayer(pageIndex = 0)
@@ -108,9 +94,6 @@ class OverlayCanvasView
         // that starts mid-stroke can discard the accidental ink).
         private var inkStrokeActive = false
 
-        // Shape currently being dragged out, in pixel space; null between gestures.
-        private var activeShape: PixelShape? = null
-
         // Edit-mode state: the text currently selected/dragged, plus grab bookkeeping.
         private var selectedTextId: String? = null
         private var draggingText: TextOverlay? = null
@@ -138,14 +121,6 @@ class OverlayCanvasView
                 color = SELECTION_COLOR
             }
 
-        private val shapePaint =
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.STROKE
-                strokeCap = Paint.Cap.ROUND
-                strokeJoin = Paint.Join.ROUND
-                color = Shape.DEFAULT_COLOR
-            }
-
         /**
          * Bind the page to display along with its stored overlays, and reset any
          * in-progress drawing.
@@ -157,7 +132,6 @@ class OverlayCanvasView
             page = rendered
             activeStrokes.clear()
             inkStrokeActive = false
-            activeShape = null
             selectedTextId = null
             draggingText = null
             viewport.setContentSize(rendered.bitmap.width.toFloat(), rendered.bitmap.height.toFloat())
@@ -188,7 +162,7 @@ class OverlayCanvasView
 
         /**
          * Undo the most recent action: an in-progress stroke first, then the last
-         * committed shape, signature, or text overlay in that order.
+         * committed signature or text overlay in that order.
          */
         fun undo() {
             if (activeStrokes.isNotEmpty()) {
@@ -196,23 +170,20 @@ class OverlayCanvasView
                 invalidate()
                 return
             }
-            val shapes = layer.shapes
             val signatures = layer.signatures
             val texts = layer.texts
             layer =
                 when {
-                    shapes.isNotEmpty() -> layer.removeShape(shapes.last().id)
                     signatures.isNotEmpty() -> layer.removeSignature(signatures.last().id)
                     texts.isNotEmpty() -> layer.removeText(texts.last().id)
                     else -> return
                 }
         }
 
-        /** Remove all overlays and in-progress strokes/shapes from the current page. */
+        /** Remove all overlays and in-progress strokes from the current page. */
         fun clearOverlays() {
             activeStrokes.clear()
             inkStrokeActive = false
-            activeShape = null
             layer = OverlayLayer(pageIndex = page?.index ?: layer.pageIndex)
         }
 
@@ -233,70 +204,11 @@ class OverlayCanvasView
             canvas.translate(viewport.offsetX, viewport.offsetY)
             canvas.scale(viewport.scale, viewport.scale)
             canvas.drawBitmap(rendered.bitmap, 0f, 0f, null)
-            drawCommittedShapes(canvas)
-            drawActiveShape(canvas)
             drawCommittedSignatures(canvas)
             drawActiveStrokes(canvas)
             drawTexts(canvas)
             drawSelection(canvas)
             canvas.restoreToCount(checkpoint)
-        }
-
-        private fun drawCommittedShapes(canvas: Canvas) {
-            val mapper = page?.mapper ?: return
-            layer.shapes.forEach { shape ->
-                shapePaint.color = shape.strokeColorArgb
-                shapePaint.strokeWidth = shape.strokeWidthPt * mapper.pixelsPerPoint
-                val start = mapper.toPixel(shape.start)
-                val end = mapper.toPixel(shape.end)
-                drawShapePath(canvas, shape.kind, start, end)
-            }
-        }
-
-        private fun drawActiveShape(canvas: Canvas) {
-            val shape = activeShape ?: return
-            shapePaint.color = shapeColorArgb
-            shapePaint.strokeWidth = shapeStrokeWidthPt * (page?.mapper?.pixelsPerPoint ?: 1f)
-            drawShapePath(canvas, shape.kind, shape.start, shape.end)
-        }
-
-        /** Paint one shape's outline given its two anchor points in pixel space. */
-        private fun drawShapePath(
-            canvas: Canvas,
-            kind: ShapeKind,
-            start: PixelPoint,
-            end: PixelPoint,
-        ) {
-            when (kind) {
-                ShapeKind.RECTANGLE ->
-                    canvas.drawRect(
-                        minOf(start.x, end.x),
-                        minOf(start.y, end.y),
-                        maxOf(start.x, end.x),
-                        maxOf(start.y, end.y),
-                        shapePaint,
-                    )
-                ShapeKind.ELLIPSE ->
-                    canvas.drawOval(
-                        minOf(start.x, end.x),
-                        minOf(start.y, end.y),
-                        maxOf(start.x, end.x),
-                        maxOf(start.y, end.y),
-                        shapePaint,
-                    )
-                ShapeKind.LINE -> canvas.drawLine(start.x, start.y, end.x, end.y, shapePaint)
-                ShapeKind.ARROW -> {
-                    canvas.drawLine(start.x, start.y, end.x, end.y, shapePaint)
-                    // Barbs are computed in PDF points, so map them into pixels.
-                    val mapper = page?.mapper ?: return
-                    val (b1, b2) =
-                        ShapeGeometry.arrowHeadBarbs(mapper.toPdfPoint(start), mapper.toPdfPoint(end))
-                    val p1 = mapper.toPixel(b1)
-                    val p2 = mapper.toPixel(b2)
-                    canvas.drawLine(end.x, end.y, p1.x, p1.y, shapePaint)
-                    canvas.drawLine(end.x, end.y, p2.x, p2.y, shapePaint)
-                }
-            }
         }
 
         private fun drawCommittedSignatures(canvas: Canvas) {
@@ -378,7 +290,6 @@ class OverlayCanvasView
                 Mode.TEXT -> handleTextTouch(event, mapper)
                 Mode.INK -> handleInkTouch(event)
                 Mode.EDIT -> handleEditTouch(event, mapper)
-                Mode.SHAPE -> handleShapeTouch(event, mapper)
             }
         }
 
@@ -388,7 +299,7 @@ class OverlayCanvasView
         ): Boolean =
             event.actionMasked == MotionEvent.ACTION_DOWN &&
                 when (mode) {
-                    Mode.INK, Mode.SHAPE -> false
+                    Mode.INK -> false
                     Mode.TEXT -> true
                     Mode.EDIT -> textAt(contentPoint(event.x, event.y), mapper) == null
                 }
@@ -406,7 +317,7 @@ class OverlayCanvasView
                 MotionEvent.ACTION_DOWN -> {
                     val consumesGesture =
                         when (mode) {
-                            Mode.INK, Mode.SHAPE -> true
+                            Mode.INK -> true
                             Mode.EDIT -> textAt(contentPoint(event.x, event.y), mapper) != null
                             Mode.TEXT -> false
                         }
@@ -436,7 +347,6 @@ class OverlayCanvasView
                 activeStrokes.removeAt(activeStrokes.lastIndex)
             }
             inkStrokeActive = false
-            activeShape = null
             draggingText = null
             parent?.requestDisallowInterceptTouchEvent(true)
             invalidate()
@@ -540,67 +450,10 @@ class OverlayCanvasView
             return true
         }
 
-        /**
-         * Drag out a shape: the down point anchors [Shape.start], each move updates
-         * [Shape.end] for a live preview, and lift-off commits it into the layer in
-         * PDF points. A shape that never left its start point is discarded.
-         */
-        private fun handleShapeTouch(
-            event: MotionEvent,
-            mapper: CoordinateMapper,
-        ): Boolean {
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    val touch = contentPoint(event.x, event.y)
-                    activeShape = PixelShape(shapeKind, touch, touch)
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val shape = activeShape ?: return true
-                    activeShape = shape.copy(end = contentPoint(event.x, event.y))
-                }
-                MotionEvent.ACTION_UP -> {
-                    activeShape?.let { commitShape(it, contentPoint(event.x, event.y), mapper) }
-                    activeShape = null
-                    performClick()
-                }
-                MotionEvent.ACTION_CANCEL -> activeShape = null
-                else -> return false
-            }
-            invalidate()
-            return true
-        }
-
-        /** Turn the dragged-out [pixelShape] into a committed [Shape] unless it is degenerate. */
-        private fun commitShape(
-            pixelShape: PixelShape,
-            releasedAt: PixelPoint,
-            mapper: CoordinateMapper,
-        ) {
-            val start = mapper.toPdfPoint(pixelShape.start)
-            val end = mapper.toPdfPoint(releasedAt)
-            val shape =
-                Shape(
-                    kind = pixelShape.kind,
-                    start = start,
-                    end = end,
-                    strokeWidthPt = shapeStrokeWidthPt,
-                    strokeColorArgb = shapeColorArgb,
-                )
-            if (shape.isEmpty) return
-            layer = layer.withShape(shape)
-        }
-
         override fun performClick(): Boolean {
             super.performClick()
             return true
         }
-
-        /** In-progress shape held in pixel space while the finger drags it out. */
-        private data class PixelShape(
-            val kind: ShapeKind,
-            val start: PixelPoint,
-            val end: PixelPoint,
-        )
 
         private companion object {
             // Touch/highlight padding around a glyph box, in bitmap pixels.

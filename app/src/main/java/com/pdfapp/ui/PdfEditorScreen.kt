@@ -1,8 +1,12 @@
 package com.pdfapp.ui
 
+import android.app.Activity
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +40,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pdfapp.R
 import com.pdfapp.core.renderer.model.PdfPoint
@@ -53,9 +59,9 @@ import com.pdfapp.ui.reader.ThumbnailSheet
 /**
  * Single-activity screen wiring the three feature modules: open + render
  * (`:core-renderer`), draw overlays (`:overlay-engine`), and flatten + save
- * (`:file-persistence`). An open document starts in the one-page-at-a-time
- * READ mode (search, outline, selection); EDIT mode hosts the interactive
- * [OverlayCanvasView] for signing and text placement.
+ * (`:file-persistence`). An open document starts in the continuous-scroll
+ * READ mode (search, outline, selection, immersive chrome); EDIT mode hosts
+ * the interactive [OverlayCanvasView] for signing and text placement.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +77,7 @@ fun PdfEditorScreen(
     var showThumbnails by remember { mutableStateOf(false) }
     var showOutline by remember { mutableStateOf(false) }
     var showGoToPage by remember { mutableStateOf(false) }
+    var chromeVisible by remember { mutableStateOf(true) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val openLauncher =
@@ -98,6 +105,27 @@ fun PdfEditorScreen(
         onDispose { view.keepScreenOn = false }
     }
 
+    // Drive-style immersive reading: chrome returns whenever the context
+    // changes, and the system bars follow the app chrome in READ mode.
+    LaunchedEffect(viewModel.mode, viewModel.session) { chromeVisible = true }
+    val searchActive = viewModel.searchController.active
+    val readChromeShown =
+        chromeVisible || searchActive || viewModel.mode != ViewerMode.READ || viewModel.session == null
+    DisposableEffect(readChromeShown) {
+        val window = (view.context as? Activity)?.window
+        val controller = window?.let { WindowInsetsControllerCompat(it, view) }
+        if (controller != null) {
+            if (readChromeShown) {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            } else {
+                controller.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+        onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
+
     EditModeBindings(viewModel, canvasView, editTool)
     LaunchedEffect(viewModel.userMessage) {
         viewModel.userMessage?.let {
@@ -112,13 +140,19 @@ fun PdfEditorScreen(
             when {
                 session == null -> AppTitleBar()
                 viewModel.mode == ViewerMode.READ ->
-                    ReaderTopBar(
-                        viewModel = viewModel,
-                        onShowThumbnails = { showThumbnails = true },
-                        onShowOutline = { showOutline = true },
-                        onShowGoToPage = { showGoToPage = true },
-                        onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
-                    )
+                    AnimatedVisibility(
+                        visible = readChromeShown,
+                        enter = slideInVertically { -it },
+                        exit = slideOutVertically { -it },
+                    ) {
+                        ReaderTopBar(
+                            viewModel = viewModel,
+                            onShowThumbnails = { showThumbnails = true },
+                            onShowOutline = { showOutline = true },
+                            onShowGoToPage = { showGoToPage = true },
+                            onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
+                        )
+                    }
                 else ->
                     EditTopBar(
                         onBack = {
@@ -144,7 +178,7 @@ fun PdfEditorScreen(
                     ReaderContent(
                         viewModel = viewModel,
                         snackbarHostState = snackbarHostState,
-                        onShowGoToPage = { showGoToPage = true },
+                        onToggleChrome = { chromeVisible = !chromeVisible },
                     )
                 else ->
                     EditModeContent(
@@ -215,16 +249,6 @@ private fun EditModeBindings(
         canvasView?.inkColorArgb = viewModel.inkColorArgb
         canvasView?.inkStrokeWidthPt = viewModel.inkStrokeWidthPt
     }
-    LaunchedEffect(
-        viewModel.shapeKind,
-        viewModel.shapeColorArgb,
-        viewModel.shapeStrokeWidthPt,
-        canvasView,
-    ) {
-        canvasView?.shapeKind = viewModel.shapeKind
-        canvasView?.shapeColorArgb = viewModel.shapeColorArgb
-        canvasView?.shapeStrokeWidthPt = viewModel.shapeStrokeWidthPt
-    }
     LaunchedEffect(editTool, canvasView) { canvasView?.mode = editTool }
 }
 
@@ -274,7 +298,7 @@ private fun EditModeContent(
             onClear = { canvasView?.clearOverlays() },
             onSave = onSaveClick,
         )
-        ToolSettingsRow(viewModel, editTool)
+        ToolSettingsRow(viewModel)
         PageNavBar(
             currentIndex = viewModel.currentPageIndex,
             pageCount = viewModel.pageCount,

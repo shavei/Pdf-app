@@ -14,8 +14,8 @@ expect from a device-default viewer.
 | Area | Have today | Missing for "default app" status |
 |---|---|---|
 | Getting PDFs in | Own SAF file picker, **"Open with" / share-target intents ✅, recent files ✅** | — |
-| Viewing | **One-page-at-a-time pager ✅, pinch-zoom/pan ✅, thumbnails ✅, go-to-page ✅, outline/TOC ✅, night mode ✅, text selection ✅, search ✅, password-protected files ✅** | — |
-| Annotating | Text overlay, ink signature, undo | Highlight/underline/strikethrough, shapes, sticky notes, highlighter pen, eraser, redo, saved signatures, image stamps |
+| Viewing | **Drive-style continuous vertical scroll ✅, document-level pinch/double-tap zoom ✅, immersive tap-to-hide chrome ✅, fast-scroll handle with page bubble ✅, thumbnails ✅, go-to-page ✅, outline/TOC ✅, night mode ✅, text selection ✅, search ✅, password-protected files ✅** | — |
+| Editing | Text overlay, ink signature, undo, save flattened copy | *(annotation suite intentionally out of scope — see Phase 3)* |
 | Forms | — | AcroForm fill & save |
 | Organizing | — | Reorder/rotate/delete pages, merge/split, extract |
 | Output | Save flattened copy via SAF | Print, share out, compress |
@@ -153,27 +153,29 @@ normal "pick a PDF" screen.
 Most sessions with a default PDF app are *read-only*. These are the features every
 competitor ships and users notice within the first minute.
 
-**Status:** delivered. The app now opens into a continuous-scroll READ mode
-(the overlay editor moved behind an EDIT action). New building blocks:
+**Status:** delivered, and reworked in July 2026 into a **Google-Drive-style
+viewer** (the overlay editor stays behind an EDIT action). Building blocks:
 `RenderedPageCache` (memory-bounded, serialized rendering + high-zoom tiles) and
 `PdfTextDocument` (read-only PdfBox facade for text geometry, search, outline and
 links) in `:core-renderer`; `PdfDecryptor` in `:file-persistence`; and a
 DataStore-backed recents/preferences layer in `:app`. Each sub-item's status is
 marked inline below.
 
-### 2.1 Page navigation & fast jumping ✅
-- Show one page at a time in a horizontal `HorizontalPager` (render on demand,
-  recycle bitmaps), swiping between pages while a page sits at its fit scale.
-- **Page thumbnails grid** for jump-navigation, plus a slider/scrubber and a
-  "page X of N — go to page" dialog.
+### 2.1 Drive-style reading surface ✅ *(reworked from the original pager)*
+- **Continuous vertical scroll**: all pages stacked in one `LazyColumn`
+  (render on demand, recycle bitmaps) — no page-flip pager.
+- **Document-level zoom**: pinch anywhere zooms the whole document about the
+  gesture centroid and survives scrolling across pages; double-tap toggles
+  fit-width ↔ 2.5×; a plain horizontal scroll pans when zoomed in. Crisp
+  high-zoom strips follow a debounced settled scale, and only the strips
+  visible in the viewport are rasterised, so quality (up to 8×) never trades
+  off against memory.
+- **Immersive chrome**: a single tap hides/shows the app bar and system bars,
+  like Drive's full-screen reading mode.
+- **Fast-scroll handle** on the right edge with a transient "page X / N"
+  bubble; drag it to fling through long documents. Page thumbnails grid and a
+  "go to page" dialog (with slider) remain for jump navigation.
 - Remember last-read page per document (DataStore keyed by URI).
-- **Smooth zoom/pan ✅** — each page is fitted, zoomed and panned by the same
-  dependency-free `ViewportTransform` the overlay editor uses (unit-tested on the
-  JVM): two fingers pinch-zoom about — and pan with — their centroid, and a
-  single finger pans once the page is zoomed past its fit scale (page-flip
-  swiping is suspended so the pan never fights the pager). Crisp high-zoom tiles
-  follow a debounced settled scale so a live pinch stretches the base bitmap
-  instead of thrashing the renderer.
 
 ### 2.2 Text search ✅
 - In-document search with match highlighting and next/previous navigation.
@@ -216,36 +218,16 @@ marked inline below.
 
 ---
 
-## Phase 3 — Full annotation suite ⏳ *in progress*
+## Phase 3 — Annotation suite ❌ *removed (July 2026 product decision)*
 
-Extends `:overlay-engine`, reusing the existing PDF-point coordinate model and the
-flatten-on-save pipeline in `:file-persistence`. The module started with only
-`TextOverlay` and `InkSignature` on an **undo-only** stack; **shapes have now
-shipped** (see below) and the remaining items are still to come.
-
-- **Text markup**: highlight, underline, strikethrough over selected text (needs
-  2.3's text geometry). Flatten as translucent quads / lines via PdfBox content
-  streams — or write real `PDAnnotationTextMarkup` annotations so other readers
-  can show/edit them (decide: flatten vs. annotate; default-app behavior is
-  *annotate*, keep flatten as "Save flattened copy").
-- **Freehand pen & highlighter**: generalize `InkSignature` into an ink tool with
-  per-stroke color/width/alpha; highlighter = wide translucent stroke with
-  multiply-style blending.
-- **Shapes ✅** *shipped*: rectangle, ellipse, line, and arrow drawn by dragging in a
-  new SHAPE tool, with stroke colour/width pickers. Modelled as a `Shape`
-  (`ShapeKind` + two PDF-point anchors) on `OverlayLayer`; flattened as stroked
-  vector paths by `PdfFlattener` (ellipses as four cubic Béziers, arrowheads via
-  the shared `ShapeGeometry`), and covered by the undo stack. Verified across
-  lint, unit/touch tests, and the PDF-Test-Harness. *Fill pickers are deferred to a
-  follow-up increment.*
-- **Sticky notes**: tappable note icon anchored in PDF points; note text editable
-  in a dialog; export as `PDAnnotationText` (popup note) so other viewers see it.
-- **Eraser & redo**: stroke-level eraser; extend the undo stack (currently
-  undo-only) into undo/redo.
-- **Saved signatures**: persist drawn signatures (encrypted app-private storage);
-  one-tap placement, drag/resize like text overlays.
-- **Image stamps**: insert an image (e.g. scanned signature, checkmark) from the
-  gallery; flatten via PdfBox `PDImageXObject`.
+The annotation suite is **out of scope**: Signet stays a *viewer + signer*, not
+an annotator. The previously shipped SHAPE tool (rectangle/ellipse/line/arrow)
+was removed along with its models, flattening and tests. What remains — by
+design — is the focused **editing** feature set: text overlays, the ink
+signature, undo, and "save flattened copy". Text markup, sticky notes,
+highlighter, eraser/redo, saved signatures and image stamps are explicitly not
+planned; if that decision is ever revisited, the git history of the shape tool
+is the reference implementation.
 
 ## Phase 4 — Forms (AcroForm fill & sign)
 
@@ -296,19 +278,18 @@ All buildable on PdfBox; each is a small headless operation + a picker UI.
 
 | Work | Module |
 |---|---|
-| Intents, recent files, navigation UI, print, share | `:app` |
+| Intents, recent files, reader UI, print, share | `:app` |
 | Text extraction/search/selection geometry, tiles | `:core-renderer` |
-| Markup, shapes, notes, eraser, redo, saved signatures | `:overlay-engine` |
-| Forms write-back, page ops, merge/split, encrypt, annotations export | `:file-persistence` |
+| Text overlay + ink signature models and canvas | `:overlay-engine` |
+| Forms write-back, page ops, merge/split, encrypt | `:file-persistence` |
 
 ## Sequencing & definition of done
 
-1. **Phase 1** ships first and alone (small, unblocks "default app" status).
-2. **Phase 2** next — 2.1/2.2 are the highest-impact items in this plan; 2.2 and
-   2.3 share the text-geometry engine, so build that once.
-3. Phases 3–6 can proceed feature-by-feature; each feature is independently
-   shippable and must pass the project's three verification layers (Lint, Unit,
-   E2E/PDF-Test-Harness) before merge, per `README.md`.
+1. **Phase 1** shipped first and alone (small, unblocked "default app" status).
+2. **Phase 2** shipped next and was reworked into the Drive-style viewer.
+3. Phase 3 is removed; Phases 4–6 can proceed feature-by-feature; each feature
+   is independently shippable and must pass the project's three verification
+   layers (Lint, Unit, E2E/PDF-Test-Harness) before merge, per `README.md`.
 
 ## Competitive research sources
 
