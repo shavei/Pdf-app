@@ -8,7 +8,8 @@ required for sideloading).
 > `main` that passes all checks auto-publishes a debug-signed APK to the rolling
 > [`Latest build`](../../releases/latest) release — grab it via the **Download
 > APK** button in the README (a one-tap permalink, no login). This guide is only
-> for cutting **signed, versioned** releases via the `release.yml` workflow.
+> for cutting **signed, versioned** releases via the `release` job in
+> [`ci.yml`](../.github/workflows/ci.yml).
 
 There are two parts:
 
@@ -18,6 +19,11 @@ There are two parts:
 
 If you skip Part 1, releases still build but are **debug-signed** — fine for
 installing on your own device, **not** valid for the Google Play Store.
+
+> **Where the release is built:** there is a single pipeline,
+> [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). Its `release` job is
+> what a `vX.Y.Z` tag triggers; the `publish` job maintains the rolling
+> `Latest build`. There is no separate `release.yml`.
 
 ---
 
@@ -96,7 +102,7 @@ You can now delete the local `keystore.b64` (keep `release.keystore` backed up).
 
 ## Part 2 — Cut a release
 
-Pick **one** of these. Both produce the same result: a tag → the Release workflow
+Pick **one** of these. Both produce the same result: a tag → the `release` job
 builds the APK + AAB → they're attached to a published GitHub Release.
 
 ### Option A — GitHub website (no git needed; works on a phone too)
@@ -119,14 +125,16 @@ git push origin v0.1.0
 
 ### What happens next
 
-Publishing the tag triggers **`.github/workflows/release.yml`**, which:
+Publishing the tag triggers the **`release` job in
+`.github/workflows/ci.yml`**, which:
 
 1. builds `:app:assembleRelease` and `:app:bundleRelease`,
-2. names the build from the tag (`versionName = 0.1.0`, `versionCode = <run number>`),
+2. names the build from the tag (`versionName = 0.1.0`, `versionCode = <commit count>`),
 3. signs with your keystore (Part 1) — or debug-signs if you skipped it,
 4. uploads the **APK + AAB** to the GitHub Release.
 
-Watch progress under the **`Actions`** tab (the **Release** workflow, ~3–5 min).
+Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
+**Build + publish release** job does this, ~3–5 min).
 
 ---
 
@@ -147,14 +155,15 @@ Watch progress under the **`Actions`** tab (the **Release** workflow, ~3–5 min
 ## Versioning
 
 `versionName` / `versionCode` come from `-PappVersionName` / `-PappVersionCode`,
-which the Release workflow derives from the tag and the CI run number. To ship
+which the `release` job derives from the tag and the commit count. To ship
 `v1.2.0`, just tag `v1.2.0`. Local builds default to `0.1.0` / `1`.
 
 ---
 
 ## Troubleshooting
 
-- **Release has no APK/AAB attached** — open the **Actions → Release** run; if it
+- **Release has no APK/AAB attached** — open the **Actions → CI** run for your
+  tag and check the **Build + publish release** job; if it
   failed, the logs say why. A common cause is a typo in a secret name.
 - **"keytool: command not found"** — the JDK isn't installed or not on your PATH
   (see Part 1, step 1).
