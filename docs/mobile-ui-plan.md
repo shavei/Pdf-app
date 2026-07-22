@@ -103,10 +103,23 @@ mode.
 
 ---
 
-## Phase C — Edit-mode toolbar redesign
+## Phase C — Edit-mode toolbar redesign ✅ *shipped*
 
 Replace the scrolling text-button rows (issue #3, #6) with a fixed, icon-first
 bottom toolbar and an on-demand settings sheet.
+
+**Status:** delivered. The three horizontally-scrolling text-button rows
+(`EditorToolbar` + `ToolSettingsRow` + `PageNavBar`) are gone. Edit mode now
+gives the whole content area to the page and hosts one `EditBottomBar` in the
+Scaffold's bottom-bar slot (C.1): the tools (Sign / Text / Select) are tinted
+icon toggles that always fit, **Save** is a trailing `FloatingActionButton`,
+**Undo** is always visible, and the destructive **Clear** / **Apply ink** plus
+single-step page moves live in a `MoreVert` overflow. A tap-to-jump "page X / N"
+chip folds the old page-nav row in (C.3). Tool colour/size controls open on
+demand in a `ToolSettingsSheet` `ModalBottomSheet` scoped to the active tool
+(C.2) — the 48 dp swatches and steppers from Phase A move there. Verified by
+`EditBottomBarTest` (bar contents + tool/settings/save wiring) with the
+retained `TouchTargetTest` still covering the swatch/stepper touch floor.
 
 **C.1 Bottom tool bar, no horizontal scroll.**
 - Convert `EditorToolbar` into a `BottomAppBar`: the four modes (Sign / Text /

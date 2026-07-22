@@ -9,14 +9,15 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +79,7 @@ fun PdfEditorScreen(
     var showThumbnails by remember { mutableStateOf(false) }
     var showOutline by remember { mutableStateOf(false) }
     var showGoToPage by remember { mutableStateOf(false) }
+    var showToolSettings by remember { mutableStateOf(false) }
     var chromeVisible by remember { mutableStateOf(true) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -164,17 +166,54 @@ fun PdfEditorScreen(
             }
         },
         bottomBar = {
-            AnimatedVisibility(
-                visible = bottomBarShown,
-                enter = slideInVertically { it },
-                exit = slideOutVertically { it },
-            ) {
-                ReaderBottomBar(
-                    viewModel = viewModel,
-                    onShowThumbnails = { showThumbnails = true },
-                    onShowGoToPage = { showGoToPage = true },
-                    onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
-                )
+            when {
+                session == null -> Unit
+                viewModel.mode == ViewerMode.READ ->
+                    AnimatedVisibility(
+                        visible = bottomBarShown,
+                        enter = slideInVertically { it },
+                        exit = slideOutVertically { it },
+                    ) {
+                        ReaderBottomBar(
+                            viewModel = viewModel,
+                            onShowThumbnails = { showThumbnails = true },
+                            onShowGoToPage = { showGoToPage = true },
+                            onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
+                        )
+                    }
+                else ->
+                    EditBottomBar(
+                        mode = editTool,
+                        enabled = viewModel.renderedPage != null && !viewModel.busy,
+                        currentIndex = viewModel.currentPageIndex,
+                        pageCount = viewModel.pageCount,
+                        canPrevious = viewModel.canGoPrevious && !viewModel.busy,
+                        canNext = viewModel.canGoNext && !viewModel.busy,
+                        onModeChange = { editTool = it },
+                        onPrevious = {
+                            canvasView?.commitSignature()
+                            viewModel.previousPage()
+                        },
+                        onNext = {
+                            canvasView?.commitSignature()
+                            viewModel.nextPage()
+                        },
+                        onShowGoToPage = { showGoToPage = true },
+                        onShowSettings = { showToolSettings = true },
+                        onUndo = { canvasView?.undo() },
+                        onCommitInk = { canvasView?.commitSignature() },
+                        onClear = { canvasView?.clearOverlays() },
+                    )
+            }
+        },
+        floatingActionButton = {
+            if (session != null && viewModel.mode == ViewerMode.EDIT) {
+                val saveEnabled = viewModel.renderedPage != null && !viewModel.busy
+                FloatingActionButton(
+                    onClick = { if (saveEnabled) saveLauncher.launch(DEFAULT_SAVE_NAME) },
+                ) {
+                    Icon(Icons.Filled.Save, contentDescription = "Save PDF")
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -197,17 +236,12 @@ fun PdfEditorScreen(
                     )
                 else ->
                     EditModeContent(
-                        viewModel = viewModel,
-                        editTool = editTool,
-                        onToolChange = { editTool = it },
-                        onSaveClick = { saveLauncher.launch(DEFAULT_SAVE_NAME) },
                         onCanvasReady = { view ->
                             view.onTextPlacementRequested = { point -> pendingTextPoint = point }
                             view.onTextEditRequested = { overlay -> editingText = overlay }
                             view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
                             canvasView = view
                         },
-                        canvasView = canvasView,
                     )
             }
             if (viewModel.busy) {
@@ -218,6 +252,13 @@ fun PdfEditorScreen(
 
     if (showThumbnails) ThumbnailSheet(viewModel) { showThumbnails = false }
     if (showOutline) OutlineSheet(viewModel) { showOutline = false }
+    if (showToolSettings) {
+        ToolSettingsSheet(
+            viewModel = viewModel,
+            mode = editTool,
+            onDismiss = { showToolSettings = false },
+        )
+    }
     if (showGoToPage && viewModel.pageCount > 0) {
         GoToPageDialog(
             currentPage = viewModel.currentPageIndex,
@@ -294,54 +335,21 @@ private fun EditTopBar(onBack: () -> Unit) {
 }
 
 @Composable
-private fun EditModeContent(
-    viewModel: PdfEditorViewModel,
-    editTool: OverlayCanvasView.Mode,
-    onToolChange: (OverlayCanvasView.Mode) -> Unit,
-    onSaveClick: () -> Unit,
-    onCanvasReady: (OverlayCanvasView) -> Unit,
-    canvasView: OverlayCanvasView?,
-) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        val controlsEnabled = viewModel.renderedPage != null && !viewModel.busy
-        EditorToolbar(
-            mode = editTool,
-            enabled = controlsEnabled,
-            onModeChange = onToolChange,
-            onCommitInk = { canvasView?.commitSignature() },
-            onUndo = { canvasView?.undo() },
-            onClear = { canvasView?.clearOverlays() },
-            onSave = onSaveClick,
+private fun EditModeContent(onCanvasReady: (OverlayCanvasView) -> Unit) {
+    // The tool chrome now lives in the Scaffold's bottom bar (mobile-ui-plan
+    // Phase C), so edit mode gives the whole content area to the page. The
+    // canvas view fills it and handles pinch-zoom and panning itself, so no
+    // scroll containers wrap it.
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx -> OverlayCanvasView(ctx).also(onCanvasReady) },
         )
-        ToolSettingsRow(viewModel)
-        PageNavBar(
-            currentIndex = viewModel.currentPageIndex,
-            pageCount = viewModel.pageCount,
-            canPrevious = viewModel.canGoPrevious && !viewModel.busy,
-            canNext = viewModel.canGoNext && !viewModel.busy,
-            onPrevious = {
-                canvasView?.commitSignature()
-                viewModel.previousPage()
-            },
-            onNext = {
-                canvasView?.commitSignature()
-                viewModel.nextPage()
-            },
-        )
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .weight(1f)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            // The canvas view fills the area and handles pinch-zoom and
-            // panning itself, so no scroll containers wrap it.
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { ctx -> OverlayCanvasView(ctx).also(onCanvasReady) },
-            )
-        }
     }
 }
 
