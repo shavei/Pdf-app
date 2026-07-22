@@ -3,147 +3,262 @@ package com.pdfapp.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Draw
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenWith
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.pdfapp.overlay.OverlayCanvasView
 
-/** Ink/text colour choices offered in the settings row. */
+/** Ink/text colour choices offered in the tool-settings sheet. */
 private val PALETTE: List<Int> =
     listOf(0xFF000000L, 0xFF001A66L, 0xFFB00020L, 0xFF1B5E20L).map { it.toInt() }
 
-/** Primary edit-mode toolbar: tool toggle, commit ink, undo, clear, save. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Edit-mode bottom bar (mobile-ui-plan Phase C.1 + C.3): an icon-first
+ * [BottomAppBar] that always fits — no horizontal scroll. The three tools
+ * (Sign / Text / Select) are icon toggles, **Save** is a prominent trailing
+ * [FloatingActionButton], and **Undo** is always visible. A tap-to-jump
+ * "page X / N" chip folds the old `PageNavBar` in, and the destructive
+ * **Clear**, **Apply ink** and single-step page moves live in an overflow so
+ * they can't be hit by accident. Tool colour/size settings open on demand via
+ * [ToolSettingsSheet] (Phase C.2).
+ */
 @Composable
-fun EditorToolbar(
+fun EditBottomBar(
     mode: OverlayCanvasView.Mode,
     enabled: Boolean,
-    onModeChange: (OverlayCanvasView.Mode) -> Unit,
-    onCommitInk: () -> Unit,
-    onUndo: () -> Unit,
-    onClear: () -> Unit,
-    onSave: () -> Unit,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SingleChoiceSegmentedButtonRow {
-            SegmentedButton(
-                selected = mode == OverlayCanvasView.Mode.INK,
-                onClick = { onModeChange(OverlayCanvasView.Mode.INK) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                enabled = enabled,
-            ) { Text("Sign") }
-            SegmentedButton(
-                selected = mode == OverlayCanvasView.Mode.TEXT,
-                onClick = { onModeChange(OverlayCanvasView.Mode.TEXT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                enabled = enabled,
-            ) { Text("Text") }
-            SegmentedButton(
-                selected = mode == OverlayCanvasView.Mode.EDIT,
-                onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                enabled = enabled,
-            ) { Text("Edit") }
-        }
-        OutlinedButton(onClick = onCommitInk, enabled = enabled) { Text("Apply ink") }
-        OutlinedButton(onClick = onUndo, enabled = enabled) { Text("Undo") }
-        OutlinedButton(onClick = onClear, enabled = enabled) { Text("Clear") }
-        Button(onClick = onSave, enabled = enabled) { Text("Save") }
-    }
-}
-
-/** Tool colour/size controls for the ink and text tools. */
-@Composable
-fun ToolSettingsRow(viewModel: PdfEditorViewModel) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Ink")
-        ColorSwatches(
-            selected = viewModel.inkColorArgb,
-            onSelect = viewModel::setInkColor,
-            label = "Ink",
-        )
-        Stepper(
-            value = "${viewModel.inkStrokeWidthPt.toInt()}pt",
-            onMinus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt - 1f) },
-            onPlus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt + 1f) },
-            minusDescription = "Thinner ink stroke",
-            plusDescription = "Thicker ink stroke",
-        )
-        Text("Text")
-        ColorSwatches(
-            selected = viewModel.textColorArgb,
-            onSelect = viewModel::setTextColor,
-            label = "Text",
-        )
-        Stepper(
-            value = "${viewModel.textSizePt.toInt()}pt",
-            onMinus = { viewModel.setTextSize(viewModel.textSizePt - 2f) },
-            onPlus = { viewModel.setTextSize(viewModel.textSizePt + 2f) },
-            minusDescription = "Smaller text",
-            plusDescription = "Larger text",
-        )
-    }
-}
-
-/** Previous / next page navigation with a page indicator. */
-@Composable
-fun PageNavBar(
     currentIndex: Int,
     pageCount: Int,
     canPrevious: Boolean,
     canNext: Boolean,
+    onModeChange: (OverlayCanvasView.Mode) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    onShowGoToPage: () -> Unit,
+    onShowSettings: () -> Unit,
+    onUndo: () -> Unit,
+    onCommitInk: () -> Unit,
+    onClear: () -> Unit,
+    onSave: () -> Unit,
 ) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        OutlinedButton(onClick = onPrevious, enabled = canPrevious) { Text("Prev") }
-        Text("Page ${currentIndex + 1} / $pageCount")
-        OutlinedButton(onClick = onNext, enabled = canNext) { Text("Next") }
+    var menuOpen by remember { mutableStateOf(false) }
+    BottomAppBar(
+        actions = {
+            ToolToggle(
+                icon = Icons.Filled.Draw,
+                description = "Sign tool",
+                selected = mode == OverlayCanvasView.Mode.INK,
+                enabled = enabled,
+                onClick = { onModeChange(OverlayCanvasView.Mode.INK) },
+            )
+            ToolToggle(
+                icon = Icons.Filled.TextFields,
+                description = "Text tool",
+                selected = mode == OverlayCanvasView.Mode.TEXT,
+                enabled = enabled,
+                onClick = { onModeChange(OverlayCanvasView.Mode.TEXT) },
+            )
+            ToolToggle(
+                icon = Icons.Filled.OpenWith,
+                description = "Select and move tool",
+                selected = mode == OverlayCanvasView.Mode.EDIT,
+                enabled = enabled,
+                onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
+            )
+            Spacer(Modifier.weight(1f))
+            if (pageCount > 0) {
+                TextButton(onClick = onShowGoToPage, enabled = enabled) {
+                    Text(
+                        "${currentIndex + 1} / $pageCount",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
+            IconButton(onClick = onShowSettings, enabled = enabled) {
+                Icon(Icons.Filled.Tune, contentDescription = "Tool settings")
+            }
+            IconButton(onClick = onUndo, enabled = enabled) {
+                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+            }
+            Box {
+                IconButton(onClick = { menuOpen = true }, enabled = enabled) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "More edit options")
+                }
+                EditOverflowMenu(
+                    expanded = menuOpen,
+                    canPrevious = canPrevious,
+                    canNext = canNext,
+                    onDismiss = { menuOpen = false },
+                    onPrevious = onPrevious,
+                    onNext = onNext,
+                    onCommitInk = onCommitInk,
+                    onClear = onClear,
+                )
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { if (enabled) onSave() }) {
+                Icon(Icons.Filled.Save, contentDescription = "Save PDF")
+            }
+        },
+    )
+}
+
+/** A tinted icon toggle for one edit tool; tint tracks the active selection. */
+@Composable
+private fun ToolToggle(
+    icon: ImageVector,
+    description: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick, enabled = enabled) {
+        Icon(
+            icon,
+            contentDescription = description,
+            tint =
+                if (selected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+        )
+    }
+}
+
+/** Long-tail edit actions: single-step page moves and the rare/destructive ones. */
+@Composable
+private fun EditOverflowMenu(
+    expanded: Boolean,
+    canPrevious: Boolean,
+    canNext: Boolean,
+    onDismiss: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onCommitInk: () -> Unit,
+    onClear: () -> Unit,
+) {
+    fun act(action: () -> Unit): () -> Unit =
+        {
+            onDismiss()
+            action()
+        }
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(
+            text = { Text("Previous page") },
+            enabled = canPrevious,
+            onClick = act(onPrevious),
+        )
+        DropdownMenuItem(
+            text = { Text("Next page") },
+            enabled = canNext,
+            onClick = act(onNext),
+        )
+        DropdownMenuItem(text = { Text("Apply ink") }, onClick = act(onCommitInk))
+        DropdownMenuItem(text = { Text("Clear page") }, onClick = act(onClear))
+    }
+}
+
+/**
+ * Contextual tool settings (mobile-ui-plan Phase C.2): a [ModalBottomSheet]
+ * scoped to the active tool, replacing the always-present settings row. Colour
+ * swatches keep their 48 dp touch box (Phase A) and gain room to breathe.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ToolSettingsSheet(
+    viewModel: PdfEditorViewModel,
+    mode: OverlayCanvasView.Mode,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when (mode) {
+                OverlayCanvasView.Mode.INK -> {
+                    Text("Ink colour", style = MaterialTheme.typography.titleSmall)
+                    ColorSwatches(
+                        selected = viewModel.inkColorArgb,
+                        onSelect = viewModel::setInkColor,
+                        label = "Ink",
+                    )
+                    Text("Stroke width", style = MaterialTheme.typography.titleSmall)
+                    Stepper(
+                        value = "${viewModel.inkStrokeWidthPt.toInt()}pt",
+                        onMinus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt - 1f) },
+                        onPlus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt + 1f) },
+                        minusDescription = "Thinner ink stroke",
+                        plusDescription = "Thicker ink stroke",
+                    )
+                }
+                OverlayCanvasView.Mode.TEXT -> {
+                    Text("Text colour", style = MaterialTheme.typography.titleSmall)
+                    ColorSwatches(
+                        selected = viewModel.textColorArgb,
+                        onSelect = viewModel::setTextColor,
+                        label = "Text",
+                    )
+                    Text("Text size", style = MaterialTheme.typography.titleSmall)
+                    Stepper(
+                        value = "${viewModel.textSizePt.toInt()}pt",
+                        onMinus = { viewModel.setTextSize(viewModel.textSizePt - 2f) },
+                        onPlus = { viewModel.setTextSize(viewModel.textSizePt + 2f) },
+                        minusDescription = "Smaller text",
+                        plusDescription = "Larger text",
+                    )
+                }
+                OverlayCanvasView.Mode.EDIT ->
+                    Text(
+                        "Tap an overlay on the page to move, edit, or delete it.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+            }
+        }
     }
 }
 
