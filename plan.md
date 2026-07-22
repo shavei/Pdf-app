@@ -283,6 +283,12 @@ All buildable on PdfBox; each is a small headless operation + a picker UI.
 
 ## Cross-cutting platform polish
 
+> **Phone-friendliness has its own file-level plan:**
+> [`docs/mobile-ui-plan.md`](docs/mobile-ui-plan.md) turns the predictive-back,
+> tablets/foldables and accessibility bullets below into a phased, phone-first
+> UI plan (insets, one-handed reach, immersive reading, edit-toolbar redesign,
+> adaptive layout).
+
 - **App shortcuts** (static: "Open last document", "Pick a PDF").
 - **Predictive back, themed icon, per-app language** — modern-Android hygiene.
 - **Tablets/foldables**: two-page spread layout, drag-and-drop a PDF onto the app.
