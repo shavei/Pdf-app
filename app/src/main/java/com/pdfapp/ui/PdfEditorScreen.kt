@@ -52,6 +52,7 @@ import com.pdfapp.ui.reader.GoToPageDialog
 import com.pdfapp.ui.reader.HomeScreen
 import com.pdfapp.ui.reader.OutlineSheet
 import com.pdfapp.ui.reader.PasswordDialog
+import com.pdfapp.ui.reader.ReaderBottomBar
 import com.pdfapp.ui.reader.ReaderContent
 import com.pdfapp.ui.reader.ReaderTopBar
 import com.pdfapp.ui.reader.ThumbnailSheet
@@ -109,8 +110,11 @@ fun PdfEditorScreen(
     // changes, and the system bars follow the app chrome in READ mode.
     LaunchedEffect(viewModel.mode, viewModel.session) { chromeVisible = true }
     val searchActive = viewModel.searchController.active
+    val hasSession = viewModel.session != null
     val readChromeShown =
-        chromeVisible || searchActive || viewModel.mode != ViewerMode.READ || viewModel.session == null
+        ReaderChrome.topBarShown(chromeVisible, searchActive, viewModel.mode, hasSession)
+    val bottomBarShown =
+        ReaderChrome.bottomBarShown(chromeVisible, searchActive, viewModel.mode, hasSession)
     DisposableEffect(readChromeShown) {
         val window = (view.context as? Activity)?.window
         val controller = window?.let { WindowInsetsControllerCompat(it, view) }
@@ -147,10 +151,7 @@ fun PdfEditorScreen(
                     ) {
                         ReaderTopBar(
                             viewModel = viewModel,
-                            onShowThumbnails = { showThumbnails = true },
                             onShowOutline = { showOutline = true },
-                            onShowGoToPage = { showGoToPage = true },
-                            onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
                         )
                     }
                 else ->
@@ -160,6 +161,20 @@ fun PdfEditorScreen(
                             viewModel.exitEditMode()
                         },
                     )
+            }
+        },
+        bottomBar = {
+            AnimatedVisibility(
+                visible = bottomBarShown,
+                enter = slideInVertically { it },
+                exit = slideOutVertically { it },
+            ) {
+                ReaderBottomBar(
+                    viewModel = viewModel,
+                    onShowThumbnails = { showThumbnails = true },
+                    onShowGoToPage = { showGoToPage = true },
+                    onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
+                )
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },

@@ -65,10 +65,19 @@ gesture-nav device shows the page chip fully above the pill.
 
 ---
 
-## Phase B — One-handed reach: immersive reading + bottom bar
+## Phase B — One-handed reach: immersive reading + bottom bar ✅ *shipped*
 
 The single biggest phone win: bring actions to the thumb and give the page the
 whole screen.
+
+**Status:** delivered. Tap-to-toggle immersive chrome (B.1) drives both the top
+bar and system bars off a single `chromeVisible` state, and a `ReaderBottomBar`
+(B.2) hosts Search · Thumbnails · Night mode · Edit plus a tap-to-jump
+"page X / N" chip and a `MoreVert` overflow for the long tail (fit width/page,
+go to page, keep screen on, open another). Both bars' visibility is decided by
+the JVM-testable `ReaderChrome` predicates. The high-frequency actions moved out
+of the top-bar overflow, so the reader title bar keeps only the document name
+and the outline drawer.
 
 **B.1 Tap-to-toggle immersive chrome (READ mode).**
 - Single tap on the page (that isn't a link/selection) toggles a
