@@ -35,10 +35,16 @@ Findings from the current Compose tree. Each is cited to the file that owns it.
 
 ---
 
-## Phase A — Safe areas & touch targets *(foundations; do first)*
+## Phase A — Safe areas & touch targets ✅ *shipped*
 
 Correctness before polish: nothing else matters if controls hide behind the nav
 bar or are too small to hit. Small, self-contained, high-confidence.
+
+**Status:** delivered. Floating and bottom chrome now consume window insets
+(`navigationBarsPadding()` / `WindowInsets.safeDrawing`) so the page chip and copy
+bar clear the gesture pill (A.1), and the sub-48 dp controls were fixed — the
+`ColorSwatch` keeps its 28 dp dot inside a 48 dp touch box and the `Stepper`
+`−`/`+` are 48 dp `IconButton`s (A.2). Covered by `TouchTargetTest`.
 
 **A.1 Consume window insets on all floating & bottom chrome.**
 - `ReaderContent`: wrap the bottom `Column` (page chip + copy bar) so it clears
