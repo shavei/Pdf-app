@@ -210,16 +210,17 @@ internal fun Stepper(
     minusDescription: String = "Decrease",
     plusDescription: String = "Increase",
 ) {
-    // IconButton gives each control a 48 dp touch target without enlarging the glyph.
+    // A 48 dp IconButton meets the touch-target floor in both visual and layout
+    // bounds (the Material3 default is only 40 dp) without enlarging the glyph.
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(
             onClick = onMinus,
-            modifier = Modifier.semantics { contentDescription = minusDescription },
+            modifier = Modifier.size(48.dp).semantics { contentDescription = minusDescription },
         ) { Text("−") }
         Text(value)
         IconButton(
             onClick = onPlus,
-            modifier = Modifier.semantics { contentDescription = plusDescription },
+            modifier = Modifier.size(48.dp).semantics { contentDescription = plusDescription },
         ) { Text("+") }
     }
 }
