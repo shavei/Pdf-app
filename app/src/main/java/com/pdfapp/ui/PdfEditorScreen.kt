@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -201,8 +203,17 @@ fun PdfEditorScreen(
                         onUndo = { canvasView?.undo() },
                         onCommitInk = { canvasView?.commitSignature() },
                         onClear = { canvasView?.clearOverlays() },
-                        onSave = { saveLauncher.launch(DEFAULT_SAVE_NAME) },
                     )
+            }
+        },
+        floatingActionButton = {
+            if (session != null && viewModel.mode == ViewerMode.EDIT) {
+                val saveEnabled = viewModel.renderedPage != null && !viewModel.busy
+                FloatingActionButton(
+                    onClick = { if (saveEnabled) saveLauncher.launch(DEFAULT_SAVE_NAME) },
+                ) {
+                    Icon(Icons.Filled.Save, contentDescription = "Save PDF")
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },

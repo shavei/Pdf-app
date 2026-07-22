@@ -18,14 +18,11 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Draw
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenWith
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.TextFields
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,12 +51,13 @@ private val PALETTE: List<Int> =
 /**
  * Edit-mode bottom bar (mobile-ui-plan Phase C.1 + C.3): an icon-first
  * [BottomAppBar] that always fits — no horizontal scroll. The three tools
- * (Sign / Text / Select) are icon toggles, **Save** is a prominent trailing
- * [FloatingActionButton], and **Undo** is always visible. A tap-to-jump
- * "page X / N" chip folds the old `PageNavBar` in, and the destructive
- * **Clear**, **Apply ink** and single-step page moves live in an overflow so
- * they can't be hit by accident. Tool colour/size settings open on demand via
- * [ToolSettingsSheet] (Phase C.2).
+ * (Sign / Text / Select) are icon toggles and **Undo** is always visible; a
+ * tap-to-jump "page X / N" chip folds the old `PageNavBar` in (C.3). The
+ * on-demand tool settings (C.2), single-step page moves, and the
+ * destructive **Clear** / **Apply ink** live in a [MoreVert] overflow so the
+ * bar stays narrow enough for a small phone and `Clear` can't be hit by
+ * accident. **Save** is a prominent trailing `FloatingActionButton` owned by
+ * the screen's Scaffold, so it never crowds this row.
  */
 @Composable
 fun EditBottomBar(
@@ -77,69 +75,59 @@ fun EditBottomBar(
     onUndo: () -> Unit,
     onCommitInk: () -> Unit,
     onClear: () -> Unit,
-    onSave: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    BottomAppBar(
-        actions = {
-            ToolToggle(
-                icon = Icons.Filled.Draw,
-                description = "Sign tool",
-                selected = mode == OverlayCanvasView.Mode.INK,
-                enabled = enabled,
-                onClick = { onModeChange(OverlayCanvasView.Mode.INK) },
-            )
-            ToolToggle(
-                icon = Icons.Filled.TextFields,
-                description = "Text tool",
-                selected = mode == OverlayCanvasView.Mode.TEXT,
-                enabled = enabled,
-                onClick = { onModeChange(OverlayCanvasView.Mode.TEXT) },
-            )
-            ToolToggle(
-                icon = Icons.Filled.OpenWith,
-                description = "Select and move tool",
-                selected = mode == OverlayCanvasView.Mode.EDIT,
-                enabled = enabled,
-                onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
-            )
-            Spacer(Modifier.weight(1f))
-            if (pageCount > 0) {
-                TextButton(onClick = onShowGoToPage, enabled = enabled) {
-                    Text(
-                        "${currentIndex + 1} / $pageCount",
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-            }
-            IconButton(onClick = onShowSettings, enabled = enabled) {
-                Icon(Icons.Filled.Tune, contentDescription = "Tool settings")
-            }
-            IconButton(onClick = onUndo, enabled = enabled) {
-                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
-            }
-            Box {
-                IconButton(onClick = { menuOpen = true }, enabled = enabled) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "More edit options")
-                }
-                EditOverflowMenu(
-                    expanded = menuOpen,
-                    canPrevious = canPrevious,
-                    canNext = canNext,
-                    onDismiss = { menuOpen = false },
-                    onPrevious = onPrevious,
-                    onNext = onNext,
-                    onCommitInk = onCommitInk,
-                    onClear = onClear,
+    BottomAppBar {
+        ToolToggle(
+            icon = Icons.Filled.Draw,
+            description = "Sign tool",
+            selected = mode == OverlayCanvasView.Mode.INK,
+            enabled = enabled,
+            onClick = { onModeChange(OverlayCanvasView.Mode.INK) },
+        )
+        ToolToggle(
+            icon = Icons.Filled.TextFields,
+            description = "Text tool",
+            selected = mode == OverlayCanvasView.Mode.TEXT,
+            enabled = enabled,
+            onClick = { onModeChange(OverlayCanvasView.Mode.TEXT) },
+        )
+        ToolToggle(
+            icon = Icons.Filled.OpenWith,
+            description = "Select and move tool",
+            selected = mode == OverlayCanvasView.Mode.EDIT,
+            enabled = enabled,
+            onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
+        )
+        Spacer(Modifier.weight(1f))
+        if (pageCount > 0) {
+            TextButton(onClick = onShowGoToPage, enabled = enabled) {
+                Text(
+                    "${currentIndex + 1} / $pageCount",
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { if (enabled) onSave() }) {
-                Icon(Icons.Filled.Save, contentDescription = "Save PDF")
+        }
+        IconButton(onClick = onUndo, enabled = enabled) {
+            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+        }
+        Box {
+            IconButton(onClick = { menuOpen = true }, enabled = enabled) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "More edit options")
             }
-        },
-    )
+            EditOverflowMenu(
+                expanded = menuOpen,
+                canPrevious = canPrevious,
+                canNext = canNext,
+                onDismiss = { menuOpen = false },
+                onShowSettings = onShowSettings,
+                onPrevious = onPrevious,
+                onNext = onNext,
+                onCommitInk = onCommitInk,
+                onClear = onClear,
+            )
+        }
+    }
 }
 
 /** A tinted icon toggle for one edit tool; tint tracks the active selection. */
@@ -165,13 +153,14 @@ private fun ToolToggle(
     }
 }
 
-/** Long-tail edit actions: single-step page moves and the rare/destructive ones. */
+/** Long-tail edit actions: tool settings, page moves, and the rare/destructive ones. */
 @Composable
 private fun EditOverflowMenu(
     expanded: Boolean,
     canPrevious: Boolean,
     canNext: Boolean,
     onDismiss: () -> Unit,
+    onShowSettings: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onCommitInk: () -> Unit,
@@ -183,6 +172,7 @@ private fun EditOverflowMenu(
             action()
         }
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(text = { Text("Tool settings") }, onClick = act(onShowSettings))
         DropdownMenuItem(
             text = { Text("Previous page") },
             enabled = canPrevious,
