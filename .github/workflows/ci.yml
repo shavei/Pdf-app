@@ -58,7 +58,11 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
+      # Artifact uploads are archival: a full Actions storage quota must not
+      # fail an otherwise-green build. Real lint/unit/build failures still fail
+      # the job at their own steps above.
       - name: Upload debug APK
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
@@ -67,6 +71,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
@@ -113,6 +118,7 @@ jobs:
 
       - name: Upload androidTest reports
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: androidTest-reports
@@ -258,7 +264,10 @@ jobs:
           cp app/build/outputs/bundle/release/*.aab dist/ 2>/dev/null || true
           ls -la dist
 
+      # Archival only — the release publish below reads dist/** from disk, so a
+      # full Actions storage quota must not fail the release build.
       - name: Upload build artifacts
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
