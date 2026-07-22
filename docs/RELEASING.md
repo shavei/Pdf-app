@@ -155,8 +155,9 @@ Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
 ## Versioning
 
 `versionName` / `versionCode` come from `-PappVersionName` / `-PappVersionCode`,
-which the `release` job derives from the tag and the commit count. To ship
-`v1.2.0`, just tag `v1.2.0`. Local builds default to `0.1.0` / `1`.
+which the `release` job derives from the tag and the commit count. The latest
+published release is `v1.3.0`; to ship the next one, just tag it (e.g.
+`v1.4.0`). Local builds default to `0.1.0` / `1`.
 
 ---
 

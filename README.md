@@ -2,19 +2,24 @@
 
 **View and sign PDFs on Android — fully offline, no ads, no tracking.**
 
-### 📲 [**Download the latest APK**](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
+### 📲 [**Download Signet v1.3.0**](https://github.com/shavei/Pdf-app/releases/download/v1.3.0/app-release.apk)
 
 <!-- Static badges only: dynamic shields.io badges (release version, CI status)
      query the GitHub API anonymously and always show "repo not found" while
-     this repo is private. The build date/commit live in the release itself. -->
-[![Download APK](https://img.shields.io/badge/Download-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
-[![Latest build](https://img.shields.io/badge/Latest%20build-releases-blue?style=for-the-badge&logo=github)](https://github.com/shavei/Pdf-app/releases/latest)
+     this repo is private. Bump the version in the pinned v1.3.0 links (the
+     heading, the Download badge, and the blockquote) when cutting a new tagged
+     release; the "Latest build" badge tracks the rolling build and needs no
+     bump. -->
+[![Download v1.3.0](https://img.shields.io/badge/Download-v1.3.0-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/shavei/Pdf-app/releases/download/v1.3.0/app-release.apk)
+[![Latest build](https://img.shields.io/badge/Latest%20build-rolling-blue?style=for-the-badge&logo=github)](https://github.com/shavei/Pdf-app/releases/latest)
 [![CI](https://img.shields.io/badge/CI-workflow%20runs-555?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml)
 
-> Tap **Download the latest APK** above, then open the file on your Android phone
-> to install (you may need to allow "install from unknown sources"). Every push
-> to `main` that passes all checks updates this download automatically. You can
-> also rebuild on demand from your phone: **Actions → CI → Run workflow**.
+> Tap **Download Signet v1.3.0** above, then open the file on your Android phone
+> to install (you may need to allow "install from unknown sources"). That's the
+> latest signed release. Prefer the bleeding edge? The rolling
+> **[Latest build](https://github.com/shavei/Pdf-app/releases/latest)** is
+> refreshed on every push to `main` that passes all checks, and you can rebuild
+> on demand from your phone: **Actions → CI → Run workflow**.
 
 A native Android app for reading PDFs — a Google-Drive-style viewer with
 continuous vertical scroll, document-level pinch-zoom, immersive tap-to-hide
@@ -121,14 +126,19 @@ page content (the ink is flattened as vector strokes). Run it with:
 
 ## Download
 
-- **Latest build** — the [`Latest build` release](../../releases/latest) is
-  refreshed automatically on every push to `main` that passes all checks. The
-  [Download APK](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
-  link above is a permalink that always points at the newest one — one tap, no
-  login required.
-- **Tagged releases** — versioned builds (signed APK + AAB) are published on the
-  [Releases page](../../releases) when a `vX.Y.Z` tag is pushed. See
+- **Signet v1.3.0 (recommended)** — the current signed release; the **Download
+  Signet v1.3.0** button above installs its
+  [`app-release.apk`](https://github.com/shavei/Pdf-app/releases/download/v1.3.0/app-release.apk).
+  The matching `app-release.aab` (for the Play Store) is on the
+  [v1.3.0 release page](https://github.com/shavei/Pdf-app/releases/tag/v1.3.0).
+- **Tagged releases** — every versioned build (signed APK + AAB) is published on
+  the [Releases page](../../releases) when a `vX.Y.Z` tag is pushed. See
   [`CHANGELOG.md`](CHANGELOG.md) for what changed in each version.
+- **Latest build** — for the bleeding edge, the rolling
+  [`Latest build` release](../../releases/latest) is refreshed automatically on
+  every push to `main` that passes all checks; its
+  [`pdf-app.apk`](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
+  permalink always points at the newest one (a debug build — one tap, no login).
 - **Build on demand** — trigger a fresh build from anywhere (including the GitHub
   mobile app): **Actions → CI → *Run workflow***.
 
