@@ -14,16 +14,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.pdfapp.overlay.OverlayCanvasView
 
@@ -92,18 +95,30 @@ fun ToolSettingsRow(viewModel: PdfEditorViewModel) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("Ink")
-        ColorSwatches(selected = viewModel.inkColorArgb, onSelect = viewModel::setInkColor)
+        ColorSwatches(
+            selected = viewModel.inkColorArgb,
+            onSelect = viewModel::setInkColor,
+            label = "Ink",
+        )
         Stepper(
             value = "${viewModel.inkStrokeWidthPt.toInt()}pt",
             onMinus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt - 1f) },
             onPlus = { viewModel.setInkStrokeWidth(viewModel.inkStrokeWidthPt + 1f) },
+            minusDescription = "Thinner ink stroke",
+            plusDescription = "Thicker ink stroke",
         )
         Text("Text")
-        ColorSwatches(selected = viewModel.textColorArgb, onSelect = viewModel::setTextColor)
+        ColorSwatches(
+            selected = viewModel.textColorArgb,
+            onSelect = viewModel::setTextColor,
+            label = "Text",
+        )
         Stepper(
             value = "${viewModel.textSizePt.toInt()}pt",
             onMinus = { viewModel.setTextSize(viewModel.textSizePt - 2f) },
             onPlus = { viewModel.setTextSize(viewModel.textSizePt + 2f) },
+            minusDescription = "Smaller text",
+            plusDescription = "Larger text",
         )
     }
 }
@@ -136,46 +151,76 @@ fun PageNavBar(
 private fun ColorSwatches(
     selected: Int,
     onSelect: (Int) -> Unit,
+    label: String,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        PALETTE.forEach { argb ->
+        PALETTE.forEachIndexed { index, argb ->
             ColorSwatch(
                 argb = argb,
                 isSelected = argb == selected,
                 onClick = { onSelect(argb) },
+                contentDescription = "$label colour ${index + 1}",
             )
         }
     }
 }
 
 @Composable
-private fun ColorSwatch(
+internal fun ColorSwatch(
     argb: Int,
     isSelected: Boolean,
     onClick: () -> Unit,
+    contentDescription: String? = null,
 ) {
+    // 48 dp touch box (accessibility floor) around a 28 dp visual dot.
     Box(
+        contentAlignment = Alignment.Center,
         modifier =
             Modifier
-                .size(28.dp)
-                .background(Color(argb), CircleShape)
-                .border(
-                    width = if (isSelected) 3.dp else 1.dp,
-                    color = if (isSelected) Color.White else Color.Gray,
-                    shape = CircleShape,
-                ).clickable(onClick = onClick),
-    )
+                .size(48.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onClick)
+                .then(
+                    if (contentDescription != null) {
+                        Modifier.semantics { this.contentDescription = contentDescription }
+                    } else {
+                        Modifier
+                    },
+                ),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(28.dp)
+                    .background(Color(argb), CircleShape)
+                    .border(
+                        width = if (isSelected) 3.dp else 1.dp,
+                        color = if (isSelected) Color.White else Color.Gray,
+                        shape = CircleShape,
+                    ),
+        )
+    }
 }
 
 @Composable
-private fun Stepper(
+internal fun Stepper(
     value: String,
     onMinus: () -> Unit,
     onPlus: () -> Unit,
+    minusDescription: String = "Decrease",
+    plusDescription: String = "Increase",
 ) {
+    // A 48 dp IconButton meets the touch-target floor in both visual and layout
+    // bounds (the Material3 default is only 40 dp) without enlarging the glyph.
     Row(verticalAlignment = Alignment.CenterVertically) {
-        TextButton(onClick = onMinus) { Text("−") }
+        IconButton(
+            onClick = onMinus,
+            modifier = Modifier.size(48.dp).semantics { contentDescription = minusDescription },
+        ) { Text("−") }
         Text(value)
-        TextButton(onClick = onPlus) { Text("+") }
+        IconButton(
+            onClick = onPlus,
+            modifier = Modifier.size(48.dp).semantics { contentDescription = plusDescription },
+        ) { Text("+") }
     }
 }

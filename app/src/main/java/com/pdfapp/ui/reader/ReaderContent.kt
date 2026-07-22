@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -43,7 +44,13 @@ fun ReaderContent(
             onToggleChrome = onToggleChrome,
             modifier = Modifier.fillMaxSize(),
         )
-        Box(modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp)) {
+        Box(
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(12.dp),
+        ) {
             SelectionCopyBar(viewModel, snackbarHostState)
         }
     }
