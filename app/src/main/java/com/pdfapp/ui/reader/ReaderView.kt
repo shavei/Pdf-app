@@ -65,6 +65,7 @@ import com.pdfapp.core.renderer.text.PdfLink
 import com.pdfapp.ui.PdfEditorViewModel
 import com.pdfapp.ui.ZoomPreset
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -211,6 +212,25 @@ fun ReaderView(
         // Track the visible page for the scrollbar and last-read persistence.
         LaunchedEffect(listState) {
             snapshotFlow { listState.firstVisibleItemIndex }.collect { viewModel.onVisiblePageChanged(it) }
+        }
+        // Render a small window of pages ahead of (and just behind) the viewport
+        // so a scroll lands on a finished page, not a blank one. `collectLatest`
+        // re-prioritises the window the instant the visible range moves, and the
+        // debounce means a fast fling — whose range keeps changing — never wastes
+        // the single renderer on pages it is about to blow past. The visible
+        // pages request themselves via composition, so warming only fills the gap
+        // between "in view" and "rendered".
+        LaunchedEffect(listState, session) {
+            snapshotFlow {
+                val info = listState.layoutInfo.visibleItemsInfo
+                (info.firstOrNull()?.index ?: 0) to (info.lastOrNull()?.index ?: 0)
+            }.collectLatest { (first, last) ->
+                delay(PREFETCH_DEBOUNCE_MS)
+                for (index in ReaderPrefetch.window(first, last, session.pageCount)) {
+                    val size = runCatching { session.cache.pageSize(index) }.getOrNull() ?: continue
+                    runCatching { session.cache.page(index, viewportWidthPx / size.widthPt) }
+                }
+            }
         }
         // Fit-width / fit-page presets from the reader menu.
         LaunchedEffect(viewModel.pendingZoomPreset) {
@@ -600,6 +620,10 @@ private const val DOUBLE_TAP_FRAME_MS = 16L
 
 // Debounce after the last pinch step before committing crisper strips.
 private const val TILE_SETTLE_MS = 180L
+
+// Wait for the scroll to settle briefly before warming off-screen pages, so a
+// fast fling doesn't spend the single renderer on pages it's about to pass.
+private const val PREFETCH_DEBOUNCE_MS = 100L
 
 // Widest strip bitmap we will ask the renderer for; stays inside the safe
 // GPU texture edge of modern devices while allowing full 8x-sharp tiles on
