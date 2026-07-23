@@ -39,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -77,27 +79,36 @@ fun EditBottomBar(
     onClear: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+
+    // A light tick confirms a tool switch without pulling the eye off the page
+    // (mobile-ui-plan Phase D.2). Only a real change buzzes — re-tapping the
+    // active tool is silent.
+    fun switchTo(target: OverlayCanvasView.Mode) {
+        if (target != mode) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        onModeChange(target)
+    }
     BottomAppBar {
         ToolToggle(
             icon = Icons.Filled.Draw,
             description = "Sign tool",
             selected = mode == OverlayCanvasView.Mode.INK,
             enabled = enabled,
-            onClick = { onModeChange(OverlayCanvasView.Mode.INK) },
+            onClick = { switchTo(OverlayCanvasView.Mode.INK) },
         )
         ToolToggle(
             icon = Icons.Filled.TextFields,
             description = "Text tool",
             selected = mode == OverlayCanvasView.Mode.TEXT,
             enabled = enabled,
-            onClick = { onModeChange(OverlayCanvasView.Mode.TEXT) },
+            onClick = { switchTo(OverlayCanvasView.Mode.TEXT) },
         )
         ToolToggle(
             icon = Icons.Filled.OpenWith,
             description = "Select and move tool",
             selected = mode == OverlayCanvasView.Mode.EDIT,
             enabled = enabled,
-            onClick = { onModeChange(OverlayCanvasView.Mode.EDIT) },
+            onClick = { switchTo(OverlayCanvasView.Mode.EDIT) },
         )
         Spacer(Modifier.weight(1f))
         if (pageCount > 0) {

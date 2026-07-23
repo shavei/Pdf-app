@@ -150,25 +150,35 @@ E2E draws ink, opens the settings sheet, changes colour, and saves.
 
 ---
 
-## Phase D — Gestures & feedback
+## Phase D — Gestures & feedback ✅ *shipped*
 
 Make the reader feel like a first-class mobile reader.
 
-- **D.1 Double-tap to zoom** in `ReaderView.zoomPanGestures`: double-tap toggles
-  between fit and a comfortable zoom (~2×) centered on the tap point, reusing
-  `ViewportTransform.pinch`/`setZoom`. Coordinate with the existing
-  `detectTapGestures` so single-tap (chrome toggle / links) still works.
-- **D.2 Haptics** via `LocalHapticFeedback`: a light tick on tool/mode change
-  (`EditorToolbar`) and on long-press selection start
-  (`ReaderView` `detectDragGesturesAfterLongPress.onDragStart`).
-- **D.3 Predictive back**: add `android:enableOnBackInvokedCallback="true"` to
-  the `<application>` in `AndroidManifest.xml`; ensure back exits EDIT→READ and
-  search/immersive states predictably (drive off existing `exitEditMode`,
-  `searchController.close`, and B.1's `chromeVisible`).
+**Status:** delivered. Double-tap zoom (D.1) landed with the Drive-style viewer
+rework — `ReaderView`'s `detectTapGestures.onDoubleTap` animates the cheap live
+layer between fit-width and 2.5× about the tap point, and single-tap
+(chrome toggle / links) is untouched. Haptics (D.2) now fire a light
+`TextHandleMove` tick on a real tool switch in `EditBottomBar` and a `LongPress`
+tick when text selection latches in `ReaderView`'s
+`detectDragGesturesAfterLongPress.onDragStart`. Predictive back (D.3) is on:
+`android:enableOnBackInvokedCallback="true"` is set on the `<application>`, and a
+`BackHandler` in `PdfEditorScreen` peels the transient states in order — search,
+then edit mode, then immersive chrome — before deferring to the system, driven
+by the JVM-testable `ReaderBack` predicate (covered by `ReaderBackTest`).
 
-**Done when:** Lint clean; unit test for the double-tap zoom target math on the
-JVM (`ViewportTransform` is already JVM-tested); manual smoke for haptics and
-predictive-back animation.
+- **D.1 Double-tap to zoom** in `ReaderView`: double-tap toggles between fit and
+  a comfortable zoom (2.5×) centered on the tap point. Coordinates with the
+  existing `detectTapGestures` so single-tap (chrome toggle / links) still works.
+- **D.2 Haptics** via `LocalHapticFeedback`: a light tick on tool/mode change
+  (`EditBottomBar`) and on long-press selection start
+  (`ReaderView` `detectDragGesturesAfterLongPress.onDragStart`).
+- **D.3 Predictive back**: `android:enableOnBackInvokedCallback="true"` on the
+  `<application>` in `AndroidManifest.xml`; back exits EDIT→READ and
+  search/immersive states predictably (drives off existing `exitEditMode`,
+  `searchController.close`, and B.1's `chromeVisible`, ordered by `ReaderBack`).
+
+**Done when:** Lint clean; unit test for the back-unwind order on the JVM
+(`ReaderBackTest`); manual smoke for haptics and predictive-back animation.
 
 ---
 

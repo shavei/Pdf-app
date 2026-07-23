@@ -50,11 +50,13 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pdfapp.core.renderer.model.PdfPoint
@@ -361,6 +363,7 @@ private fun ReaderPage(
 ) {
     val session = viewModel.session ?: return
     val density = LocalDensity.current
+    val haptics = LocalHapticFeedback.current
 
     val pageSize by produceState(viewModel.defaultPageSize, session, pageIndex) {
         value = session.cache.pageSize(pageIndex)
@@ -393,6 +396,9 @@ private fun ReaderPage(
                     .pointerInput(pageIndex, pointScale) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = { offset ->
+                                // Tactile confirmation that the long-press latched
+                                // and text selection has begun (Phase D.2).
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.selectionController.startAt(pageIndex, toPdfPoint(offset))
                             },
                             onDrag = { change, _ ->

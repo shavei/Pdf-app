@@ -2,6 +2,7 @@ package com.pdfapp.ui
 
 import android.app.Activity
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -130,6 +131,29 @@ fun PdfEditorScreen(
             }
         }
         onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
+
+    // Predictive back (mobile-ui-plan Phase D.3): peel transient viewer states —
+    // search, then edit mode, then immersive chrome — one press at a time before
+    // the system pops the activity. Disabled (system handles back) when there's
+    // nothing app-specific to unwind, so a plain reading screen still exits.
+    val backAction =
+        ReaderBack.actionFor(
+            hasSession = hasSession,
+            searchActive = searchActive,
+            mode = viewModel.mode,
+            chromeVisible = chromeVisible,
+        )
+    BackHandler(enabled = backAction != ReaderBackAction.SYSTEM) {
+        when (backAction) {
+            ReaderBackAction.CLOSE_SEARCH -> viewModel.searchController.close()
+            ReaderBackAction.EXIT_EDIT -> {
+                canvasView?.commitSignature()
+                viewModel.exitEditMode()
+            }
+            ReaderBackAction.SHOW_CHROME -> chromeVisible = true
+            ReaderBackAction.SYSTEM -> Unit
+        }
     }
 
     EditModeBindings(viewModel, canvasView, editTool)
