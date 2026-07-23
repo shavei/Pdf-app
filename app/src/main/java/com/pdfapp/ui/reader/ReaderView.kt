@@ -50,11 +50,13 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pdfapp.core.renderer.model.PdfPoint
@@ -63,6 +65,7 @@ import com.pdfapp.core.renderer.text.PdfLink
 import com.pdfapp.ui.PdfEditorViewModel
 import com.pdfapp.ui.ZoomPreset
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -210,6 +213,25 @@ fun ReaderView(
         LaunchedEffect(listState) {
             snapshotFlow { listState.firstVisibleItemIndex }.collect { viewModel.onVisiblePageChanged(it) }
         }
+        // Render a small window of pages ahead of (and just behind) the viewport
+        // so a scroll lands on a finished page, not a blank one. `collectLatest`
+        // re-prioritises the window the instant the visible range moves, and the
+        // debounce means a fast fling — whose range keeps changing — never wastes
+        // the single renderer on pages it is about to blow past. The visible
+        // pages request themselves via composition, so warming only fills the gap
+        // between "in view" and "rendered".
+        LaunchedEffect(listState, session) {
+            snapshotFlow {
+                val info = listState.layoutInfo.visibleItemsInfo
+                (info.firstOrNull()?.index ?: 0) to (info.lastOrNull()?.index ?: 0)
+            }.collectLatest { (first, last) ->
+                delay(PREFETCH_DEBOUNCE_MS)
+                for (index in ReaderPrefetch.window(first, last, session.pageCount)) {
+                    val size = runCatching { session.cache.pageSize(index) }.getOrNull() ?: continue
+                    runCatching { session.cache.page(index, viewportWidthPx / size.widthPt) }
+                }
+            }
+        }
         // Fit-width / fit-page presets from the reader menu.
         LaunchedEffect(viewModel.pendingZoomPreset) {
             val preset = viewModel.pendingZoomPreset ?: return@LaunchedEffect
@@ -284,7 +306,7 @@ fun ReaderView(
                             onTap = { handleTap(it) },
                             onDoubleTap = { tap ->
                                 scope.launch {
-                                    animateZoom(if (zoom > FIT_ZOOM_EPSILON) 1f else DOUBLE_TAP_ZOOM, tap)
+                                    animateZoom(ReaderZoom.doubleTapTarget(zoom), tap)
                                 }
                             },
                         )
@@ -361,6 +383,7 @@ private fun ReaderPage(
 ) {
     val session = viewModel.session ?: return
     val density = LocalDensity.current
+    val haptics = LocalHapticFeedback.current
 
     val pageSize by produceState(viewModel.defaultPageSize, session, pageIndex) {
         value = session.cache.pageSize(pageIndex)
@@ -393,6 +416,9 @@ private fun ReaderPage(
                     .pointerInput(pageIndex, pointScale) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = { offset ->
+                                // Tactile confirmation that the long-press latched
+                                // and text selection has begun (Phase D.2).
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.selectionController.startAt(pageIndex, toPdfPoint(offset))
                             },
                             onDrag = { change, _ ->
@@ -587,17 +613,17 @@ private val SELECTION_COLOR = Color(0x552196F3)
 
 private const val PAGE_SPACING = 8
 
-// Zoom at (or below) this is treated as "fit width".
-private const val FIT_ZOOM_EPSILON = 1.001f
-
 private const val MIN_ZOOM = 0.5f
 private const val MAX_ZOOM = 8f
-private const val DOUBLE_TAP_ZOOM = 2.5f
 private const val DOUBLE_TAP_ZOOM_STEPS = 12
 private const val DOUBLE_TAP_FRAME_MS = 16L
 
 // Debounce after the last pinch step before committing crisper strips.
 private const val TILE_SETTLE_MS = 180L
+
+// Wait for the scroll to settle briefly before warming off-screen pages, so a
+// fast fling doesn't spend the single renderer on pages it's about to pass.
+private const val PREFETCH_DEBOUNCE_MS = 100L
 
 // Widest strip bitmap we will ask the renderer for; stays inside the safe
 // GPU texture edge of modern devices while allowing full 8x-sharp tiles on
