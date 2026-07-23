@@ -286,7 +286,7 @@ fun ReaderView(
                             onTap = { handleTap(it) },
                             onDoubleTap = { tap ->
                                 scope.launch {
-                                    animateZoom(if (zoom > FIT_ZOOM_EPSILON) 1f else DOUBLE_TAP_ZOOM, tap)
+                                    animateZoom(ReaderZoom.doubleTapTarget(zoom), tap)
                                 }
                             },
                         )
@@ -593,12 +593,8 @@ private val SELECTION_COLOR = Color(0x552196F3)
 
 private const val PAGE_SPACING = 8
 
-// Zoom at (or below) this is treated as "fit width".
-private const val FIT_ZOOM_EPSILON = 1.001f
-
 private const val MIN_ZOOM = 0.5f
 private const val MAX_ZOOM = 8f
-private const val DOUBLE_TAP_ZOOM = 2.5f
 private const val DOUBLE_TAP_ZOOM_STEPS = 12
 private const val DOUBLE_TAP_FRAME_MS = 16L
 

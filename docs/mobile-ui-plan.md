@@ -157,7 +157,9 @@ Make the reader feel like a first-class mobile reader.
 **Status:** delivered. Double-tap zoom (D.1) landed with the Drive-style viewer
 rework — `ReaderView`'s `detectTapGestures.onDoubleTap` animates the cheap live
 layer between fit-width and 2.5× about the tap point, and single-tap
-(chrome toggle / links) is untouched. Haptics (D.2) now fire a light
+(chrome toggle / links) is untouched. Its toggle math is a pure `ReaderZoom`
+predicate (`ReaderZoomTest`), and `DoubleTapZoomE2ETest` proves the gesture
+zooms the page end-to-end on a device. Haptics (D.2) now fire a light
 `TextHandleMove` tick on a real tool switch in `EditBottomBar` and a `LongPress`
 tick when text selection latches in `ReaderView`'s
 `detectDragGesturesAfterLongPress.onDragStart`. Predictive back (D.3) is on:
@@ -177,8 +179,10 @@ by the JVM-testable `ReaderBack` predicate (covered by `ReaderBackTest`).
   search/immersive states predictably (drives off existing `exitEditMode`,
   `searchController.close`, and B.1's `chromeVisible`, ordered by `ReaderBack`).
 
-**Done when:** Lint clean; unit test for the back-unwind order on the JVM
-(`ReaderBackTest`); manual smoke for haptics and predictive-back animation.
+**Done when:** Lint clean; JVM unit tests for the double-tap zoom target math
+(`ReaderZoomTest`) and the back-unwind order (`ReaderBackTest`); an on-device
+`DoubleTapZoomE2ETest` for the zoom gesture; manual smoke for haptics and the
+predictive-back animation.
 
 ---
 
