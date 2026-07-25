@@ -9,7 +9,8 @@
      this repo is private. Bump the version in the pinned v1.3.0 links (the
      heading, the Download badge, and the blockquote) when cutting a new tagged
      release; the "Latest build" badge tracks the rolling build and needs no
-     bump. -->
+     bump. Releases from v1.4.0 on name their asset `Signet-<version>.apk`;
+     v1.3.0 and earlier used AGP's generic `app-release.apk`. -->
 [![Download v1.3.0](https://img.shields.io/badge/Download-v1.3.0-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/shavei/Pdf-app/releases/download/v1.3.0/app-release.apk)
 [![Latest build](https://img.shields.io/badge/Latest%20build-rolling-blue?style=for-the-badge&logo=github)](https://github.com/shavei/Pdf-app/releases/latest)
 [![CI](https://img.shields.io/badge/CI-workflow%20runs-555?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml)
@@ -131,14 +132,17 @@ page content (the ink is flattened as vector strokes). Run it with:
   [`app-release.apk`](https://github.com/shavei/Pdf-app/releases/download/v1.3.0/app-release.apk).
   The matching `app-release.aab` (for the Play Store) is on the
   [v1.3.0 release page](https://github.com/shavei/Pdf-app/releases/tag/v1.3.0).
-- **Tagged releases** — every versioned build (signed APK + AAB) is published on
-  the [Releases page](../../releases) when a `vX.Y.Z` tag is pushed. See
+- **Tagged releases** — every versioned build is published on the
+  [Releases page](../../releases) when a `vX.Y.Z` tag is pushed, as a signed
+  `Signet-<version>.apk` plus the matching `.aab`. See
   [`CHANGELOG.md`](CHANGELOG.md) for what changed in each version.
 - **Latest build** — for the bleeding edge, the rolling
   [`Latest build` release](../../releases/latest) is refreshed automatically on
   every push to `main` that passes all checks; its
-  [`pdf-app.apk`](https://github.com/shavei/Pdf-app/releases/latest/download/pdf-app.apk)
+  [`Signet.apk`](https://github.com/shavei/Pdf-app/releases/latest/download/Signet.apk)
   permalink always points at the newest one (a debug build — one tap, no login).
+  It installs as `<next version> (build <commit count>)`, so App info tells you
+  exactly which build you are on.
 - **Build on demand** — trigger a fresh build from anywhere (including the GitHub
   mobile app): **Actions → CI → *Run workflow***.
 

@@ -131,7 +131,8 @@ Publishing the tag triggers the **`release` job in
 1. builds `:app:assembleRelease` and `:app:bundleRelease`,
 2. names the build from the tag (`versionName = 0.1.0`, `versionCode = <commit count>`),
 3. signs with your keystore (Part 1) — or debug-signs if you skipped it,
-4. uploads the **APK + AAB** to the GitHub Release.
+4. uploads the **APK + AAB** to the GitHub Release as `Signet-0.1.0.apk` and
+   `Signet-0.1.0.aab`.
 
 Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
 **Build + publish release** job does this, ~3–5 min).
@@ -141,23 +142,51 @@ Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
 ## Part 3 — Get and install the app
 
 - **The release:** repo → **`Releases`** → `v0.1.0` → under **Assets**, download
-  `app-release.apk` (and `app-release.aab` for the Play Store).
+  `Signet-0.1.0.apk` (and `Signet-0.1.0.aab` for the Play Store).
 - **On an Android phone:** tap the downloaded `.apk`; the first time, allow
   "install unknown apps" for your browser/files app when prompted.
 - **Latest build (no release needed):** the rolling
   [`Latest build`](../../releases/latest) release always has the newest
-  `pdf-app.apk` — one tap from the README's **Download APK** button, no login.
+  `Signet.apk` — one tap from the README's **Download APK** button, no login.
+  The filename is deliberately unversioned so the link stays a permalink; the
+  version it installs is in the release title and in Android's App info.
   (The same APK is also on **`Actions`** → newest **CI** run → **Artifacts** →
-  `app-debug-apk`.)
+  `signet-debug-apk`, named `Signet-<version>-debug.apk`.)
 
 ---
 
 ## Versioning
 
-`versionName` / `versionCode` come from `-PappVersionName` / `-PappVersionCode`,
-which the `release` job derives from the tag and the commit count. The latest
-published release is `v1.3.0`; to ship the next one, just tag it (e.g.
-`v1.4.0`). Local builds default to `0.1.0` / `1`.
+One marketing version, one build number, no commit hashes in the version name:
+
+| Build | `versionName` shown in App info | `versionCode` |
+| --- | --- | --- |
+| Tagged release (`v1.4.0`) | `1.4.0` | commit count |
+| Rolling "Latest build" from `main` | `1.4.0 (build 102)` | commit count |
+| Local `./gradlew assembleDebug` | `1.4.0` | `1` |
+
+- The version lives in **`gradle.properties`** as `appVersionName` and is always
+  the *next* version to ship. **Bump it right after tagging a release** (e.g. to
+  `1.5.0` once `v1.4.0` is out) so builds never claim a version that already
+  shipped.
+- A tag overrides it: the `release` job passes `-PappVersionName=<tag without v>`.
+- CI passes `-PappBuildNumber=<commit count>` for untagged builds; `app/build.gradle.kts`
+  appends it as ` (build N)` and reuses it as the `versionCode`, so every rolling
+  build outranks the last and installs in place.
+
+The latest published release is `v1.3.0`; to ship the next one, just tag it
+(e.g. `v1.4.0`).
+
+### Artifact names
+
+| Where | Name |
+| --- | --- |
+| Tagged release assets | `Signet-<version>.apk`, `Signet-<version>.aab` |
+| Rolling `Latest build` asset | `Signet.apk` (unversioned, keeps the permalink stable) |
+| CI artifact on every branch/PR run | `signet-debug-apk` → `Signet-<version>-debug.apk` |
+
+Releases up to `v1.3.0` used AGP's default `app-release.apk` / `app-release.aab`;
+those old links still work.
 
 ---
 

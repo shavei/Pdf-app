@@ -33,6 +33,14 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 - Android lint's accessibility checks (`ContentDescription`,
   `ClickableViewAccessibility`, `KeyboardInaccessibleWidget`, `LabelFor`) are
   build errors in `:app` and `:overlay-engine`.
+- **Build naming** — builds install as the next version plus a build number,
+  `1.4.0 (build 102)`, instead of `0.1.0+9caa14e`; the commit SHA stays in the
+  release notes. Published files are named after the app: `Signet-<version>.apk`
+  / `.aab` on tagged releases, `Signet.apk` on the rolling `Latest build`
+  (unversioned, so the download permalink is stable), and
+  `Signet-<version>-debug.apk` in CI artifacts. The version now lives in
+  `gradle.properties` as `appVersionName`; see
+  [`docs/RELEASING.md`](docs/RELEASING.md#versioning).
 
 ## [1.3.0] — 2026-07-22
 

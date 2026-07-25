@@ -58,6 +58,15 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
+      # AGP names every module's output app-debug.apk. Stage it under the app's
+      # own name and version so a downloaded file says what it is.
+      - name: Stage debug APK
+        run: |
+          VERSION_NAME="$(sed -n 's/^appVersionName=//p' gradle.properties)"
+          [ -n "$VERSION_NAME" ] || { echo "appVersionName missing from gradle.properties"; exit 1; }
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/Signet-$VERSION_NAME-debug.apk"
+
       # Artifact uploads are archival: a full Actions storage quota must not
       # fail an otherwise-green build. Real lint/unit/build failures still fail
       # the job at their own steps above.
@@ -65,8 +74,8 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: signet-debug-apk
+          path: dist/*.apk
           if-no-files-found: error
 
       - name: Upload test reports
@@ -153,28 +162,35 @@ jobs:
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      # Stamp each rolling build so it is distinguishable from the previous
-      # one: versionCode = commit count (monotonically increasing, so Android
-      # offers an in-place update instead of refusing), versionName carries the
-      # short commit SHA (visible in Android's App info), and the release title
-      # carries the build date.
+      # Stamp each rolling build so it is distinguishable from the previous one:
+      # the build number is the commit count (monotonically increasing, so
+      # Android offers an in-place update instead of refusing) and it is both the
+      # versionCode and the human-readable suffix on the version name — App info
+      # reads "1.4.0 (build 102)". The commit SHA stays in the release notes,
+      # where it belongs, instead of masquerading as a version.
       - name: Compute build stamp
         run: |
-          echo "VERSION_CODE=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
-          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
-          echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')" >> "$GITHUB_ENV"
+          VERSION_NAME="$(sed -n 's/^appVersionName=//p' gradle.properties)"
+          [ -n "$VERSION_NAME" ] || { echo "appVersionName missing from gradle.properties"; exit 1; }
+          {
+            echo "VERSION_NAME=$VERSION_NAME"
+            echo "BUILD_NUMBER=$(git rev-list --count HEAD)"
+            echo "SHORT_SHA=${GITHUB_SHA::7}"
+            echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')"
+          } >> "$GITHUB_ENV"
 
       - name: Assemble debug APK
         run: |
           ./gradlew assembleDebug \
-            -PappVersionCode="$VERSION_CODE" \
-            -PappVersionName="0.1.0+$SHORT_SHA" \
+            -PappBuildNumber="$BUILD_NUMBER" \
             --stacktrace
 
       # Stable asset name so the README "Download APK" link is a permalink:
-      # https://github.com/<owner>/<repo>/releases/latest/download/pdf-app.apk
+      # https://github.com/<owner>/<repo>/releases/latest/download/Signet.apk
+      # (the version is in the release title, the notes and Android's App info —
+      # putting it in the filename too would break the permalink).
       - name: Stage APK with stable name
-        run: cp app/build/outputs/apk/debug/app-debug.apk pdf-app.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk Signet.apk
 
       # GitHub displays a release's original creation date forever — merely
       # swapping the asset kept showing "released weeks ago" for fresh builds.
@@ -190,16 +206,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Latest build — ${{ env.BUILD_DATE }}"
+          name: "Latest build — ${{ env.VERSION_NAME }} (build ${{ env.BUILD_NUMBER }})"
           body: |
             Built **${{ env.BUILD_DATE }}** from commit `${{ env.SHORT_SHA }}` on `main`
             after all checks passed. Installed version shows as
-            `0.1.0+${{ env.SHORT_SHA }}` (versionCode ${{ env.VERSION_CODE }})
+            `${{ env.VERSION_NAME }} (build ${{ env.BUILD_NUMBER }})`
             in Android's App info.
 
-            **[⬇️ Download pdf-app.apk](https://github.com/${{ github.repository }}/releases/latest/download/pdf-app.apk)** and sideload it on your device.
+            **[⬇️ Download Signet.apk](https://github.com/${{ github.repository }}/releases/latest/download/Signet.apk)** and sideload it on your device.
             New builds install directly over previous ones — no uninstall needed.
-          files: pdf-app.apk
+          files: Signet.apk
           make_latest: true
 
   release:
@@ -247,21 +263,28 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          # A tag is the version; a manual dispatch falls back to the next
+          # version in gradle.properties (it publishes no Release).
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION_NAME="${GITHUB_REF_NAME#v}"
           else
-            VERSION_NAME="0.1.0"
+            VERSION_NAME="$(sed -n 's/^appVersionName=//p' gradle.properties)"
           fi
+          [ -n "$VERSION_NAME" ] || { echo "appVersionName missing from gradle.properties"; exit 1; }
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           ./gradlew :app:assembleRelease :app:bundleRelease \
             -PappVersionName="$VERSION_NAME" \
             -PappVersionCode="$(git rev-list --count HEAD)" \
             --stacktrace
 
+      # Published under the app's name and version — Signet-1.4.0.apk /
+      # Signet-1.4.0.aab — rather than AGP's generic app-release.*, so a
+      # downloaded file is self-describing on the phone that installs it.
       - name: Collect artifacts
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/*.apk dist/ 2>/dev/null || true
-          cp app/build/outputs/bundle/release/*.aab dist/ 2>/dev/null || true
+          cp app/build/outputs/apk/release/app-release.apk "dist/Signet-$VERSION_NAME.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "dist/Signet-$VERSION_NAME.aab"
           ls -la dist
 
       # Archival only — the release publish below reads dist/** from disk, so a
