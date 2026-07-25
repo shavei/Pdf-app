@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import com.pdfapp.ui.PdfEditorViewModel
 import com.pdfapp.ui.ReaderSemantics
 import com.pdfapp.ui.ZoomPreset
+import com.pdfapp.ui.iconTouchTarget
 import com.pdfapp.ui.touchTargetFloor
 
 /**
@@ -37,21 +38,24 @@ import com.pdfapp.ui.touchTargetFloor
  */
 @Composable
 internal fun SearchAction(viewModel: PdfEditorViewModel) {
-    IconButton(onClick = { viewModel.searchController.open() }) {
+    IconButton(
+        onClick = { viewModel.searchController.open() },
+        modifier = Modifier.iconTouchTarget(),
+    ) {
         Icon(Icons.Filled.Search, contentDescription = "Search in document")
     }
 }
 
 @Composable
 internal fun ThumbnailsAction(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+    IconButton(onClick = onClick, modifier = Modifier.iconTouchTarget()) {
         Icon(Icons.Filled.GridView, contentDescription = "Page thumbnails")
     }
 }
 
 @Composable
 internal fun NightModeAction(viewModel: PdfEditorViewModel) {
-    IconButton(onClick = { viewModel.toggleNightMode() }) {
+    IconButton(onClick = { viewModel.toggleNightMode() }, modifier = Modifier.iconTouchTarget()) {
         Icon(
             Icons.Filled.DarkMode,
             contentDescription = "Night mode",
@@ -88,7 +92,7 @@ internal fun PageChip(
 
 @Composable
 internal fun EditAction(viewModel: PdfEditorViewModel) {
-    IconButton(onClick = { viewModel.enterEditMode() }) {
+    IconButton(onClick = { viewModel.enterEditMode() }, modifier = Modifier.iconTouchTarget()) {
         Icon(Icons.Filled.Edit, contentDescription = "Edit document")
     }
 }
@@ -102,7 +106,7 @@ internal fun OverflowAction(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { menuOpen = true }) {
+        IconButton(onClick = { menuOpen = true }, modifier = Modifier.iconTouchTarget()) {
             Icon(Icons.Filled.MoreVert, contentDescription = "More options")
         }
         ReaderMenu(

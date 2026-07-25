@@ -27,8 +27,9 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 
 ### Changed
 
-- Every control now meets the 48 dp touch floor, including the text buttons
-  Material 3 leaves at 40 dp.
+- Every control now meets the 48 dp touch floor. Material 3 leaves text buttons
+  *and every icon button* at 40 dp — so the reader bottom bar, nav rail, top bar
+  and edit bar were all below the accessibility minimum.
 - Android lint's accessibility checks (`ContentDescription`,
   `ClickableViewAccessibility`, `KeyboardInaccessibleWidget`, `LabelFor`) are
   build errors in `:app` and `:overlay-engine`.

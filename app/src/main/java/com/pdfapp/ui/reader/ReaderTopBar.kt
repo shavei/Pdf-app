@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.pdfapp.ui.PdfEditorViewModel
 import com.pdfapp.ui.ReaderSemantics
 import com.pdfapp.ui.SearchController
+import com.pdfapp.ui.iconTouchTarget
 import kotlinx.coroutines.delay
 
 /**
@@ -67,7 +68,7 @@ private fun TitleTopBar(
             )
         },
         actions = {
-            IconButton(onClick = onShowOutline) {
+            IconButton(onClick = onShowOutline, modifier = Modifier.iconTouchTarget()) {
                 Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Outline")
             }
         },
@@ -86,7 +87,7 @@ private fun SearchTopBar(search: SearchController) {
     }
     TopAppBar(
         navigationIcon = {
-            IconButton(onClick = { search.close() }) {
+            IconButton(onClick = { search.close() }, modifier = Modifier.iconTouchTarget()) {
                 Icon(Icons.Filled.Close, contentDescription = "Close search")
             }
         },
@@ -128,10 +129,18 @@ private fun SearchTopBar(search: SearchController) {
                     modifier = Modifier.semantics { contentDescription = counterLabel },
                 )
             }
-            IconButton(onClick = { search.previous() }, enabled = search.matches.isNotEmpty()) {
+            IconButton(
+                onClick = { search.previous() },
+                enabled = search.matches.isNotEmpty(),
+                modifier = Modifier.iconTouchTarget(),
+            ) {
                 Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
             }
-            IconButton(onClick = { search.next() }, enabled = search.matches.isNotEmpty()) {
+            IconButton(
+                onClick = { search.next() },
+                enabled = search.matches.isNotEmpty(),
+                modifier = Modifier.iconTouchTarget(),
+            ) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
             }
         },

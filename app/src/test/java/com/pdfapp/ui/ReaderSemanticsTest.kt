@@ -50,9 +50,23 @@ class ReaderSemanticsTest {
 
     @Test
     fun thumbnailLabel_marks_the_current_page() {
-        assertThat(ReaderSemantics.thumbnailLabel(1, 9, isCurrent = false)).isEqualTo("Page 2 of 9")
+        assertThat(ReaderSemantics.thumbnailLabel(1, 9, isCurrent = false))
+            .isEqualTo("Go to page 2 of 9")
         assertThat(ReaderSemantics.thumbnailLabel(1, 9, isCurrent = true))
-            .isEqualTo("Page 2 of 9, current page")
+            .isEqualTo("Go to page 2 of 9, current page")
+    }
+
+    @Test
+    fun a_thumbnail_never_announces_itself_the_same_way_a_rendered_page_does() {
+        // Regression: both once read "Page 2 of 9", so a screen reader user
+        // could not tell the jump control from the page it jumps to — and a UI
+        // test asking for one found two nodes.
+        for (index in 0 until 9) {
+            assertThat(ReaderSemantics.thumbnailLabel(index, 9, isCurrent = false))
+                .isNotEqualTo(ReaderSemantics.pageLabel(index, 9))
+            assertThat(ReaderSemantics.thumbnailLabel(index, 9, isCurrent = true))
+                .isNotEqualTo(ReaderSemantics.pageLabel(index, 9))
+        }
     }
 
     @Test

@@ -263,10 +263,19 @@ of 12"), a selection announces itself through a polite live region, thumbnails
 report the current page, and the fast scroller — a transient, redundant
 affordance — is hidden from the reader rather than fading in and out under its
 cursor. `OverlayCanvasView`, previously an unlabelled drawing surface, now
-describes the page, the active tool and what is already on it. Every text button
-that Material 3 leaves at 40 dp is lifted to the 48 dp floor (F.3), and Android
-lint's accessibility checks are promoted to build errors in `:app` and
-`:overlay-engine`.
+describes the page, the active tool and what is already on it. Every control
+Material 3 leaves at 40 dp is lifted to the 48 dp floor (F.3) — text buttons via
+`touchTargetFloor()`, and **every icon button in the app** via
+`iconTouchTarget()` — and Android lint's accessibility checks are promoted to
+build errors in `:app` and `:overlay-engine`.
+
+Phase A fixed the two sub-48 dp controls it had found by inspection (the colour
+swatch and the stepper). F.3's font-scale test found the rest: Material 3's
+`IconButton` draws a 40 dp state layer and expands only its *touch* bounds, so
+every icon in the reader bottom bar, nav rail, top bar and edit bar measured
+40 dp. `iconTouchTarget()` sizes them explicitly, which is the only fix that
+raises the measured node — `defaultMinSize` is overridden by `IconButton`'s own
+`.size()`.
 
 - **F.1 Font-scale-safe layouts**: remove fixed heights that clip (thumbnail
   cells `height(130.dp)`, home thumb) in favour of aspect-ratio/`wrapContent`;

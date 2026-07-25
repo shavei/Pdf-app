@@ -42,12 +42,17 @@ object ReaderSemantics {
         pageCount: Int,
     ): String = "Page ${pageIndex + 1} of $pageCount, go to page"
 
-    /** One cell of the thumbnail grid, in the sheet or the docked pane. */
+    /**
+     * One cell of the thumbnail grid, in the sheet or the docked pane. Phrased
+     * as the action, not the position: a thumbnail is a jump control, and
+     * "Page 2 of 9" would be the same thing a *rendered page* announces — two
+     * different controls a screen reader user could not tell apart.
+     */
     fun thumbnailLabel(
         pageIndex: Int,
         pageCount: Int,
         isCurrent: Boolean,
-    ): String = "Page ${pageIndex + 1} of $pageCount" + if (isCurrent) ", current page" else ""
+    ): String = "Go to page ${pageIndex + 1} of $pageCount" + if (isCurrent) ", current page" else ""
 
     /** The immersive chrome toggle, offered on each page as a click action. */
     fun chromeToggleLabel(chromeVisible: Boolean): String =

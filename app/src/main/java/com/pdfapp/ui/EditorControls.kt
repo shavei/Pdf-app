@@ -126,11 +126,15 @@ fun EditBottomBar(
                 )
             }
         }
-        IconButton(onClick = onUndo, enabled = enabled) {
+        IconButton(onClick = onUndo, enabled = enabled, modifier = Modifier.iconTouchTarget()) {
             Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
         }
         Box {
-            IconButton(onClick = { menuOpen = true }, enabled = enabled) {
+            IconButton(
+                onClick = { menuOpen = true },
+                enabled = enabled,
+                modifier = Modifier.iconTouchTarget(),
+            ) {
                 Icon(Icons.Filled.MoreVert, contentDescription = "More edit options")
             }
             EditOverflowMenu(
@@ -157,7 +161,7 @@ private fun ToolToggle(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    IconButton(onClick = onClick, enabled = enabled) {
+    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.iconTouchTarget()) {
         Icon(
             icon,
             contentDescription = description,

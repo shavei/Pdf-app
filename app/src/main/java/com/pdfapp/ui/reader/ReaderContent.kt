@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfapp.ui.PdfEditorViewModel
 import com.pdfapp.ui.ReaderSemantics
+import com.pdfapp.ui.iconTouchTarget
 import com.pdfapp.ui.touchTargetFloor
 import kotlinx.coroutines.launch
 
@@ -108,7 +109,10 @@ private fun SelectionCopyBar(
                 },
                 modifier = Modifier.touchTargetFloor(),
             ) { Text("Copy") }
-            IconButton(onClick = { viewModel.selectionController.clear() }) {
+            IconButton(
+                onClick = { viewModel.selectionController.clear() },
+                modifier = Modifier.iconTouchTarget(),
+            ) {
                 Icon(Icons.Filled.Close, contentDescription = "Dismiss selection")
             }
         }

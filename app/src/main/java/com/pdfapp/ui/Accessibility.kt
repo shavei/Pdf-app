@@ -3,6 +3,7 @@ package com.pdfapp.ui
 import android.content.Context
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -28,15 +29,26 @@ import androidx.compose.ui.unit.dp
 fun scaledDp(baseDp: Int): Dp = DynamicType.scaledDp(baseDp, LocalDensity.current.fontScale).dp
 
 /**
- * Raises a control to the 48 dp touch floor without enlarging what it draws.
- * Needed because Material 3's text and filled buttons stop at 40 dp, which is
- * below the accessibility minimum the rest of the chrome already meets.
+ * Raises a control to the 48 dp touch floor without enlarging what it draws,
+ * leaving it free to grow past that with its content. For text and filled
+ * buttons, which Material 3 stops at 40 dp.
  */
 fun Modifier.touchTargetFloor(): Modifier =
     defaultMinSize(
         minWidth = DynamicType.MIN_TOUCH_TARGET_DP.dp,
         minHeight = DynamicType.MIN_TOUCH_TARGET_DP.dp,
     )
+
+/**
+ * Sizes an icon button to the 48 dp floor.
+ *
+ * Material 3's `IconButton` draws a 40 dp state layer and expands only its
+ * *touch* bounds, so the node it reports — what an accessibility scanner, a
+ * layout inspector and a UI test all measure — stays 40 dp. An explicit size is
+ * the only way to raise both: [touchTargetFloor]'s `defaultMinSize` cannot do
+ * it, because `IconButton`'s own `.size()` overrides a minimum.
+ */
+fun Modifier.iconTouchTarget(): Modifier = size(DynamicType.MIN_TOUCH_TARGET_DP.dp)
 
 /**
  * Whether a screen reader is currently exploring by touch.

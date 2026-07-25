@@ -53,7 +53,7 @@ internal fun EditTopBar(onBack: () -> Unit) {
     CenterAlignedTopAppBar(
         title = { Text("Edit", fontWeight = FontWeight.SemiBold) },
         navigationIcon = {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onBack, modifier = Modifier.iconTouchTarget()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to reading")
             }
         },

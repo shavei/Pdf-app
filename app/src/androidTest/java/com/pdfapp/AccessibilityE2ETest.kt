@@ -47,7 +47,7 @@ class AccessibilityE2ETest {
         PDFBoxResourceLoader.init(context)
     }
 
-    private fun page1() = composeRule.onNodeWithContentDescription(PAGE_1, substring = true)
+    private fun page1() = composeRule.onNodeWithContentDescription(PAGE_1)
 
     /** The label a screen reader offers for the page's click action. */
     private fun chromeActionLabel(): String? =
@@ -62,7 +62,7 @@ class AccessibilityE2ETest {
             ActivityScenario.launch<MainActivity>(viewIntent(pdf)).use {
                 composeRule.waitUntil(timeoutMillis = LOAD_TIMEOUT_MS) {
                     composeRule
-                        .onAllNodesWithContentDescription(PAGE_1, substring = true)
+                        .onAllNodesWithContentDescription(PAGE_1)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
@@ -93,7 +93,7 @@ class AccessibilityE2ETest {
             ActivityScenario.launch<MainActivity>(viewIntent(pdf)).use {
                 composeRule.waitUntil(timeoutMillis = LOAD_TIMEOUT_MS) {
                     composeRule
-                        .onAllNodesWithContentDescription(PAGE_1, substring = true)
+                        .onAllNodesWithContentDescription(PAGE_1)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
