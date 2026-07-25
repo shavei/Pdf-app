@@ -21,10 +21,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfapp.ui.PdfEditorViewModel
+import com.pdfapp.ui.ReaderSemantics
+import com.pdfapp.ui.iconTouchTarget
+import com.pdfapp.ui.touchTargetFloor
 import kotlinx.coroutines.launch
 
 /**
@@ -36,11 +43,13 @@ import kotlinx.coroutines.launch
 fun ReaderContent(
     viewModel: PdfEditorViewModel,
     snackbarHostState: SnackbarHostState,
+    chromeVisible: Boolean,
     onToggleChrome: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         ReaderView(
             viewModel = viewModel,
+            chromeVisible = chromeVisible,
             onToggleChrome = onToggleChrome,
             modifier = Modifier.fillMaxSize(),
         )
@@ -65,10 +74,21 @@ private fun SelectionCopyBar(
     val selection = viewModel.selectionController.selection ?: return
     val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
+    // A selection is made by dragging on the page, so nothing focuses this bar
+    // when it appears: a polite live region speaks what was selected instead
+    // (mobile-ui-plan Phase F.2).
+    val label = ReaderSemantics.selectionLabel(selection.text)
     Surface(
         shape = RoundedCornerShape(12.dp),
         tonalElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+                .semantics {
+                    liveRegion = LiveRegionMode.Polite
+                    contentDescription = label
+                },
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -87,8 +107,12 @@ private fun SelectionCopyBar(
                     viewModel.selectionController.clear()
                     scope.launch { snackbarHostState.showSnackbar("Copied to clipboard") }
                 },
+                modifier = Modifier.touchTargetFloor(),
             ) { Text("Copy") }
-            IconButton(onClick = { viewModel.selectionController.clear() }) {
+            IconButton(
+                onClick = { viewModel.selectionController.clear() },
+                modifier = Modifier.iconTouchTarget(),
+            ) {
                 Icon(Icons.Filled.Close, contentDescription = "Dismiss selection")
             }
         }

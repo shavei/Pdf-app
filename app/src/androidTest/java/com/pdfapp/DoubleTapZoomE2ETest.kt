@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pdfapp.ui.ReaderSemantics
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
@@ -42,7 +43,7 @@ class DoubleTapZoomE2ETest {
 
     private fun pageWidthPx(): Int =
         composeRule
-            .onNodeWithContentDescription("Page 1")
+            .onNodeWithContentDescription(PAGE_1)
             .fetchSemanticsNode()
             .size
             .width
@@ -65,7 +66,7 @@ class DoubleTapZoomE2ETest {
             ActivityScenario.launch<MainActivity>(intent).use {
                 composeRule.waitUntil(timeoutMillis = LOAD_TIMEOUT_MS) {
                     composeRule
-                        .onAllNodesWithContentDescription("Page 1")
+                        .onAllNodesWithContentDescription(PAGE_1)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
@@ -73,13 +74,13 @@ class DoubleTapZoomE2ETest {
                 val fitWidth = pageWidthPx()
 
                 // Double-tap the page: fit-width → the comfortable reading zoom.
-                composeRule.onNodeWithContentDescription("Page 1").performTouchInput { doubleClick() }
+                composeRule.onNodeWithContentDescription(PAGE_1).performTouchInput { doubleClick() }
                 composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS) {
                     pageWidthPx() > fitWidth * ZOOM_IN_THRESHOLD
                 }
 
                 // Double-tap again: zoomed-in → back to fit-width.
-                composeRule.onNodeWithContentDescription("Page 1").performTouchInput { doubleClick() }
+                composeRule.onNodeWithContentDescription(PAGE_1).performTouchInput { doubleClick() }
                 composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS) {
                     pageWidthPx() <= fitWidth + ZOOM_OUT_TOLERANCE_PX
                 }
@@ -90,6 +91,13 @@ class DoubleTapZoomE2ETest {
     }
 
     private companion object {
+        // The reader announces a page by its position (mobile-ui-plan
+        // Phase F.2). Matched exactly, so this never also picks up the
+        // page chip ("Page 1 of 1, go to page"), which is a different
+        // control. Instrumentation runs without a screen reader, so the
+        // page text F.2 appends under TalkBack is absent here.
+        val PAGE_1: String = ReaderSemantics.pageLabel(pageIndex = 0, pageCount = 1)
+
         const val LOAD_TIMEOUT_MS = 10_000L
         const val ZOOM_TIMEOUT_MS = 5_000L
 

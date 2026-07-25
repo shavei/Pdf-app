@@ -13,8 +13,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.pdfapp.ui.touchTargetFloor
 import kotlin.math.roundToInt
 
 /** "Page X of N — go to page" jump dialog (plan 2.1). */
@@ -53,9 +55,12 @@ fun GoToPageDialog(
             TextButton(
                 enabled = parsed != null,
                 onClick = { parsed?.let { onGo(it - 1) } },
+                modifier = Modifier.touchTargetFloor(),
             ) { Text("Go") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.touchTargetFloor()) { Text("Cancel") }
+        },
     )
 }
 
@@ -94,8 +99,11 @@ fun PasswordDialog(
             TextButton(
                 enabled = password.isNotEmpty(),
                 onClick = { onSubmit(password) },
+                modifier = Modifier.touchTargetFloor(),
             ) { Text("Unlock") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.touchTargetFloor()) { Text("Cancel") }
+        },
     )
 }

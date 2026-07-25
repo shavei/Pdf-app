@@ -10,6 +10,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import com.pdfapp.ui.ReaderSemantics
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
@@ -65,12 +66,12 @@ class OpenWithIntentTest {
                 }
 
             ActivityScenario.launch<MainActivity>(intent).use {
-                // The continuous reader renders each page as an Image whose
-                // content description is "Page N"; page 1 appearing proves the
+                // The continuous reader announces each page as "Page N of M"
+                // (mobile-ui-plan Phase F.2); page 1 appearing proves the
                 // intent-delivered document loaded and rendered.
                 composeRule.waitUntil(timeoutMillis = LOAD_TIMEOUT_MS) {
                     composeRule
-                        .onAllNodesWithContentDescription("Page 1")
+                        .onAllNodesWithContentDescription(PAGE_1)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
@@ -81,6 +82,13 @@ class OpenWithIntentTest {
     }
 
     private companion object {
+        // The reader announces a page by its position (mobile-ui-plan
+        // Phase F.2). Matched exactly, so this never also picks up the
+        // page chip ("Page 1 of 1, go to page"), which is a different
+        // control. Instrumentation runs without a screen reader, so the
+        // page text F.2 appends under TalkBack is absent here.
+        val PAGE_1: String = ReaderSemantics.pageLabel(pageIndex = 0, pageCount = 1)
+
         const val LOAD_TIMEOUT_MS = 10_000L
     }
 }

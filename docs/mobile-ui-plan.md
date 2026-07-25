@@ -240,9 +240,42 @@ resizable emulator across rotation and unfold.
 
 ---
 
-## Phase F — Accessibility & dynamic type
+## Phase F — Accessibility & dynamic type ✅ *shipped*
 
 Phone-friendly includes users with large fonts, TalkBack, and motor needs.
+
+**Status:** delivered. Two pure objects carry the rules — `DynamicType` (the
+font-scale sizing arithmetic and the 48 dp floor) and `ReaderSemantics` (every
+string a screen reader speaks) — joined by the Compose helpers in
+`ui/Accessibility.kt` (`scaledDp`, `Modifier.touchTargetFloor()`,
+`rememberTouchExplorationEnabled()`).
+
+The fixed heights that clipped are gone (F.1): thumbnail cells size by aspect
+ratio inside grid columns that widen with the font scale, the home thumbnail
+scales with it too, and outline entries and recent-file names wrap to two lines.
+TalkBack now gets a page as one node announcing "Page 3 of 12" — plus the
+page's extracted text, parsed only while a screen reader is actually running
+(F.2, the concrete form of `plan.md`'s "expose extracted page text to
+TalkBack"). That node's click action is the immersive chrome toggle, the one
+reader gesture a screen reader could not otherwise perform. The glyph shorthand
+is spoken properly ("5 / 120" → "Page 5 of 120, go to page"; "3/12" → "Match 3
+of 12"), a selection announces itself through a polite live region, thumbnails
+report the current page, and the fast scroller — a transient, redundant
+affordance — is hidden from the reader rather than fading in and out under its
+cursor. `OverlayCanvasView`, previously an unlabelled drawing surface, now
+describes the page, the active tool and what is already on it. Every control
+Material 3 leaves at 40 dp is lifted to the 48 dp floor (F.3) — text buttons via
+`touchTargetFloor()`, and **every icon button in the app** via
+`iconTouchTarget()` — and Android lint's accessibility checks are promoted to
+build errors in `:app` and `:overlay-engine`.
+
+Phase A fixed the two sub-48 dp controls it had found by inspection (the colour
+swatch and the stepper). F.3's font-scale test found the rest: Material 3's
+`IconButton` draws a 40 dp state layer and expands only its *touch* bounds, so
+every icon in the reader bottom bar, nav rail, top bar and edit bar measured
+40 dp. `iconTouchTarget()` sizes them explicitly, which is the only fix that
+raises the measured node — `defaultMinSize` is overridden by `IconButton`'s own
+`.size()`.
 
 - **F.1 Font-scale-safe layouts**: remove fixed heights that clip (thumbnail
   cells `height(130.dp)`, home thumb) in favour of aspect-ratio/`wrapContent`;
@@ -255,9 +288,28 @@ Phone-friendly includes users with large fonts, TalkBack, and motor needs.
   by a lint/`accessibility` check) and respect the system's bold-text / display
   size without layout breakage.
 
-**Done when:** Lint clean incl. accessibility checks; UI tests at 1.0× and 2.0×
-`fontScale` show no clipped/overlapping controls; TalkBack smoke pass on the
-reader and edit toolbars.
+**Implementation notes** — two deliberate choices:
+
+- **Page text is extracted only under touch exploration.** Describing a page
+  with its text costs a PdfBox parse per page, which no sighted reader would
+  ever get value from. `rememberTouchExplorationEnabled()` gates it and tracks
+  the setting live, so enabling TalkBack mid-session starts populating
+  descriptions without a restart. The description is capped
+  (`ReaderSemantics.MAX_PAGE_TEXT_CHARS`) so a dense page stays one sane
+  utterance.
+- **Layout growth is capped at 1.5×** (`DynamicType.MAX_LAYOUT_SCALE`) while
+  *text* keeps scaling freely. A phone-width thumbnail grid that tracked a 2×
+  font scale one-for-one would drop to a single column — worse for the user it
+  was meant to help.
+
+**Done:** Lint (`ktlintCheck detekt lintDebug`, now including the accessibility
+checks as errors) clean — the new gate immediately caught `OverlayCanvasView`;
+JVM unit tests for the wording and the sizing arithmetic (`ReaderSemanticsTest`,
+`DynamicTypeTest`, `OverlayCanvasSemanticsTest`); on-device `FontScaleTest`
+(1.0× vs 2.0× growth and the touch floor at both) and `AccessibilityE2ETest`
+(the page node's position, its chrome-toggle action, and the thumbnail grid's
+current-page marking). The three existing E2E tests that matched the old
+`"Page 1"` description were updated to the new label.
 
 ---
 
@@ -268,7 +320,9 @@ reader and edit toolbars.
 2. **Phase B** next — the highest perceived-quality jump (immersive + reach).
 3. **Phase C** builds on B's bottom-bar pattern.
 4. **Phases D–F** are independent and can land in any order, each behind the
-   three-layer gate. D and E have shipped; **Phase F is what's left.**
+   three-layer gate. **All three have shipped — this plan is complete.**
+   Remaining phone-facing work lives in [`plan.md`](../plan.md)'s feature
+   roadmap (Phase 4 onward) and its cross-cutting polish list.
 
 ## File map
 
@@ -279,4 +333,4 @@ reader and edit toolbars.
 | C | `ui/EditorControls.kt`, `ui/PdfEditorScreen.kt` |
 | D | `ui/reader/ReaderView.kt`, `ui/EditorControls.kt`, `AndroidManifest.xml` |
 | E | `ui/ReaderLayout.kt`, `ui/PdfEditorScreen.kt`, `ui/reader/ReaderAdaptive.kt`, `ui/reader/ReaderNavRail.kt`, `ui/reader/ReaderActions.kt`, `ui/reader/ReaderPanes.kt`, `ui/reader/ReaderSheets.kt` |
-| F | `ui/reader/ReaderSheets.kt`, `ui/reader/HomeScreen.kt`, plus semantics across the tree |
+| F | `ui/DynamicType.kt`, `ui/ReaderSemantics.kt`, `ui/Accessibility.kt`, `ui/reader/ReaderSheets.kt`, `ui/reader/HomeScreen.kt`, `ui/reader/ReaderView.kt`, `ui/reader/ReaderActions.kt`, `ui/reader/ReaderContent.kt`, `ui/reader/ReaderTopBar.kt`, `ui/reader/ReaderFastScroll.kt`, `ui/EditorControls.kt`, `overlay/OverlayCanvasSemantics.kt` |

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -110,20 +109,41 @@ fun EditBottomBar(
             enabled = enabled,
             onClick = { switchTo(OverlayCanvasView.Mode.EDIT) },
         )
-        Spacer(Modifier.weight(1f))
-        if (pageCount > 0) {
-            TextButton(onClick = onShowGoToPage, enabled = enabled) {
-                Text(
-                    "${currentIndex + 1} / $pageCount",
-                    style = MaterialTheme.typography.labelLarge,
-                )
+        // The chip is the bar's one flexible element, so it takes the weight and
+        // the icon buttons stay fixed at their 48 dp (mobile-ui-plan Phase F.3).
+        // A Row measures fixed children first, so at a large font scale the chip
+        // yields space instead of squeezing the trailing icons below the floor —
+        // which is exactly what a 2× font scale did before this.
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            if (pageCount > 0) {
+                // Same spoken label and 48 dp floor as the reader's page chip
+                // (Phase F.2/F.3).
+                val chipLabel = ReaderSemantics.pageChipLabel(currentIndex, pageCount)
+                TextButton(
+                    onClick = onShowGoToPage,
+                    enabled = enabled,
+                    modifier =
+                        Modifier
+                            .touchTargetFloor()
+                            .semantics { contentDescription = chipLabel },
+                ) {
+                    Text(
+                        "${currentIndex + 1} / $pageCount",
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                    )
+                }
             }
         }
-        IconButton(onClick = onUndo, enabled = enabled) {
+        IconButton(onClick = onUndo, enabled = enabled, modifier = Modifier.iconTouchTarget()) {
             Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
         }
         Box {
-            IconButton(onClick = { menuOpen = true }, enabled = enabled) {
+            IconButton(
+                onClick = { menuOpen = true },
+                enabled = enabled,
+                modifier = Modifier.iconTouchTarget(),
+            ) {
                 Icon(Icons.Filled.MoreVert, contentDescription = "More edit options")
             }
             EditOverflowMenu(
@@ -150,7 +170,7 @@ private fun ToolToggle(
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    IconButton(onClick = onClick, enabled = enabled) {
+    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.iconTouchTarget()) {
         Icon(
             icon,
             contentDescription = description,

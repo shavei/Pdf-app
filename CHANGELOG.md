@@ -10,6 +10,30 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 [`Latest build`](../../releases/latest) is refreshed on every green push to
 `main` and is not versioned here.
 
+## [Unreleased]
+
+### Added
+
+- **Accessibility & dynamic type** (mobile-ui-plan Phase F) — TalkBack
+  announces a rendered page by its position and, while a screen reader is
+  running, reads the page's extracted text; the immersive chrome toggle is
+  offered as that page's click action. The glyph shorthand on the chrome is
+  spoken properly ("Page 5 of 120, go to page", "Match 3 of 12"), text
+  selection announces itself, thumbnails mark the current page, and the edit
+  canvas describes the page, active tool and existing overlays.
+- **Font-scale-safe layouts** — thumbnail cells, the home thumbnail and grid
+  columns grow with the system font scale instead of clipping; outline entries
+  and recent-file names wrap to two lines.
+
+### Changed
+
+- Every control now meets the 48 dp touch floor. Material 3 leaves text buttons
+  *and every icon button* at 40 dp — so the reader bottom bar, nav rail, top bar
+  and edit bar were all below the accessibility minimum.
+- Android lint's accessibility checks (`ContentDescription`,
+  `ClickableViewAccessibility`, `KeyboardInaccessibleWidget`, `LabelFor`) are
+  build errors in `:app` and `:overlay-engine`.
+
 ## [1.3.0] — 2026-07-22
 
 The reading experience is reworked into a **Google-Drive-style viewer**, and the

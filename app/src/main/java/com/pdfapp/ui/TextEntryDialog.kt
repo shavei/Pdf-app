@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
@@ -43,14 +44,19 @@ fun TextEntryDialog(
         confirmButton = {
             TextButton(
                 onClick = { if (value.isNotBlank()) onConfirm(value) },
+                modifier = Modifier.touchTargetFloor(),
             ) { Text(confirmLabel) }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text("Delete") }
+                    TextButton(onClick = onDelete, modifier = Modifier.touchTargetFloor()) {
+                        Text("Delete")
+                    }
                 }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss, modifier = Modifier.touchTargetFloor()) {
+                    Text("Cancel")
+                }
             }
         },
     )

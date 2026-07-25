@@ -24,9 +24,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfapp.data.RecentFile
+import com.pdfapp.ui.ReaderSemantics
+import com.pdfapp.ui.scaledDp
+import com.pdfapp.ui.touchTargetFloor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -52,7 +58,7 @@ fun HomeScreen(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = onOpenClick) { Text("Open PDF") }
+        Button(onClick = onOpenClick, modifier = Modifier.touchTargetFloor()) { Text("Open PDF") }
         if (recents.isEmpty()) {
             Text(
                 "Documents you open will show up here.",
@@ -67,10 +73,21 @@ fun HomeScreen(
             )
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
                 items(recents, key = { it.uri }) { recent ->
+                    // One spoken label for the row, so TalkBack reads
+                    // "name, 12 pages, last read page 3" instead of sounding out
+                    // the "·" separator (mobile-ui-plan Phase F.2).
+                    val label =
+                        ReaderSemantics.recentFileLabel(
+                            displayName = recent.displayName,
+                            pageCount = recent.pageCount,
+                            lastPageIndex = recent.lastPageIndex,
+                        )
                     ListItem(
                         leadingContent = { RecentThumbnail(recent.thumbnailPath) },
                         headlineContent = {
-                            Text(recent.displayName, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            // Two lines: file names are long and the row already
+                            // grows to fit them (Phase F.1).
+                            Text(recent.displayName, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         },
                         supportingContent = {
                             Text("${recent.pageCount} pages · last read page ${recent.lastPageIndex + 1}")
@@ -80,7 +97,8 @@ fun HomeScreen(
                             Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 2.dp)
-                                .clickable { onRecentClick(recent) },
+                                .clickable(role = Role.Button) { onRecentClick(recent) }
+                                .semantics(mergeDescendants = true) { contentDescription = label },
                     )
                 }
             }
@@ -108,7 +126,9 @@ private fun RecentThumbnail(path: String?) {
             bitmap = image,
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier = Modifier.width(THUMB_WIDTH_DP.dp).height(THUMB_HEIGHT_DP.dp),
+            // Grows with the font scale so it stays in proportion to the row's
+            // text rather than shrinking into a stamp at 2× (Phase F.1).
+            modifier = Modifier.width(scaledDp(THUMB_WIDTH_DP)).height(scaledDp(THUMB_HEIGHT_DP)),
         )
     }
 }

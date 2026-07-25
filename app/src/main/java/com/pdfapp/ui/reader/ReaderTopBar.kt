@@ -24,9 +24,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.pdfapp.ui.PdfEditorViewModel
+import com.pdfapp.ui.ReaderSemantics
 import com.pdfapp.ui.SearchController
+import com.pdfapp.ui.iconTouchTarget
 import kotlinx.coroutines.delay
 
 /**
@@ -64,7 +68,7 @@ private fun TitleTopBar(
             )
         },
         actions = {
-            IconButton(onClick = onShowOutline) {
+            IconButton(onClick = onShowOutline, modifier = Modifier.iconTouchTarget()) {
                 Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Outline")
             }
         },
@@ -83,7 +87,7 @@ private fun SearchTopBar(search: SearchController) {
     }
     TopAppBar(
         navigationIcon = {
-            IconButton(onClick = { search.close() }) {
+            IconButton(onClick = { search.close() }, modifier = Modifier.iconTouchTarget()) {
                 Icon(Icons.Filled.Close, contentDescription = "Close search")
             }
         },
@@ -102,18 +106,41 @@ private fun SearchTopBar(search: SearchController) {
             )
         },
         actions = {
+            // The counter is terse because it shares a crowded bar; TalkBack gets
+            // the long form ("Match 3 of 12") instead (mobile-ui-plan Phase F.2).
             val counter =
-                when {
-                    search.matches.isNotEmpty() -> "${search.currentIndex + 1}/${search.matches.size}"
-                    search.searching -> "…"
-                    search.query.isBlank() -> ""
-                    else -> "0/0"
-                }
-            Text(counter, style = MaterialTheme.typography.labelLarge)
-            IconButton(onClick = { search.previous() }, enabled = search.matches.isNotEmpty()) {
+                ReaderSemantics.searchCounterText(
+                    currentIndex = search.currentIndex,
+                    matchCount = search.matches.size,
+                    searching = search.searching,
+                    hasQuery = search.query.isNotBlank(),
+                )
+            val counterLabel =
+                ReaderSemantics.searchCounterLabel(
+                    currentIndex = search.currentIndex,
+                    matchCount = search.matches.size,
+                    searching = search.searching,
+                    hasQuery = search.query.isNotBlank(),
+                )
+            if (counter.isNotEmpty()) {
+                Text(
+                    counter,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.semantics { contentDescription = counterLabel },
+                )
+            }
+            IconButton(
+                onClick = { search.previous() },
+                enabled = search.matches.isNotEmpty(),
+                modifier = Modifier.iconTouchTarget(),
+            ) {
                 Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Previous match")
             }
-            IconButton(onClick = { search.next() }, enabled = search.matches.isNotEmpty()) {
+            IconButton(
+                onClick = { search.next() },
+                enabled = search.matches.isNotEmpty(),
+                modifier = Modifier.iconTouchTarget(),
+            ) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Next match")
             }
         },

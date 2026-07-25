@@ -20,8 +20,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.pdfapp.ui.PdfEditorViewModel
+import com.pdfapp.ui.ReaderSemantics
 import com.pdfapp.ui.ZoomPreset
+import com.pdfapp.ui.iconTouchTarget
+import com.pdfapp.ui.touchTargetFloor
 
 /**
  * The READ-mode primary actions, as individual controls rather than one bar.
@@ -32,21 +38,24 @@ import com.pdfapp.ui.ZoomPreset
  */
 @Composable
 internal fun SearchAction(viewModel: PdfEditorViewModel) {
-    IconButton(onClick = { viewModel.searchController.open() }) {
+    IconButton(
+        onClick = { viewModel.searchController.open() },
+        modifier = Modifier.iconTouchTarget(),
+    ) {
         Icon(Icons.Filled.Search, contentDescription = "Search in document")
     }
 }
 
 @Composable
 internal fun ThumbnailsAction(onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+    IconButton(onClick = onClick, modifier = Modifier.iconTouchTarget()) {
         Icon(Icons.Filled.GridView, contentDescription = "Page thumbnails")
     }
 }
 
 @Composable
 internal fun NightModeAction(viewModel: PdfEditorViewModel) {
-    IconButton(onClick = { viewModel.toggleNightMode() }) {
+    IconButton(onClick = { viewModel.toggleNightMode() }, modifier = Modifier.iconTouchTarget()) {
         Icon(
             Icons.Filled.DarkMode,
             contentDescription = "Night mode",
@@ -67,7 +76,13 @@ internal fun PageChip(
     onClick: () -> Unit,
 ) {
     if (viewModel.pageCount <= 0) return
-    TextButton(onClick = onClick) {
+    // "5 / 120" is read out as punctuation, so the chip carries the spoken form
+    // instead; the floor lifts a 40 dp text button to 48 dp (Phase F.2/F.3).
+    val label = ReaderSemantics.pageChipLabel(viewModel.currentPageIndex, viewModel.pageCount)
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.touchTargetFloor().semantics { contentDescription = label },
+    ) {
         Text(
             "${viewModel.currentPageIndex + 1} / ${viewModel.pageCount}",
             style = MaterialTheme.typography.labelLarge,
@@ -77,7 +92,7 @@ internal fun PageChip(
 
 @Composable
 internal fun EditAction(viewModel: PdfEditorViewModel) {
-    IconButton(onClick = { viewModel.enterEditMode() }) {
+    IconButton(onClick = { viewModel.enterEditMode() }, modifier = Modifier.iconTouchTarget()) {
         Icon(Icons.Filled.Edit, contentDescription = "Edit document")
     }
 }
@@ -91,7 +106,7 @@ internal fun OverflowAction(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { menuOpen = true }) {
+        IconButton(onClick = { menuOpen = true }, modifier = Modifier.iconTouchTarget()) {
             Icon(Icons.Filled.MoreVert, contentDescription = "More options")
         }
         ReaderMenu(

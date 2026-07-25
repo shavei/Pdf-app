@@ -286,6 +286,7 @@ fun PdfEditorScreen(
                             ReaderContent(
                                 viewModel = viewModel,
                                 snackbarHostState = snackbarHostState,
+                                chromeVisible = chromeVisible,
                                 onToggleChrome = { chromeVisible = !chromeVisible },
                             )
                         }

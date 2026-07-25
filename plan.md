@@ -274,8 +274,11 @@ All buildable on PdfBox; each is a small headless operation + a picker UI.
 - **App shortcuts** (static: "Open last document", "Pick a PDF").
 - **Predictive back, themed icon, per-app language** — modern-Android hygiene.
 - **Tablets/foldables**: two-page spread layout, drag-and-drop a PDF onto the app.
-- **Accessibility**: expose extracted page text (from 2.2/2.3) to TalkBack;
-  content descriptions on all tools; large-touch-target mode.
+- **Accessibility ✅** *(shipped — mobile-ui-plan Phase F)*: rendered pages are
+  announced by position and, while a screen reader is running, by their
+  extracted text (from 2.2/2.3); every tool and control carries a content
+  description; the 48 dp touch floor and font-scale-safe layouts hold at 2×
+  text, gated by Android lint's accessibility checks.
 - **Privacy stance stays**: everything on-device, no telemetry — this is Signet's
   differentiator vs. Acrobat/Xodo, whose headline features increasingly require
   cloud accounts and AI upsells.

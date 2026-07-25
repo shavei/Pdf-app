@@ -57,16 +57,23 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.core.renderer.model.PdfRect
 import com.pdfapp.core.renderer.text.PdfLink
 import com.pdfapp.ui.PdfEditorViewModel
+import com.pdfapp.ui.ReaderSemantics
 import com.pdfapp.ui.ZoomPreset
+import com.pdfapp.ui.rememberTouchExplorationEnabled
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -84,6 +91,7 @@ import kotlin.math.roundToInt
 @Composable
 fun ReaderView(
     viewModel: PdfEditorViewModel,
+    chromeVisible: Boolean,
     onToggleChrome: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -91,6 +99,9 @@ fun ReaderView(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
+    // Page text is only extracted when a screen reader will read it out
+    // (mobile-ui-plan Phase F.2) — see [ReaderPage].
+    val touchExploration = rememberTouchExplorationEnabled()
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val viewportWidthPx = constraints.maxWidth.toFloat()
@@ -350,6 +361,9 @@ fun ReaderView(
                             viewportWidthPx = viewportWidthPx,
                             viewportHeightPx = viewportHeightPx,
                             bucket = bucket,
+                            describeText = touchExploration,
+                            chromeVisible = chromeVisible,
+                            onToggleChrome = onToggleChrome,
                         )
                     }
                 }
@@ -380,6 +394,9 @@ private fun ReaderPage(
     viewportWidthPx: Float,
     viewportHeightPx: Float,
     bucket: Int,
+    describeText: Boolean,
+    chromeVisible: Boolean,
+    onToggleChrome: () -> Unit,
 ) {
     val session = viewModel.session ?: return
     val density = LocalDensity.current
@@ -388,6 +405,24 @@ private fun ReaderPage(
     val pageSize by produceState(viewModel.defaultPageSize, session, pageIndex) {
         value = session.cache.pageSize(pageIndex)
     }
+
+    // The page reads as one node: its position, and — once a screen reader is
+    // running — the text on it, so TalkBack can speak a page instead of naming
+    // a picture (mobile-ui-plan Phase F.2, plan.md's "expose extracted page
+    // text"). Extraction is a PdfBox parse, so it only happens under
+    // [describeText]; until it lands the position alone is announced.
+    val pageText by produceState<String?>(null, session, pageIndex, describeText) {
+        if (!describeText) {
+            value = null
+            return@produceState
+        }
+        value =
+            runCatching {
+                withContext(Dispatchers.IO) { session.textDocument().pageText(pageIndex).text }
+            }.getOrNull()
+    }
+    val pageLabel = ReaderSemantics.pageLabel(pageIndex, session.pageCount, pageText)
+    val chromeLabel = ReaderSemantics.chromeToggleLabel(chromeVisible)
     val pageHeightPx = pageWidthPx * (pageSize.heightPt / pageSize.widthPt)
     val pointScale = pageWidthPx / pageSize.widthPt
 
@@ -413,7 +448,17 @@ private fun ReaderPage(
                     .width(with(density) { pageWidthPx.toDp() })
                     .fillMaxHeight()
                     .background(if (viewModel.nightMode) Color.Black else Color.White)
-                    .pointerInput(pageIndex, pointScale) {
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = pageLabel
+                        // A screen reader can't perform the reader's background
+                        // tap, so the immersive toggle becomes this node's click
+                        // action — double-tapping a page hides or shows the
+                        // chrome exactly as the sighted gesture does.
+                        onClick(label = chromeLabel) {
+                            onToggleChrome()
+                            true
+                        }
+                    }.pointerInput(pageIndex, pointScale) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = { offset ->
                                 // Tactile confirmation that the long-press latched
@@ -430,7 +475,8 @@ private fun ReaderPage(
             bitmap?.let { image ->
                 Image(
                     bitmap = image,
-                    contentDescription = "Page ${pageIndex + 1}",
+                    // Described by the merged page node above.
+                    contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.FillBounds,
                     filterQuality = FilterQuality.High,
