@@ -1,8 +1,9 @@
 package com.pdfapp.ui.reader
 
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.pdfapp.ui.PdfEditorViewModel
 
@@ -27,9 +28,13 @@ fun ReaderBottomBar(
         SearchAction(viewModel)
         ThumbnailsAction(onShowThumbnails)
         NightModeAction(viewModel)
-        Spacer(Modifier.weight(1f))
-        PageChip(viewModel, onShowGoToPage)
-        Spacer(Modifier.weight(1f))
+        // The chip carries the weight so the icon buttons keep their 48 dp at
+        // any font scale (mobile-ui-plan Phase F.3) — a Row measures fixed
+        // children first, so the flexible one absorbs the squeeze. Centring it
+        // in the weighted slot keeps the Phase B look.
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            PageChip(viewModel, onShowGoToPage)
+        }
         EditAction(viewModel)
         OverflowAction(
             viewModel = viewModel,

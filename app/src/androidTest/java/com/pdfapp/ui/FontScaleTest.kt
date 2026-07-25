@@ -16,10 +16,12 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pdfapp.data.RecentFile
 import com.pdfapp.overlay.OverlayCanvasView
 import com.pdfapp.ui.reader.HomeScreen
+import com.pdfapp.ui.reader.ReaderBottomBar
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -159,12 +161,40 @@ class FontScaleTest {
     @Test
     fun edit_tools_meet_the_touch_floor_at_double_font_scale() {
         composeRule.setContentAtFontScale(LARGE_SCALE) { EditBar() }
+        // Regression: the icons are fixed-width and the page chip is weighted,
+        // so a bar too narrow for its content at 2× squeezes the chip — never
+        // an icon below the floor.
         listOf("Sign tool", "Text tool", "Select and move tool", "Undo", "More edit options")
             .forEach { description ->
                 composeRule.onNodeWithContentDescription(description)
                     .assertHeightIsAtLeast(DynamicType.MIN_TOUCH_TARGET_DP.dp)
                     .assertWidthIsAtLeast(DynamicType.MIN_TOUCH_TARGET_DP.dp)
             }
+    }
+
+    @Test
+    fun reader_actions_meet_the_touch_floor_at_double_font_scale() {
+        // The reader bar carries the same five-icons-plus-chip pressure as the
+        // edit bar, and had the same latent squeeze.
+        composeRule.setContentAtFontScale(LARGE_SCALE) {
+            ReaderBottomBar(
+                viewModel = PdfEditorViewModel(ApplicationProvider.getApplicationContext()),
+                onShowThumbnails = {},
+                onShowGoToPage = {},
+                onOpenAnother = {},
+            )
+        }
+        listOf(
+            "Search in document",
+            "Page thumbnails",
+            "Night mode",
+            "Edit document",
+            "More options",
+        ).forEach { description ->
+            composeRule.onNodeWithContentDescription(description)
+                .assertHeightIsAtLeast(DynamicType.MIN_TOUCH_TARGET_DP.dp)
+                .assertWidthIsAtLeast(DynamicType.MIN_TOUCH_TARGET_DP.dp)
+        }
     }
 
     private companion object {
