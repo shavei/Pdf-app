@@ -11,6 +11,10 @@ The full product roadmap — where the app is and where it's going, phase by pha
 - Lint:    `./gradlew ktlintCheck detekt lintDebug`
 - E2E:     `./gradlew connectedDebugAndroidTest`
 - Harness: `./gradlew :file-persistence:testDebugUnitTest --tests "*PdfTestHarness*"`
+- Version:  `./gradlew -q :app:appVersion` — what this build would stamp.
+
+## Versioning
+`appVersionName` in [`gradle.properties`](gradle.properties) is the single source of truth: the version under development. Builds read it directly, CI reads the same line via [`.github/actions/app-version`](.github/actions/app-version/action.yml), and a `vX.Y.Z` tag must agree with it or the release fails. CI adds `-PappBuildNumber=<commit count>`, which becomes both the `versionCode` and the `(build N)` suffix, so a rolling build reads `1.4.0 (build 102)` — never a commit hash. Signet shows the result on its home screen. Release steps: [`docs/RELEASING.md`](docs/RELEASING.md#versioning).
 
 ## Stack
 PdfRenderer (view) · Canvas (overlay) · PdfBox-Android / Tom Roush (write) · SAF (storage).

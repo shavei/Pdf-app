@@ -141,8 +141,8 @@ page content (the ink is flattened as vector strokes). Run it with:
   every push to `main` that passes all checks; its
   [`Signet.apk`](https://github.com/shavei/Pdf-app/releases/latest/download/Signet.apk)
   permalink always points at the newest one (a debug build — one tap, no login).
-  It installs as `<next version> (build <commit count>)`, so App info tells you
-  exactly which build you are on.
+  It installs as `<version> (build <commit count>)` — shown on Signet's home
+  screen, so you can always tell which build you are on.
 - **Build on demand** — trigger a fresh build from anywhere (including the GitHub
   mobile app): **Actions → CI → *Run workflow***.
 

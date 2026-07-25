@@ -75,6 +75,9 @@ android {
 
     buildFeatures {
         compose = true
+        // The home screen shows the running build's version; BuildConfig is how
+        // it reads back what was stamped above.
+        buildConfig = true
     }
 
     compileOptions {
@@ -106,6 +109,15 @@ android {
                 "LabelFor",
             )
     }
+}
+
+// `./gradlew -q :app:appVersion` prints exactly what a build would stamp, so the
+// scheme can be checked — locally or from a CI log — without unpacking an APK.
+tasks.register("appVersion") {
+    group = "help"
+    description = "Prints the versionName and versionCode this build would stamp."
+    val summary = "$appDisplayVersion (versionCode $appVersionCode)"
+    doLast { println(summary) }
 }
 
 dependencies {

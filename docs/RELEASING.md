@@ -102,8 +102,19 @@ You can now delete the local `keystore.b64` (keep `release.keystore` backed up).
 
 ## Part 2 — Cut a release
 
-Pick **one** of these. Both produce the same result: a tag → the `release` job
-builds the APK + AAB → they're attached to a published GitHub Release.
+The version a release ships as is **`appVersionName` in `gradle.properties`** —
+the tag only confirms it. So a release is two steps:
+
+**Step 1 — the release-prep commit on `main`.** Set `appVersionName` to the
+version you are about to ship, move the CHANGELOG's `[Unreleased]` entries under
+a `[X.Y.Z]` heading, and bump the pinned download links in the README.
+
+**Step 2 — tag that commit** with `vX.Y.Z`, using either option below. The
+`release` job re-reads `gradle.properties` and **fails if the tag disagrees**, so
+a tag can never ship a mislabelled build.
+
+Afterwards, bump `appVersionName` to the next version (e.g. `1.5.0`) so rolling
+builds from `main` stop claiming the version that just shipped.
 
 ### Option A — GitHub website (no git needed; works on a phone too)
 
@@ -128,8 +139,10 @@ git push origin v0.1.0
 Publishing the tag triggers the **`release` job in
 `.github/workflows/ci.yml`**, which:
 
-1. builds `:app:assembleRelease` and `:app:bundleRelease`,
-2. names the build from the tag (`versionName = 0.1.0`, `versionCode = <commit count>`),
+1. checks the tag against `appVersionName` in `gradle.properties` and stops there
+   if they disagree,
+2. builds `:app:assembleRelease` and `:app:bundleRelease` with
+   `versionName = 0.1.0`, `versionCode = <commit count>`,
 3. signs with your keystore (Part 1) — or debug-signs if you skipped it,
 4. uploads the **APK + AAB** to the GitHub Release as `Signet-0.1.0.apk` and
    `Signet-0.1.0.aab`.
@@ -149,7 +162,8 @@ Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
   [`Latest build`](../../releases/latest) release always has the newest
   `Signet.apk` — one tap from the README's **Download APK** button, no login.
   The filename is deliberately unversioned so the link stays a permalink; the
-  version it installs is in the release title and in Android's App info.
+  version it installs is in the release title, on Signet's home screen and in
+  Android's App info.
   (The same APK is also on **`Actions`** → newest **CI** run → **Artifacts** →
   `signet-debug-apk`, named `Signet-<version>-debug.apk`.)
 
@@ -159,23 +173,35 @@ Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
 
 One marketing version, one build number, no commit hashes in the version name:
 
-| Build | `versionName` shown in App info | `versionCode` |
+| Build | Version shown in the app and in App info | `versionCode` |
 | --- | --- | --- |
 | Tagged release (`v1.4.0`) | `1.4.0` | commit count |
 | Rolling "Latest build" from `main` | `1.4.0 (build 102)` | commit count |
 | Local `./gradlew assembleDebug` | `1.4.0` | `1` |
 
-- The version lives in **`gradle.properties`** as `appVersionName` and is always
-  the *next* version to ship. **Bump it right after tagging a release** (e.g. to
-  `1.5.0` once `v1.4.0` is out) so builds never claim a version that already
-  shipped.
-- A tag overrides it: the `release` job passes `-PappVersionName=<tag without v>`.
-- CI passes `-PappBuildNumber=<commit count>` for untagged builds; `app/build.gradle.kts`
-  appends it as ` (build N)` and reuses it as the `versionCode`, so every rolling
-  build outranks the last and installs in place.
+**One source of truth.** `appVersionName` in **`gradle.properties`** is the
+version under development. Everything else derives from it:
 
-The latest published release is `v1.3.0`; to ship the next one, just tag it
-(e.g. `v1.4.0`).
+- `app/build.gradle.kts` reads it for every build, so a local APK is labelled the
+  same way CI labels one.
+- `.github/actions/app-version` reads the same line for all three CI jobs — no
+  job carries its own copy of the version — and fails the release when a tag
+  disagrees with it.
+- CI passes `-PappBuildNumber=<commit count>` for untagged builds; the build
+  appends it as ` (build N)` and reuses it as the `versionCode`, so every rolling
+  build outranks the last and installs in place over it.
+- Signet shows the result on its home screen, so the running build identifies
+  itself without a trip to Android's App info.
+
+Check what a build would stamp, without unpacking an APK:
+
+```bash
+./gradlew -q :app:appVersion                     # 1.4.0 (versionCode 1)
+./gradlew -q :app:appVersion -PappBuildNumber=102  # 1.4.0 (build 102) (versionCode 102)
+```
+
+The latest published release is `v1.3.0`. Ship the next one by following Part 2:
+set `appVersionName=1.4.0`, then tag `v1.4.0`.
 
 ### Artifact names
 
@@ -195,6 +221,10 @@ those old links still work.
 - **Release has no APK/AAB attached** — open the **Actions → CI** run for your
   tag and check the **Build + publish release** job; if it
   failed, the logs say why. A common cause is a typo in a secret name.
+- **"Tag v1.4.0 does not match appVersionName=1.3.0"** — the tag was pushed
+  before the release-prep commit (Part 2, step 1). Bump `appVersionName` to
+  `1.4.0` on `main`, delete the tag (`git push --delete origin v1.4.0`), and
+  re-tag the new commit.
 - **"keytool: command not found"** — the JDK isn't installed or not on your PATH
   (see Part 1, step 1).
 - **APK installs but won't update later from the Play Store** — the build was
