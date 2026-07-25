@@ -112,7 +112,14 @@ fun EditBottomBar(
         )
         Spacer(Modifier.weight(1f))
         if (pageCount > 0) {
-            TextButton(onClick = onShowGoToPage, enabled = enabled) {
+            // Same spoken label and 48 dp floor as the reader's page chip
+            // (mobile-ui-plan Phase F.2/F.3).
+            val chipLabel = ReaderSemantics.pageChipLabel(currentIndex, pageCount)
+            TextButton(
+                onClick = onShowGoToPage,
+                enabled = enabled,
+                modifier = Modifier.touchTargetFloor().semantics { contentDescription = chipLabel },
+            ) {
                 Text(
                     "${currentIndex + 1} / $pageCount",
                     style = MaterialTheme.typography.labelLarge,

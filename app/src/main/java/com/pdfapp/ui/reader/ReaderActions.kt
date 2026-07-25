@@ -20,8 +20,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.pdfapp.ui.PdfEditorViewModel
+import com.pdfapp.ui.ReaderSemantics
 import com.pdfapp.ui.ZoomPreset
+import com.pdfapp.ui.touchTargetFloor
 
 /**
  * The READ-mode primary actions, as individual controls rather than one bar.
@@ -67,7 +72,13 @@ internal fun PageChip(
     onClick: () -> Unit,
 ) {
     if (viewModel.pageCount <= 0) return
-    TextButton(onClick = onClick) {
+    // "5 / 120" is read out as punctuation, so the chip carries the spoken form
+    // instead; the floor lifts a 40 dp text button to 48 dp (Phase F.2/F.3).
+    val label = ReaderSemantics.pageChipLabel(viewModel.currentPageIndex, viewModel.pageCount)
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.touchTargetFloor().semantics { contentDescription = label },
+    ) {
         Text(
             "${viewModel.currentPageIndex + 1} / ${viewModel.pageCount}",
             style = MaterialTheme.typography.labelLarge,

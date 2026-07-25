@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -70,7 +71,13 @@ fun ReaderFastScrollbar(
     val shownPage =
         if (dragging) (dragFraction * maxIndex).roundToInt() else currentPage
 
-    BoxWithConstraints(modifier = modifier.fillMaxHeight().alpha(alpha)) {
+    // Hidden from screen readers (mobile-ui-plan Phase F.2): it is a transient
+    // drag affordance whose function — knowing and changing the page position —
+    // is exposed accessibly and permanently by the page chip and "go to page".
+    // Left visible it would fade in and out under a TalkBack cursor.
+    BoxWithConstraints(
+        modifier = modifier.fillMaxHeight().alpha(alpha).clearAndSetSemantics {},
+    ) {
         val density = LocalDensity.current
         val thumbHeightPx = with(density) { THUMB_HEIGHT_DP.dp.roundToPx() }
         val trackHeightPx = (constraints.maxHeight - thumbHeightPx).coerceAtLeast(1)

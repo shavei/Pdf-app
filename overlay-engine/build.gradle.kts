@@ -27,6 +27,14 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    lint {
+        // This module owns the one custom View in the app, so the touch-handling
+        // accessibility check has something to say here: an onTouchEvent that
+        // never calls performClick is unreachable to a screen reader
+        // (mobile-ui-plan Phase F.3).
+        error += listOf("ClickableViewAccessibility", "ContentDescription")
+    }
 }
 
 dependencies {

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pdfapp.ui.ReaderSemantics
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
@@ -57,7 +58,7 @@ class ReaderBottomBarE2ETest {
                 // Wait for the document to render (proves READ mode is live).
                 composeRule.waitUntil(timeoutMillis = LOAD_TIMEOUT_MS) {
                     composeRule
-                        .onAllNodesWithContentDescription("Page 1")
+                        .onAllNodesWithContentDescription(PAGE_1, substring = true)
                         .fetchSemanticsNodes()
                         .isNotEmpty()
                 }
@@ -78,6 +79,11 @@ class ReaderBottomBarE2ETest {
     }
 
     private companion object {
+        // The reader announces a page by its position (mobile-ui-plan
+        // Phase F.2), and appends the page text when a screen reader is
+        // running — so match on the position prefix.
+        val PAGE_1: String = ReaderSemantics.pageLabel(pageIndex = 0, pageCount = 1)
+
         const val LOAD_TIMEOUT_MS = 10_000L
     }
 }

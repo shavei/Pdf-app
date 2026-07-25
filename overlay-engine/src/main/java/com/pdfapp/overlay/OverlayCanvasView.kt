@@ -47,6 +47,7 @@ class OverlayCanvasView
                     // Leaving edit mode clears any selection highlight.
                     selectedTextId = null
                     draggingText = null
+                    describeForAccessibility()
                     invalidate()
                 }
             }
@@ -71,6 +72,7 @@ class OverlayCanvasView
             set(value) {
                 field = value
                 onLayerChanged?.invoke(value)
+                describeForAccessibility()
                 invalidate()
             }
 
@@ -125,6 +127,12 @@ class OverlayCanvasView
          * Bind the page to display along with its stored overlays, and reset any
          * in-progress drawing.
          */
+        init {
+            // Labelled from the start: the host may show the canvas before the
+            // first page finishes rendering.
+            describeForAccessibility()
+        }
+
         fun setPage(
             rendered: RenderedPage,
             initialLayer: OverlayLayer = OverlayLayer(pageIndex = rendered.index),
@@ -137,6 +145,21 @@ class OverlayCanvasView
             viewport.setContentSize(rendered.bitmap.width.toFloat(), rendered.bitmap.height.toFloat())
             layer = initialLayer
             invalidate()
+        }
+
+        /**
+         * Keep the screen-reader description in step with the page, tool and
+         * overlays (mobile-ui-plan Phase F.2). A drawing surface offers nothing
+         * for TalkBack to infer, so without this it is announced as an
+         * unlabelled view.
+         */
+        private fun describeForAccessibility() {
+            contentDescription =
+                OverlayCanvasSemantics.describe(
+                    pageIndex = page?.index ?: layer.pageIndex,
+                    mode = mode,
+                    layer = layer,
+                )
         }
 
         /** Collect the in-progress strokes into an [InkSignature] in PDF points. */
@@ -277,6 +300,10 @@ class OverlayCanvasView
             )
         }
 
+        // performClick() *is* called on every tap — from the per-mode handlers
+        // below (handleTextTouch / handleInkTouch / handleEditTouch), which is
+        // where a tap is recognised. Lint only looks inside onTouchEvent itself.
+        @Suppress("ClickableViewAccessibility")
         override fun onTouchEvent(event: MotionEvent): Boolean {
             val mapper = page?.mapper ?: return false
             // Zoom/pan gestures take priority: a single finger may pan only

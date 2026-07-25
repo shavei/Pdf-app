@@ -80,6 +80,21 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    lint {
+        // Accessibility regressions fail the build rather than sit in a report
+        // (mobile-ui-plan Phase F.3). These are the checks that still apply to a
+        // Compose UI: a custom View that eats touches without a click action
+        // (OverlayCanvasView), an unlabelled image or input, and anything
+        // reachable by touch but not by keyboard.
+        error +=
+            listOf(
+                "ClickableViewAccessibility",
+                "ContentDescription",
+                "KeyboardInaccessibleWidget",
+                "LabelFor",
+            )
+    }
 }
 
 dependencies {
