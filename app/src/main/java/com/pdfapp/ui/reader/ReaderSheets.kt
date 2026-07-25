@@ -30,30 +30,45 @@ import androidx.compose.ui.unit.dp
 import com.pdfapp.core.renderer.text.OutlineEntry
 import com.pdfapp.ui.PdfEditorViewModel
 
-/** Page-thumbnail grid for jump navigation (plan 2.1). */
+/**
+ * Page-thumbnail grid for jump navigation (plan 2.1), as a modal sheet. On
+ * expanded windows the same grid docks beside the page instead — see
+ * [ThumbnailPane] (mobile-ui-plan Phase E.3).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThumbnailSheet(
     viewModel: PdfEditorViewModel,
     onDismiss: () -> Unit,
 ) {
-    val session = viewModel.session ?: return
+    if (viewModel.session == null) return
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 104.dp),
-            modifier = Modifier.padding(horizontal = 12.dp),
-        ) {
-            items(count = session.pageCount) { index ->
-                ThumbnailCell(
-                    viewModel = viewModel,
-                    pageIndex = index,
-                    isCurrent = index == viewModel.currentPageIndex,
-                    onClick = {
-                        viewModel.goToPage(index)
-                        onDismiss()
-                    },
-                )
-            }
+        ThumbnailGrid(viewModel) { index ->
+            viewModel.goToPage(index)
+            onDismiss()
+        }
+    }
+}
+
+/** The thumbnail grid itself, shared by [ThumbnailSheet] and [ThumbnailPane]. */
+@Composable
+internal fun ThumbnailGrid(
+    viewModel: PdfEditorViewModel,
+    modifier: Modifier = Modifier,
+    onSelect: (Int) -> Unit,
+) {
+    val session = viewModel.session ?: return
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = THUMB_CELL_MIN_WIDTH.dp),
+        modifier = modifier.padding(horizontal = 12.dp),
+    ) {
+        items(count = session.pageCount) { index ->
+            ThumbnailCell(
+                viewModel = viewModel,
+                pageIndex = index,
+                isCurrent = index == viewModel.currentPageIndex,
+                onClick = { onSelect(index) },
+            )
         }
     }
 }
@@ -103,44 +118,62 @@ private fun ThumbnailCell(
     }
 }
 
-/** Document outline / table of contents drawer (plan 2.4). */
+/**
+ * Document outline / table of contents drawer (plan 2.4), as a modal sheet. The
+ * docked [ThumbnailPane] offers the same list on expanded windows.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OutlineSheet(
     viewModel: PdfEditorViewModel,
     onDismiss: () -> Unit,
 ) {
-    LaunchedEffect(Unit) { viewModel.loadOutline() }
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        when (val outline = viewModel.outline) {
-            null ->
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                ) { CircularProgressIndicator() }
-            else ->
-                if (outline.isEmpty()) {
-                    Text(
-                        "No outline in this document",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(32.dp),
-                    )
-                } else {
-                    OutlineList(outline) { entry ->
-                        viewModel.goToPage(entry.pageIndex)
-                        onDismiss()
-                    }
+        OutlineContent(viewModel, onNavigate = onDismiss)
+    }
+}
+
+/**
+ * Outline list with its loading and empty states, shared by [OutlineSheet] and
+ * [ThumbnailPane]. [onNavigate] fires after a jump so an overlaying host can
+ * dismiss itself; a docked host passes a no-op.
+ */
+@Composable
+internal fun OutlineContent(
+    viewModel: PdfEditorViewModel,
+    modifier: Modifier = Modifier,
+    onNavigate: () -> Unit,
+) {
+    LaunchedEffect(viewModel.session) { viewModel.loadOutline() }
+    when (val outline = viewModel.outline) {
+        null ->
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = modifier.fillMaxWidth().padding(32.dp),
+            ) { CircularProgressIndicator() }
+        else ->
+            if (outline.isEmpty()) {
+                Text(
+                    "No outline in this document",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = modifier.padding(32.dp),
+                )
+            } else {
+                OutlineList(outline, modifier) { entry ->
+                    viewModel.goToPage(entry.pageIndex)
+                    onNavigate()
                 }
-        }
+            }
     }
 }
 
 @Composable
 private fun OutlineList(
     outline: List<OutlineEntry>,
+    modifier: Modifier = Modifier,
     onEntryClick: (OutlineEntry) -> Unit,
 ) {
-    LazyColumn(modifier = Modifier.padding(bottom = 16.dp)) {
+    LazyColumn(modifier = modifier.padding(bottom = 16.dp)) {
         items(count = outline.size) { i ->
             val entry = outline[i]
             Text(
@@ -165,4 +198,5 @@ private fun OutlineList(
 
 private const val THUMB_WIDTH_PX = 220f
 private const val THUMB_CELL_HEIGHT = 130
+private const val THUMB_CELL_MIN_WIDTH = 104
 private const val OUTLINE_INDENT_DP = 16

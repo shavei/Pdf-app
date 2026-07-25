@@ -8,19 +8,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -41,22 +39,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pdfapp.R
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.overlay.OverlayCanvasView
-import com.pdfapp.overlay.model.OverlayLayer
 import com.pdfapp.overlay.model.TextOverlay
 import com.pdfapp.ui.reader.GoToPageDialog
 import com.pdfapp.ui.reader.HomeScreen
 import com.pdfapp.ui.reader.OutlineSheet
 import com.pdfapp.ui.reader.PasswordDialog
+import com.pdfapp.ui.reader.ReaderBody
 import com.pdfapp.ui.reader.ReaderBottomBar
 import com.pdfapp.ui.reader.ReaderContent
+import com.pdfapp.ui.reader.ReaderNavRail
 import com.pdfapp.ui.reader.ReaderTopBar
+import com.pdfapp.ui.reader.ThumbnailPane
 import com.pdfapp.ui.reader.ThumbnailSheet
 
 /**
@@ -82,6 +81,9 @@ fun PdfEditorScreen(
     var showGoToPage by remember { mutableStateOf(false) }
     var showToolSettings by remember { mutableStateOf(false) }
     var chromeVisible by remember { mutableStateOf(true) }
+    // Expanded windows dock the navigation pane rather than overlaying it, so it
+    // starts open there and the thumbnails action toggles it (Phase E.3).
+    var pageDockOpen by remember { mutableStateOf(true) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val openLauncher =
@@ -116,8 +118,8 @@ fun PdfEditorScreen(
     val hasSession = viewModel.session != null
     val readChromeShown =
         ReaderChrome.topBarShown(chromeVisible, searchActive, viewModel.mode, hasSession)
-    val bottomBarShown =
-        ReaderChrome.bottomBarShown(chromeVisible, searchActive, viewModel.mode, hasSession)
+    val readerActionsShown =
+        ReaderChrome.actionsShown(chromeVisible, searchActive, viewModel.mode, hasSession)
     DisposableEffect(readChromeShown) {
         val window = (view.context as? Activity)?.window
         val controller = window?.let { WindowInsetsControllerCompat(it, view) }
@@ -165,116 +167,150 @@ fun PdfEditorScreen(
     }
 
     val session = viewModel.session
-    Scaffold(
-        topBar = {
-            when {
-                session == null -> AppTitleBar()
-                viewModel.mode == ViewerMode.READ ->
-                    AnimatedVisibility(
-                        visible = readChromeShown,
-                        enter = slideInVertically { -it },
-                        exit = slideOutVertically { -it },
-                    ) {
-                        ReaderTopBar(
-                            viewModel = viewModel,
-                            onShowOutline = { showOutline = true },
-                        )
-                    }
-                else ->
-                    EditTopBar(
-                        onBack = {
-                            canvasView?.commitSignature()
-                            viewModel.exitEditMode()
-                        },
-                    )
+    // Adaptive layout (mobile-ui-plan Phase E): the window's own measured size —
+    // not the physical screen — picks the chrome arrangement, so split-screen and
+    // foldable resizes are tracked as they happen.
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val layout = ReaderLayout.spec(maxWidth.value.toInt(), maxHeight.value.toInt())
+        val onShowThumbnails: () -> Unit = {
+            if (layout.docksThumbnails) {
+                pageDockOpen = !pageDockOpen
+            } else {
+                showThumbnails = true
             }
-        },
-        bottomBar = {
-            when {
-                session == null -> Unit
-                viewModel.mode == ViewerMode.READ ->
-                    AnimatedVisibility(
-                        visible = bottomBarShown,
-                        enter = slideInVertically { it },
-                        exit = slideOutVertically { it },
-                    ) {
-                        ReaderBottomBar(
-                            viewModel = viewModel,
-                            onShowThumbnails = { showThumbnails = true },
+        }
+        Scaffold(
+            topBar = {
+                when {
+                    session == null -> AppTitleBar()
+                    viewModel.mode == ViewerMode.READ ->
+                        AnimatedVisibility(
+                            visible = readChromeShown,
+                            enter = slideInVertically { -it },
+                            exit = slideOutVertically { -it },
+                        ) {
+                            ReaderTopBar(
+                                viewModel = viewModel,
+                                onShowOutline = { showOutline = true },
+                            )
+                        }
+                    else ->
+                        EditTopBar(
+                            onBack = {
+                                canvasView?.commitSignature()
+                                viewModel.exitEditMode()
+                            },
+                        )
+                }
+            },
+            bottomBar = {
+                when {
+                    session == null -> Unit
+                    viewModel.mode == ViewerMode.READ ->
+                        // Wider or shorter windows host these actions in the side
+                        // rail inside the content instead (Phase E.2).
+                        AnimatedVisibility(
+                            visible = readerActionsShown && layout.navStyle == ReaderNavStyle.BOTTOM_BAR,
+                            enter = slideInVertically { it },
+                            exit = slideOutVertically { it },
+                        ) {
+                            ReaderBottomBar(
+                                viewModel = viewModel,
+                                onShowThumbnails = onShowThumbnails,
+                                onShowGoToPage = { showGoToPage = true },
+                                onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
+                            )
+                        }
+                    else ->
+                        EditBottomBar(
+                            mode = editTool,
+                            enabled = viewModel.renderedPage != null && !viewModel.busy,
+                            currentIndex = viewModel.currentPageIndex,
+                            pageCount = viewModel.pageCount,
+                            canPrevious = viewModel.canGoPrevious && !viewModel.busy,
+                            canNext = viewModel.canGoNext && !viewModel.busy,
+                            onModeChange = { editTool = it },
+                            onPrevious = {
+                                canvasView?.commitSignature()
+                                viewModel.previousPage()
+                            },
+                            onNext = {
+                                canvasView?.commitSignature()
+                                viewModel.nextPage()
+                            },
                             onShowGoToPage = { showGoToPage = true },
-                            onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
+                            onShowSettings = { showToolSettings = true },
+                            onUndo = { canvasView?.undo() },
+                            onCommitInk = { canvasView?.commitSignature() },
+                            onClear = { canvasView?.clearOverlays() },
+                        )
+                }
+            },
+            floatingActionButton = {
+                if (session != null && viewModel.mode == ViewerMode.EDIT) {
+                    val saveEnabled = viewModel.renderedPage != null && !viewModel.busy
+                    FloatingActionButton(
+                        onClick = { if (saveEnabled) saveLauncher.launch(DEFAULT_SAVE_NAME) },
+                    ) {
+                        Icon(Icons.Filled.Save, contentDescription = "Save PDF")
+                    }
+                }
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+        ) { padding ->
+            Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                when {
+                    session == null -> {
+                        val recents by viewModel.recents.collectAsState()
+                        HomeScreen(
+                            recents = recents,
+                            onOpenClick = { openLauncher.launch(arrayOf(MIME_PDF)) },
+                            onRecentClick = { viewModel.open(context, Uri.parse(it.uri)) },
                         )
                     }
-                else ->
-                    EditBottomBar(
-                        mode = editTool,
-                        enabled = viewModel.renderedPage != null && !viewModel.busy,
-                        currentIndex = viewModel.currentPageIndex,
-                        pageCount = viewModel.pageCount,
-                        canPrevious = viewModel.canGoPrevious && !viewModel.busy,
-                        canNext = viewModel.canGoNext && !viewModel.busy,
-                        onModeChange = { editTool = it },
-                        onPrevious = {
-                            canvasView?.commitSignature()
-                            viewModel.previousPage()
-                        },
-                        onNext = {
-                            canvasView?.commitSignature()
-                            viewModel.nextPage()
-                        },
-                        onShowGoToPage = { showGoToPage = true },
-                        onShowSettings = { showToolSettings = true },
-                        onUndo = { canvasView?.undo() },
-                        onCommitInk = { canvasView?.commitSignature() },
-                        onClear = { canvasView?.clearOverlays() },
-                    )
-            }
-        },
-        floatingActionButton = {
-            if (session != null && viewModel.mode == ViewerMode.EDIT) {
-                val saveEnabled = viewModel.renderedPage != null && !viewModel.busy
-                FloatingActionButton(
-                    onClick = { if (saveEnabled) saveLauncher.launch(DEFAULT_SAVE_NAME) },
-                ) {
-                    Icon(Icons.Filled.Save, contentDescription = "Save PDF")
+                    viewModel.mode == ViewerMode.READ ->
+                        ReaderBody(
+                            layout = layout,
+                            chromeShown = readerActionsShown,
+                            paneOpen = pageDockOpen,
+                            rail = {
+                                ReaderNavRail(
+                                    viewModel = viewModel,
+                                    onShowThumbnails = onShowThumbnails,
+                                    onShowGoToPage = { showGoToPage = true },
+                                    onOpenAnother = { openLauncher.launch(arrayOf(MIME_PDF)) },
+                                )
+                            },
+                            pane = { ThumbnailPane(viewModel) },
+                        ) {
+                            ReaderContent(
+                                viewModel = viewModel,
+                                snackbarHostState = snackbarHostState,
+                                onToggleChrome = { chromeVisible = !chromeVisible },
+                            )
+                        }
+                    else ->
+                        EditModeContent(
+                            onCanvasReady = { canvas ->
+                                canvas.onTextPlacementRequested = { point -> pendingTextPoint = point }
+                                canvas.onTextEditRequested = { overlay -> editingText = overlay }
+                                canvas.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
+                                canvasView = canvas
+                            },
+                        )
+                }
+                if (viewModel.busy) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
             }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when {
-                session == null -> {
-                    val recents by viewModel.recents.collectAsState()
-                    HomeScreen(
-                        recents = recents,
-                        onOpenClick = { openLauncher.launch(arrayOf(MIME_PDF)) },
-                        onRecentClick = { viewModel.open(context, Uri.parse(it.uri)) },
-                    )
-                }
-                viewModel.mode == ViewerMode.READ ->
-                    ReaderContent(
-                        viewModel = viewModel,
-                        snackbarHostState = snackbarHostState,
-                        onToggleChrome = { chromeVisible = !chromeVisible },
-                    )
-                else ->
-                    EditModeContent(
-                        onCanvasReady = { view ->
-                            view.onTextPlacementRequested = { point -> pendingTextPoint = point }
-                            view.onTextEditRequested = { overlay -> editingText = overlay }
-                            view.onLayerChanged = { layer -> viewModel.updateCurrentLayer(layer) }
-                            canvasView = view
-                        },
-                    )
-            }
-            if (viewModel.busy) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
+        }
+
+        // The thumbnail sheet only overlays when the pane isn't already docked.
+        if (showThumbnails && !layout.docksThumbnails) {
+            ThumbnailSheet(viewModel) { showThumbnails = false }
         }
     }
 
-    if (showThumbnails) ThumbnailSheet(viewModel) { showThumbnails = false }
     if (showOutline) OutlineSheet(viewModel) { showOutline = false }
     if (showToolSettings) {
         ToolSettingsSheet(
@@ -311,27 +347,6 @@ fun PdfEditorScreen(
     )
 }
 
-/** Feed edit-mode state (page bitmap, tool settings) into the canvas view. */
-@Composable
-private fun EditModeBindings(
-    viewModel: PdfEditorViewModel,
-    canvasView: OverlayCanvasView?,
-    editTool: OverlayCanvasView.Mode,
-) {
-    val rendered = viewModel.renderedPage
-    LaunchedEffect(rendered, canvasView) {
-        val view = canvasView ?: return@LaunchedEffect
-        val page = rendered ?: return@LaunchedEffect
-        val layer = viewModel.overlayDocument?.layerFor(page.index) ?: OverlayLayer(page.index)
-        view.setPage(page, layer)
-    }
-    LaunchedEffect(viewModel.inkColorArgb, viewModel.inkStrokeWidthPt, canvasView) {
-        canvasView?.inkColorArgb = viewModel.inkColorArgb
-        canvasView?.inkStrokeWidthPt = viewModel.inkStrokeWidthPt
-    }
-    LaunchedEffect(editTool, canvasView) { canvasView?.mode = editTool }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppTitleBar() {
@@ -343,89 +358,6 @@ private fun AppTitleBar() {
                 titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ),
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EditTopBar(onBack: () -> Unit) {
-    CenterAlignedTopAppBar(
-        title = { Text("Edit", fontWeight = FontWeight.SemiBold) },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to reading")
-            }
-        },
-    )
-}
-
-@Composable
-private fun EditModeContent(onCanvasReady: (OverlayCanvasView) -> Unit) {
-    // The tool chrome now lives in the Scaffold's bottom bar (mobile-ui-plan
-    // Phase C), so edit mode gives the whole content area to the page. The
-    // canvas view fills it and handles pinch-zoom and panning itself, so no
-    // scroll containers wrap it.
-    Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx -> OverlayCanvasView(ctx).also(onCanvasReady) },
-        )
-    }
-}
-
-@Composable
-private fun TextOverlayDialogs(
-    viewModel: PdfEditorViewModel,
-    canvasView: OverlayCanvasView?,
-    pendingTextPoint: PdfPoint?,
-    onPendingConsumed: () -> Unit,
-    editingText: TextOverlay?,
-    onEditingConsumed: () -> Unit,
-) {
-    pendingTextPoint?.let { point ->
-        TextEntryDialog(
-            onDismiss = onPendingConsumed,
-            onConfirm = { text ->
-                canvasView?.let { view ->
-                    view.layer =
-                        view.layer.withText(
-                            TextOverlay(
-                                text = text,
-                                position = point,
-                                fontSizePt = viewModel.textSizePt,
-                                colorArgb = viewModel.textColorArgb,
-                            ),
-                        )
-                }
-                onPendingConsumed()
-            },
-        )
-    }
-
-    editingText?.let { overlay ->
-        TextEntryDialog(
-            title = "Edit text",
-            confirmLabel = "Save",
-            initialText = overlay.text,
-            onDismiss = onEditingConsumed,
-            onConfirm = { text ->
-                canvasView?.let { view ->
-                    view.layer = view.layer.updateText(overlay.copy(text = text))
-                }
-                onEditingConsumed()
-            },
-            onDelete = {
-                canvasView?.let { view ->
-                    view.layer = view.layer.removeText(overlay.id)
-                }
-                onEditingConsumed()
-            },
-        )
-    }
 }
 
 private const val MIME_PDF = "application/pdf"

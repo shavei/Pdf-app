@@ -4,15 +4,15 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
- * Immersive-reading visibility rules (mobile-ui-plan Phase B): the reader
- * bottom bar tracks `chromeVisible` while reading, and both bars step aside for
- * search / edit / the home screen exactly as the top bar does.
+ * Immersive-reading visibility rules (mobile-ui-plan Phase B): the reader's
+ * primary-action surface tracks `chromeVisible` while reading, and steps aside
+ * for search / edit / the home screen exactly as the top bar does.
  */
 class ReaderChromeTest {
     @Test
-    fun bottomBar_shows_only_while_reading_with_chrome_up() {
+    fun actions_shows_only_while_reading_with_chrome_up() {
         assertThat(
-            ReaderChrome.bottomBarShown(
+            ReaderChrome.actionsShown(
                 chromeVisible = true,
                 searchActive = false,
                 mode = ViewerMode.READ,
@@ -22,9 +22,9 @@ class ReaderChromeTest {
     }
 
     @Test
-    fun bottomBar_hides_in_immersive_reading() {
+    fun actions_hides_in_immersive_reading() {
         assertThat(
-            ReaderChrome.bottomBarShown(
+            ReaderChrome.actionsShown(
                 chromeVisible = false,
                 searchActive = false,
                 mode = ViewerMode.READ,
@@ -34,15 +34,15 @@ class ReaderChromeTest {
     }
 
     @Test
-    fun bottomBar_hides_during_search_edit_and_home() {
+    fun actions_hides_during_search_edit_and_home() {
         assertThat(
-            ReaderChrome.bottomBarShown(true, searchActive = true, ViewerMode.READ, hasSession = true),
+            ReaderChrome.actionsShown(true, searchActive = true, ViewerMode.READ, hasSession = true),
         ).isFalse()
         assertThat(
-            ReaderChrome.bottomBarShown(true, searchActive = false, ViewerMode.EDIT, hasSession = true),
+            ReaderChrome.actionsShown(true, searchActive = false, ViewerMode.EDIT, hasSession = true),
         ).isFalse()
         assertThat(
-            ReaderChrome.bottomBarShown(true, searchActive = false, ViewerMode.READ, hasSession = false),
+            ReaderChrome.actionsShown(true, searchActive = false, ViewerMode.READ, hasSession = false),
         ).isFalse()
     }
 
