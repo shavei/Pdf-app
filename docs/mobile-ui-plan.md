@@ -186,9 +186,25 @@ predictive-back animation.
 
 ---
 
-## Phase E — Adaptive layout (phone-first, ready for large screens)
+## Phase E — Adaptive layout (phone-first, ready for large screens) ✅ *shipped*
 
 Stop shipping tall-phone chrome to every form factor.
+
+**Status:** delivered. The window's size now picks the reader chrome (E.1): a
+`BoxWithConstraints` in `PdfEditorScreen` feeds the measured window into the pure
+`ReaderLayout.spec(widthDp, heightDp)` predicate, which resolves a
+`ReaderLayoutSpec` — where the primary actions live, and whether the navigation
+pane docks. Compact phone portrait is unchanged: the Phase A–D bottom bar. Wider
+(≥ 600 dp) **or shorter** (< 480 dp) windows move those actions into a new
+`ReaderNavRail` (E.2) so the bottom bar stops eating the short axis, and the page
+keeps the rest of the row. Expanded widths (≥ 840 dp) additionally dock a
+`ThumbnailPane` — page thumbnails and the document outline behind a two-tab
+header — beside the page instead of overlaying a modal sheet (E.3); there the
+thumbnails action toggles the dock rather than opening the sheet, and jumping to a
+page leaves it open. `ReaderBody` renders the resolved row (rail · pane · page).
+Covered by `ReaderLayoutTest` (breakpoints, including both boundaries) and
+`AdaptiveLayoutTest` (the compact → medium → expanded swap, plus the
+immersive/closed-dock cases and the rail's action set).
 
 - **E.1 Introduce `WindowSizeClass`** (material3 `androidx.compose.material3.
   windowsizeclass`) in `MainActivity`/`PdfEditorScreen`. Compact width = the
@@ -199,6 +215,24 @@ Stop shipping tall-phone chrome to every form factor.
   permanently docked beside the page instead of a modal sheet. This is the
   concrete form of `plan.md`'s "Tablets/foldables: two-page spread" bullet;
   spread rendering itself stays in that roadmap.
+
+**Implementation notes** — two deliberate deviations from the sketch above:
+
+- **No `material3-window-size-class` dependency.** E.1 named that artifact, but
+  its `calculateWindowSizeClass` is experimental and measures the *activity*
+  window through an `Activity` handle, which a Compose test can't vary. Applying
+  the same Material 3 breakpoints to `BoxWithConstraints`' measured size gives
+  identical results on a phone, tracks split-screen and foldable resizes as they
+  happen, keeps the decision a pure JVM-testable function, and adds no library.
+  The breakpoints live as named constants on `ReaderLayout`.
+- **Height matters, not just width.** The sketch keyed E.2 on "landscape / medium
+  width", but a narrow split-screen window can be short without being wide. The
+  rail is chosen on `wide || short`, so any window that can't spare vertical
+  space gets it.
+- **EDIT mode keeps its bottom bar** at every size. E.2/E.3 are reader concerns
+  (the file map lists no `EditorControls.kt`), and `EditBottomBar` carries a FAB,
+  an overflow and steppers that a 80 dp rail can't host without a redesign of
+  Phase C. Left as-is rather than half-converted.
 
 **Done when:** Lint clean; a UI test drives both a compact and an expanded
 `WindowSizeClass` and asserts the rail/two-pane swap; manual smoke on a
@@ -234,7 +268,7 @@ reader and edit toolbars.
 2. **Phase B** next — the highest perceived-quality jump (immersive + reach).
 3. **Phase C** builds on B's bottom-bar pattern.
 4. **Phases D–F** are independent and can land in any order, each behind the
-   three-layer gate.
+   three-layer gate. D and E have shipped; **Phase F is what's left.**
 
 ## File map
 
@@ -244,5 +278,5 @@ reader and edit toolbars.
 | B | `ui/reader/ReaderView.kt`, `ui/reader/ReaderContent.kt`, `ui/PdfEditorScreen.kt`, `MainActivity.kt` |
 | C | `ui/EditorControls.kt`, `ui/PdfEditorScreen.kt` |
 | D | `ui/reader/ReaderView.kt`, `ui/EditorControls.kt`, `AndroidManifest.xml` |
-| E | `MainActivity.kt`, `ui/PdfEditorScreen.kt`, `ui/reader/ReaderSheets.kt` |
+| E | `ui/ReaderLayout.kt`, `ui/PdfEditorScreen.kt`, `ui/reader/ReaderAdaptive.kt`, `ui/reader/ReaderNavRail.kt`, `ui/reader/ReaderActions.kt`, `ui/reader/ReaderPanes.kt`, `ui/reader/ReaderSheets.kt` |
 | F | `ui/reader/ReaderSheets.kt`, `ui/reader/HomeScreen.kt`, plus semantics across the tree |

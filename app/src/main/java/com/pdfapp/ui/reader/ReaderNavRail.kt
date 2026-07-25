@@ -1,29 +1,30 @@
 package com.pdfapp.ui.reader
 
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.material3.BottomAppBar
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.NavigationRail
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.pdfapp.ui.PdfEditorViewModel
 
 /**
- * READ-mode bottom bar (mobile-ui-plan Phase B.2): brings the highest-frequency
- * actions down to the thumb — Search, Thumbnails, Night mode and Edit — with a
- * tap-to-jump "page X / N" chip and an overflow for the long tail. The controls
- * themselves live in [ReaderActions], shared with the wide/short-window
- * [ReaderNavRail].
+ * READ-mode side rail (mobile-ui-plan Phase E.2): the same primary actions as
+ * [ReaderBottomBar] — they share the [ReaderActions] controls — stood up in a
+ * slim start-side column for windows whose short axis is scarce (landscape
+ * phones) or wide enough to spare the width (tablets, unfolded foldables). The
+ * page keeps the rest of the row, centred.
  *
- * Visibility follows the immersive `chromeVisible` state in
- * [com.pdfapp.ui.PdfEditorScreen].
+ * Insets are left at zero: the rail sits inside the Scaffold's content, whose
+ * padding already clears the system bars.
  */
 @Composable
-fun ReaderBottomBar(
+fun ReaderNavRail(
     viewModel: PdfEditorViewModel,
     onShowThumbnails: () -> Unit,
     onShowGoToPage: () -> Unit,
     onOpenAnother: () -> Unit,
 ) {
-    BottomAppBar {
+    NavigationRail(windowInsets = WindowInsets(0, 0, 0, 0)) {
         SearchAction(viewModel)
         ThumbnailsAction(onShowThumbnails)
         NightModeAction(viewModel)

@@ -19,11 +19,12 @@ object ReaderChrome {
     ): Boolean = chromeVisible || searchActive || mode != ViewerMode.READ || !hasSession
 
     /**
-     * The reader bottom bar only exists while reading an open document with the
-     * chrome up; it steps aside for the search field and hides in immersive
-     * (chrome-down) reading.
+     * The reader's primary-action surface — the bottom bar, or on wider/shorter
+     * windows the side rail and docked pane (mobile-ui-plan Phase E) — only exists
+     * while reading an open document with the chrome up; it steps aside for the
+     * search field and hides in immersive (chrome-down) reading.
      */
-    fun bottomBarShown(
+    fun actionsShown(
         chromeVisible: Boolean,
         searchActive: Boolean,
         mode: ViewerMode,
