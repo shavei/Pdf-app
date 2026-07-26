@@ -45,10 +45,11 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 - **One source of truth for the version** — `appVersionName` in
   `gradle.properties`. Builds and all three CI jobs read that one line (via the
   new `.github/actions/app-version`), and a `vX.Y.Z` tag that disagrees with it
-  fails the release instead of shipping a mislabelled build. Each release moves
-  the version by one patch (`1.4.1` → `1.4.2`), and `./gradlew -q :app:appVersion`
-  prints what a build would stamp. See
-  [`docs/RELEASING.md`](docs/RELEASING.md#versioning).
+  fails the release instead of shipping a mislabelled build. The version is never
+  edited by hand: publishing a release commits the next patch (`1.4.1` → `1.4.2`)
+  to `main`, so it climbs by one every time and cutting a release is just
+  "tag the version `main` is on". `./gradlew -q :app:appVersion` prints what a
+  build would stamp. See [`docs/RELEASING.md`](docs/RELEASING.md#versioning).
 
 ## [1.3.0] — 2026-07-22
 
