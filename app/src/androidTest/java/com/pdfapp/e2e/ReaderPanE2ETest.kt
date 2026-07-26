@@ -78,6 +78,36 @@ class ReaderPanE2ETest {
                 ?.let { index to it.positionInRoot.y }
         }.toMap()
 
+    /**
+     * The longest run of consecutive pages whose tops grow with their index.
+     *
+     * A page that has just scrolled out of view can linger in the lazy list's
+     * reuse pool still reporting its last placement — stale by exactly the
+     * scroll that displaced it, and so out of order with the pages that really
+     * are on screen. Placed pages are always in index order; the reuse pool
+     * holds a couple of pages at most, never a longer run than the viewport.
+     */
+    private fun placedRun(tops: Map<Int, Float>): List<Int> {
+        var best = emptyList<Int>()
+        var run = mutableListOf<Int>()
+        for (index in tops.keys.sorted()) {
+            val continues =
+                run.isNotEmpty() &&
+                    index == run.last() + 1 &&
+                    tops.getValue(index) > tops.getValue(run.last())
+            if (!continues) run = mutableListOf()
+            run.add(index)
+            if (run.size > best.size) best = run.toList()
+        }
+        return best
+    }
+
+    /** Distance from one page's top to the next, averaged over a placed run. */
+    private fun pagePitch(
+        tops: Map<Int, Float>,
+        run: List<Int>,
+    ): Float = (tops.getValue(run.last()) - tops.getValue(run.first())) / (run.last() - run.first())
+
     /** Open [pageCount] blank [pageSize] pages in the reader and wait for page 1. */
     private fun withReader(
         pageCount: Int,
@@ -192,20 +222,20 @@ class ReaderPanE2ETest {
             val zoom = doubleTapAt(x = 0.5f)
 
             val after = composedPageTops(STRIP_PAGE_COUNT)
-            // Whatever survived the zoom on screen, measured between its
-            // outermost pages — no assumption about which pages those are, or
-            // about where the reader sits in the window.
-            val shared = before.keys.intersect(after.keys).sorted()
-            assertWithMessage("pages composed before $before and after $after")
-                .that(shared.size)
-                .isAtLeast(2)
-            val first = shared.first()
-            val last = shared.last()
+            // Compare page pitch — one page plus one gap — rather than the span
+            // between two named pages: the zoom scrolls, so the two screenfuls
+            // need not share any page, and this needs no assumption about which
+            // pages they are or where the reader sits in the window.
+            val runBefore = placedRun(before)
+            val runAfter = placedRun(after)
+            val diagnostics = "before $before (run $runBefore), after $after (run $runAfter)"
+            assertWithMessage(diagnostics).that(runBefore.size).isAtLeast(MIN_RUN)
+            assertWithMessage(diagnostics).that(runAfter.size).isAtLeast(MIN_RUN)
 
-            assertWithMessage("pages $first..$last, zoom $zoom, before $before, after $after")
-                .that(after.getValue(last) - after.getValue(first))
+            assertWithMessage("zoom $zoom, $diagnostics")
+                .that(pagePitch(after, runAfter))
                 .isWithin(GAP_TOLERANCE_PX)
-                .of((before.getValue(last) - before.getValue(first)) * zoom)
+                .of(pagePitch(before, runBefore) * zoom)
         }
     }
 
@@ -252,11 +282,14 @@ class ReaderPanE2ETest {
         val STRIP_PAGE = PDRectangle(600f, 75f)
         const val STRIP_PAGE_COUNT = 12
 
-        // Every page and gap rounds to whole pixels, so a span of several of
-        // them drifts a little either way. One unscaled 8dp gap costs 12px at
-        // the 2.5x reading zoom, and the span measured here covers a handful —
-        // tens of pixels — so this absorbs the rounding without hiding them.
-        const val GAP_TOLERANCE_PX = 8f
+        // Pages and gaps round to whole pixels, so a pitch drifts a little
+        // either way. An unscaled gap costs the pitch 12px at the 2.5x reading
+        // zoom, so this absorbs the rounding without hiding that.
+        const val GAP_TOLERANCE_PX = 4f
+
+        // Long enough that the handful of pages the reuse pool can hold never
+        // outnumber the ones actually on screen.
+        const val MIN_RUN = 3
 
         // A page 0.7 as tall as it is wide. Tapping the middle of the screen
         // then lands an anchor offset of 0.75 x viewport height, between the
