@@ -1,5 +1,7 @@
 package com.pdfapp.core.renderer.text
 
+import com.pdfapp.core.renderer.form.PdfFormField
+import com.pdfapp.core.renderer.form.PdfFormReader
 import com.pdfapp.core.renderer.model.PdfRect
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.interactive.action.PDActionGoTo
@@ -31,8 +33,8 @@ data class PdfLink(
 
 /**
  * Read-only PdfBox view of a document for everything [android.graphics.pdf.PdfRenderer]
- * cannot do: text geometry (search/selection), the outline, and link
- * annotations. Complements — never replaces — the renderer, which stays the
+ * cannot do: text geometry (search/selection), the outline, link annotations and
+ * AcroForm fields. Complements — never replaces — the renderer, which stays the
  * only rasterisation path.
  *
  * Page text is extracted lazily and cached per page. All methods do parsing
@@ -42,7 +44,9 @@ class PdfTextDocument private constructor(
     private val document: PDDocument,
 ) : Closeable {
     private val extractor = PdfTextExtractor()
+    private val formReader = PdfFormReader()
     private val pageCache = HashMap<Int, PageTextIndex>()
+    private var formFieldCache: List<PdfFormField>? = null
     private val lock = Any()
 
     val pageCount: Int get() = document.numberOfPages
@@ -67,6 +71,22 @@ class PdfTextDocument private constructor(
             collectOutline(root.firstChild, depth = 0, entries)
             entries
         }
+
+    /**
+     * Every fillable AcroForm widget in the document (plan Phase 4), empty when
+     * there is no form. Parsed once and cached — the reader never mutates the
+     * document, so the result cannot go stale under us.
+     */
+    fun formFields(): List<PdfFormField> =
+        synchronized(lock) {
+            formFieldCache ?: formReader.fields(document).also { formFieldCache = it }
+        }
+
+    /**
+     * True when this document's only form is XFA. XFA is explicitly out of scope
+     * (plan Phase 4), so the UI says so rather than offering an empty form.
+     */
+    fun isXfaOnlyForm(): Boolean = synchronized(lock) { formReader.isXfaOnly(document) }
 
     /** Link annotations on [pageIndex] with resolved targets. */
     fun links(pageIndex: Int): List<PdfLink> =

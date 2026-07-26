@@ -496,6 +496,10 @@ private fun ReaderPage(
                 )
             }
             PageDecorations(viewModel, pageIndex, pointScale, pageSize.heightPt)
+            // Native inputs over the AcroForm widgets, composed only while the
+            // fill layer is on so text fields never contest the reader's own
+            // tap, pan and long-press gestures (plan Phase 4).
+            FormFieldLayer(viewModel, pageIndex, pointScale, pageSize.heightPt)
         }
     }
 }

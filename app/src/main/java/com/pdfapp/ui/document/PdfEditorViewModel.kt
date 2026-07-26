@@ -27,9 +27,11 @@ import com.pdfapp.overlay.model.OverlayLayer
 import com.pdfapp.overlay.model.TextOverlay
 import com.pdfapp.persistence.PdfDecryptor
 import com.pdfapp.persistence.PdfFlattener
+import com.pdfapp.persistence.PdfFormWriter
 import com.pdfapp.persistence.PdfSaver
 import com.pdfapp.ui.ViewerMode
 import com.pdfapp.ui.ZoomPreset
+import com.pdfapp.ui.common.FormSemantics
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -85,6 +87,7 @@ class PdfEditorViewModel(
 
     val searchController = SearchController(viewModelScope, { session }, ::goToPage)
     val selectionController = SelectionController(viewModelScope, { session })
+    val formController = FormController(viewModelScope, { session }, { userMessage = it })
 
     /** Set when an encrypted PDF waits for its password. */
     var passwordRequestUri: Uri? by mutableStateOf(null)
@@ -243,6 +246,10 @@ class PdfEditorViewModel(
     fun enterEditMode() {
         if (session == null) return
         selectionController.clear()
+        // The overlay editor is its own single-page canvas: leaving the reader's
+        // form inputs composed under it would put two editors on one page. The
+        // values typed so far survive — only the layer goes away.
+        formController.hide()
         mode = ViewerMode.EDIT
         renderEditPage(currentPageIndex)
     }
@@ -294,10 +301,19 @@ class PdfEditorViewModel(
         textSizePt = sizePt.coerceIn(MIN_TEXT_PT, MAX_TEXT_PT)
     }
 
-    /** Flatten every page's overlays into a fresh copy of the source PDF and save to [destUri]. */
+    /**
+     * Save a fresh copy of the source PDF to [destUri]: filled form values
+     * written back, then every page's overlays burned into the content stream.
+     *
+     * [flattenForm] picks the two shapes the fill bar offers — left false the
+     * form stays interactive so the recipient can still change what was typed;
+     * set true the field appearances are burned in first, which is what pairs
+     * with a signature.
+     */
     fun save(
         context: Context,
         destUri: Uri,
+        flattenForm: Boolean = false,
     ) {
         val active = session
         val document = overlayDocument
@@ -305,21 +321,34 @@ class PdfEditorViewModel(
             userMessage = "Nothing to save yet"
             return
         }
-        if (!document.hasOverlays) {
-            userMessage = "Add text or a signature first"
+        val formValues = formController.values
+        if (!document.hasOverlays && formValues.isEmpty()) {
+            userMessage = "Fill a field, or add text or a signature first"
             return
         }
         launchBusy {
-            withContext(Dispatchers.IO) {
-                active.openInputStream(context.contentResolver).use { stream ->
-                    PDDocument.load(stream).use { pdf ->
-                        val flattener = PdfFlattener(context)
-                        document.nonEmptyLayers.forEach { flattener.flattenInto(pdf, it) }
-                        PdfSaver().saveToUri(context.contentResolver, destUri, pdf)
+            val written =
+                withContext(Dispatchers.IO) {
+                    active.openInputStream(context.contentResolver).use { stream ->
+                        PDDocument.load(stream).use { pdf ->
+                            val formWriter = PdfFormWriter()
+                            val result = formWriter.applyValues(pdf, formValues)
+                            // Flatten the form before the overlays so a signature
+                            // lands on top of the values it is signing for.
+                            if (flattenForm) formWriter.flatten(pdf)
+                            val flattener = PdfFlattener(context)
+                            document.nonEmptyLayers.forEach { flattener.flattenInto(pdf, it) }
+                            PdfSaver().saveToUri(context.contentResolver, destUri, pdf)
+                            result
+                        }
                     }
                 }
-            }
-            userMessage = "Saved signed PDF"
+            userMessage =
+                if (formValues.isEmpty()) {
+                    "Saved signed PDF"
+                } else {
+                    FormSemantics.saveSummary(written.applied, written.skipped, flattenForm)
+                }
         }
     }
 
@@ -354,6 +383,10 @@ class PdfEditorViewModel(
         currentPageIndex = lastPage
         mode = ViewerMode.READ
         defaultPageSize = newSession.cache.pageSize(0)
+        // Look for an AcroForm in the background: the fill action can only appear
+        // once we know there is one, and this is the one scan that has to happen
+        // whether or not the user goes looking for a form (plan Phase 4).
+        formController.detect()
         if (grantPersisted) {
             // Without a persistable grant the URI dies with this task, so a
             // recents entry could never be reopened.
@@ -417,6 +450,7 @@ class PdfEditorViewModel(
     private fun closeSession() {
         searchController.close()
         selectionController.clear()
+        formController.close()
         outline = null
         renderedPage = null
         overlayDocument = null

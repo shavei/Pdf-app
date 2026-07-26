@@ -21,6 +21,12 @@ android {
         jvmTarget = "17"
     }
 
+    sourceSets {
+        // The shared AcroForm fixture the form write-back tests fill in. It lives
+        // beside the reader it was written for; see :core-renderer's own note.
+        getByName("test") { java.srcDir("../core-renderer/src/testFixtures/java") }
+    }
+
     testOptions {
         unitTests {
             // The PDF-Test-Harness runs on the JVM via Robolectric (needs a

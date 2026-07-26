@@ -35,6 +35,8 @@ fun ReaderBottomBar(
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
             PageChip(viewModel, onShowGoToPage)
         }
+        // Only present for a document that actually has an AcroForm.
+        FillFormAction(viewModel)
         EditAction(viewModel)
         OverflowAction(
             viewModel = viewModel,

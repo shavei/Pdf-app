@@ -1,9 +1,11 @@
 package com.pdfapp.ui.reader
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,8 +38,8 @@ import kotlinx.coroutines.launch
 
 /**
  * READ-mode body: the continuous Drive-style reader plus its floating chrome —
- * the copy bar for an active selection. The transient page bubble lives on the
- * fast scroller inside [ReaderView].
+ * the copy bar for an active selection and the fill bar for an active form. The
+ * transient page bubble lives on the fast scroller inside [ReaderView].
  */
 @Composable
 fun ReaderContent(
@@ -45,6 +47,7 @@ fun ReaderContent(
     snackbarHostState: SnackbarHostState,
     chromeVisible: Boolean,
     onToggleChrome: () -> Unit,
+    onSaveForm: (flatten: Boolean) -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         ReaderView(
@@ -53,14 +56,20 @@ fun ReaderContent(
             onToggleChrome = onToggleChrome,
             modifier = Modifier.fillMaxSize(),
         )
-        Box(
+        Column(
             modifier =
                 Modifier
                     .align(Alignment.BottomCenter)
+                    // The fill bar carries Save, Reset and Close for a form whose
+                    // fields are typed into — so the soft keyboard would otherwise
+                    // come up over the one control that finishes the job. Riding
+                    // above the IME keeps it reachable while a field has focus.
+                    .imePadding()
                     .navigationBarsPadding()
                     .padding(12.dp),
         ) {
             SelectionCopyBar(viewModel, snackbarHostState)
+            FormFillBar(viewModel, onSaveForm)
         }
     }
 }

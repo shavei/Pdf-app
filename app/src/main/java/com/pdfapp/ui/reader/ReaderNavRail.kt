@@ -31,6 +31,8 @@ fun ReaderNavRail(
         Spacer(Modifier.weight(1f))
         PageChip(viewModel, onShowGoToPage)
         Spacer(Modifier.weight(1f))
+        // Only present for a document that actually has an AcroForm.
+        FillFormAction(viewModel)
         EditAction(viewModel)
         OverflowAction(
             viewModel = viewModel,

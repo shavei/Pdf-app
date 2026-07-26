@@ -89,6 +89,12 @@ android {
         jvmTarget = "17"
     }
 
+    sourceSets {
+        // The shared AcroForm fixture the on-device form tests build their PDF
+        // from; see :core-renderer's own note on why it lives in its own dir.
+        getByName("androidTest") { java.srcDir("../core-renderer/src/testFixtures/java") }
+    }
+
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
