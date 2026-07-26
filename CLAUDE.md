@@ -9,6 +9,9 @@ Native Android (Kotlin) app: a Google-Drive-style PDF viewer (continuous scroll,
   are **shipped**; Phase 3 (annotation suite) was **removed by product
   decision** — Signet stays a viewer + form-filler + signer, not an annotator.
   Check a phase's status there before assuming work is (un)done.
+- **Backlog — loose ends flagged in past PRs and never picked up:** [`docs/backlog.md`](docs/backlog.md).
+  Sized S/M/L, each citing where it was flagged and where the code stands. Check
+  it before "spotting" something new, and prune an entry when it ships.
 - **Development guide — build commands, module map, style, guardrails:** [`DEVELOPMENT.md`](DEVELOPMENT.md).
 
 ## Build & Verify
