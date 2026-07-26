@@ -72,7 +72,10 @@ internal fun FormFieldLayer(
 
     Box(modifier = Modifier.fillMaxSize()) {
         for (field in fields) {
-            key(field.widgetId) {
+            // The generation key rebuilds the inputs after a Reset, so a focused
+            // text field cannot sync its stale IME buffer back over the values
+            // the reset just restored.
+            key(field.widgetId, controller.generation) {
                 val widthPx = field.box.width * pointScale
                 val heightPx = field.box.height * pointScale
                 val left = field.box.left * pointScale

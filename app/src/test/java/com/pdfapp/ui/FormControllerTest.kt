@@ -169,6 +169,18 @@ class FormControllerTest {
     }
 
     @Test
+    fun `reset bumps the generation so the fill layer rebuilds its inputs`() {
+        val controller = controller()
+        val before = controller.generation
+        controller.setValue(text(), "Grace")
+        // Editing alone must not churn the inputs — that would drop focus and the
+        // caret on every keystroke.
+        assertThat(controller.generation).isEqualTo(before)
+        controller.reset()
+        assertThat(controller.generation).isGreaterThan(before)
+    }
+
+    @Test
     fun `a dropdown records the option's stored value, not its label`() {
         val controller = controller()
         val field =

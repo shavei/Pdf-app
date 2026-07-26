@@ -2,6 +2,7 @@ package com.pdfapp.ui
 
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -42,6 +43,16 @@ class FormController(
 
     /** True when the document carries only an unsupported XFA form. */
     var xfaOnly: Boolean by mutableStateOf(false)
+        private set
+
+    /**
+     * Bumped by [reset] so the fill layer can key its inputs on it. A text field
+     * driven by an external value keeps its own IME buffer while it holds focus,
+     * and that buffer syncs back on the next frame — so clearing the model alone
+     * would let the just-typed text reappear a moment later. Rebuilding the
+     * inputs is what makes Reset actually reset the one the user is typing in.
+     */
+    var generation: Int by mutableIntStateOf(0)
         private set
 
     private val edits = mutableStateMapOf<String, String>()
@@ -109,6 +120,7 @@ class FormController(
         fields = null
         xfaOnly = false
         edits.clear()
+        generation++
     }
 
     fun open() {
@@ -122,6 +134,7 @@ class FormController(
     /** Drop every pending edit, returning the fields to the document's own values. */
     fun reset() {
         edits.clear()
+        generation++
     }
 
     /** The value to show for [field]: the user's edit if there is one, else the PDF's. */
