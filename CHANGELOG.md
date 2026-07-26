@@ -30,6 +30,13 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 
 ### Changed
 
+- **Source tree organised by feature** (no behaviour change) — `:app`'s flat
+  `com.pdfapp.ui` package is split into `ui.common`, `ui.document`, `ui.home`,
+  `ui.reader` and `ui.editor`, with the shell (`PdfEditorScreen`, `ViewerMode`)
+  left at `ui`. Unit and instrumented tests mirror those packages, whole-app
+  device flows moved to `com.pdfapp.e2e`, and the roadmap moved from `plan.md`
+  to [`docs/plan.md`](docs/plan.md) beside the other long-form docs. The package
+  map is in [`DEVELOPMENT.md`](DEVELOPMENT.md#app-source-layout).
 - Every control now meets the 48 dp touch floor. Material 3 leaves text buttons
   *and every icon button* at 40 dp — so the reader bottom bar, nav rail, top bar
   and edit bar were all below the accessibility minimum.
@@ -84,7 +91,7 @@ scope is refocused to **viewer + signer** (the annotation suite is removed).
 
 - **Annotation suite (Phase 3)** — removed by product decision. Signet stays a
   focused viewer + signer; the shape tool and its models, flattening and tests
-  were dropped. See [`plan.md`](plan.md).
+  were dropped. See [`docs/plan.md`](docs/plan.md).
 
 ### Fixed
 

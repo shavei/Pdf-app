@@ -8,7 +8,7 @@ project's three-layer definition of Done (Lint · Unit · E2E/Harness) from
 [`DEVELOPMENT.md`](../DEVELOPMENT.md).
 
 Scope: **layout, reach, touch, gesture, and adaptivity** of the existing
-screens. No new PDF features — those live in [`plan.md`](../plan.md). Where this
+screens. No new PDF features — those live in [`plan.md`](plan.md). Where this
 overlaps that roadmap's "Cross-cutting platform polish" (predictive back,
 tablets/foldables, accessibility), this document is the concrete, file-level
 version of those bullets.
@@ -321,7 +321,7 @@ current-page marking). The three existing E2E tests that matched the old
 3. **Phase C** builds on B's bottom-bar pattern.
 4. **Phases D–F** are independent and can land in any order, each behind the
    three-layer gate. **All three have shipped — this plan is complete.**
-   Remaining phone-facing work lives in [`plan.md`](../plan.md)'s feature
+   Remaining phone-facing work lives in [`plan.md`](plan.md)'s feature
    roadmap (Phase 4 onward) and its cross-cutting polish list.
 
 ## File map

@@ -16,7 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import com.pdfapp.ui.touchTargetFloor
+import com.pdfapp.ui.common.touchTargetFloor
 import kotlin.math.roundToInt
 
 /** "Page X of N — go to page" jump dialog (plan 2.1). */

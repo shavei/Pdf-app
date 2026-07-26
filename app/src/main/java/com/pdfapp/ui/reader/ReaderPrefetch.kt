@@ -4,7 +4,7 @@ package com.pdfapp.ui.reader
  * Which pages to render *before* they scroll into view, so the continuous
  * reader shows a finished page instead of a blank while the renderer catches
  * up. Pure and Compose-free so the windowing is unit-testable on the JVM, like
- * [ReaderZoom] and [com.pdfapp.ui.ReaderChrome].
+ * [ReaderZoom] and [ReaderChrome].
  */
 object ReaderPrefetch {
     /** Pages warmed ahead of the last visible page (the likely scroll direction). */

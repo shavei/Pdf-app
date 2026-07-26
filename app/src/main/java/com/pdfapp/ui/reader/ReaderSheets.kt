@@ -36,10 +36,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfapp.core.renderer.text.OutlineEntry
-import com.pdfapp.ui.DynamicType
-import com.pdfapp.ui.PdfEditorViewModel
-import com.pdfapp.ui.ReaderSemantics
-import com.pdfapp.ui.scaledDp
+import com.pdfapp.ui.common.DynamicType
+import com.pdfapp.ui.common.ReaderSemantics
+import com.pdfapp.ui.common.scaledDp
+import com.pdfapp.ui.document.PdfEditorViewModel
 
 /**
  * Page-thumbnail grid for jump navigation (plan 2.1), as a modal sheet. On

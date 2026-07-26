@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.NavigationRail
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.pdfapp.ui.PdfEditorViewModel
+import com.pdfapp.ui.document.PdfEditorViewModel
 
 /**
  * READ-mode side rail (mobile-ui-plan Phase E.2): the same primary actions as

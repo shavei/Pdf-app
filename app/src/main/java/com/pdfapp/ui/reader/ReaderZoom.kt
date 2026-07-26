@@ -3,7 +3,7 @@ package com.pdfapp.ui.reader
 /**
  * Pure zoom-target math for the continuous reader, kept free of Compose so the
  * double-tap toggle (mobile-ui-plan Phase D.1) is unit-testable on the JVM —
- * like [com.pdfapp.ui.ReaderChrome] and [com.pdfapp.ui.ReaderBack].
+ * like [ReaderChrome] and [ReaderBack].
  */
 object ReaderZoom {
     /** Fit-width — the resting zoom the document opens at. */

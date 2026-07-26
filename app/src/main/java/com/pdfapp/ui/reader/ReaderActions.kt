@@ -23,11 +23,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.pdfapp.ui.PdfEditorViewModel
-import com.pdfapp.ui.ReaderSemantics
 import com.pdfapp.ui.ZoomPreset
-import com.pdfapp.ui.iconTouchTarget
-import com.pdfapp.ui.touchTargetFloor
+import com.pdfapp.ui.common.ReaderSemantics
+import com.pdfapp.ui.common.iconTouchTarget
+import com.pdfapp.ui.common.touchTargetFloor
+import com.pdfapp.ui.document.PdfEditorViewModel
 
 /**
  * The READ-mode primary actions, as individual controls rather than one bar.

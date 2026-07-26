@@ -3,7 +3,7 @@
 Native Android (Kotlin) app: a Google-Drive-style PDF viewer (continuous scroll, document zoom, immersive chrome) plus focused editing — text overlays and a flattened ink signature, saved via SAF. Offline, open-source libs only.
 
 ## Start here
-- **Roadmap — read before planning or starting any feature:** [`plan.md`](plan.md).
+- **Roadmap — read before planning or starting any feature:** [`docs/plan.md`](docs/plan.md).
   The phase-by-phase path to a full default PDF app. Phases 1 (system
   integration) and 2 (Drive-style reading experience) are **shipped**; Phase 3
   (annotation suite) was **removed by product decision** — Signet stays a
