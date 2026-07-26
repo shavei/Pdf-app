@@ -65,10 +65,10 @@ import androidx.compose.ui.unit.dp
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.core.renderer.model.PdfRect
 import com.pdfapp.core.renderer.text.PdfLink
-import com.pdfapp.ui.PdfEditorViewModel
-import com.pdfapp.ui.ReaderSemantics
 import com.pdfapp.ui.ZoomPreset
-import com.pdfapp.ui.rememberTouchExplorationEnabled
+import com.pdfapp.ui.common.ReaderSemantics
+import com.pdfapp.ui.common.rememberTouchExplorationEnabled
+import com.pdfapp.ui.document.PdfEditorViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest

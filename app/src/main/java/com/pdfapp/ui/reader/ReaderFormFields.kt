@@ -41,9 +41,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pdfapp.core.renderer.form.FormFieldKind
 import com.pdfapp.core.renderer.form.PdfFormField
-import com.pdfapp.ui.FormController
-import com.pdfapp.ui.FormSemantics
-import com.pdfapp.ui.PdfEditorViewModel
+import com.pdfapp.ui.common.FormSemantics
+import com.pdfapp.ui.document.FormController
+import com.pdfapp.ui.document.PdfEditorViewModel
 import kotlin.math.roundToInt
 
 /**

@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.pdfapp.ui.ReaderLayoutSpec
-import com.pdfapp.ui.ReaderNavStyle
 
 /**
  * READ-mode body for the current window size (mobile-ui-plan Phase E).

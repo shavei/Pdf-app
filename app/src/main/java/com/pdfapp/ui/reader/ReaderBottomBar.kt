@@ -5,7 +5,7 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.pdfapp.ui.PdfEditorViewModel
+import com.pdfapp.ui.document.PdfEditorViewModel
 
 /**
  * READ-mode bottom bar (mobile-ui-plan Phase B.2): brings the highest-frequency

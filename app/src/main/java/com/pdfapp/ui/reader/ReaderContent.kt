@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,10 +30,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pdfapp.ui.PdfEditorViewModel
-import com.pdfapp.ui.ReaderSemantics
-import com.pdfapp.ui.iconTouchTarget
-import com.pdfapp.ui.touchTargetFloor
+import com.pdfapp.ui.common.ReaderSemantics
+import com.pdfapp.ui.common.iconTouchTarget
+import com.pdfapp.ui.common.touchTargetFloor
+import com.pdfapp.ui.document.PdfEditorViewModel
 import kotlinx.coroutines.launch
 
 /**
@@ -59,6 +60,11 @@ fun ReaderContent(
             modifier =
                 Modifier
                     .align(Alignment.BottomCenter)
+                    // The fill bar carries Save, Reset and Close for a form whose
+                    // fields are typed into — so the soft keyboard would otherwise
+                    // come up over the one control that finishes the job. Riding
+                    // above the IME keeps it reachable while a field has focus.
+                    .imePadding()
                     .navigationBarsPadding()
                     .padding(12.dp),
         ) {

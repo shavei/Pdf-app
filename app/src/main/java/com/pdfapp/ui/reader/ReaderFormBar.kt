@@ -25,10 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.pdfapp.ui.FormSemantics
-import com.pdfapp.ui.PdfEditorViewModel
-import com.pdfapp.ui.iconTouchTarget
-import com.pdfapp.ui.touchTargetFloor
+import com.pdfapp.ui.common.FormSemantics
+import com.pdfapp.ui.common.iconTouchTarget
+import com.pdfapp.ui.common.touchTargetFloor
+import com.pdfapp.ui.document.PdfEditorViewModel
 
 /**
  * READ-mode action that turns the fill-form layer on (plan Phase 4). Absent

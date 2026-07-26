@@ -27,10 +27,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import com.pdfapp.ui.PdfEditorViewModel
-import com.pdfapp.ui.ReaderSemantics
-import com.pdfapp.ui.SearchController
-import com.pdfapp.ui.iconTouchTarget
+import com.pdfapp.ui.common.ReaderSemantics
+import com.pdfapp.ui.common.iconTouchTarget
+import com.pdfapp.ui.document.PdfEditorViewModel
+import com.pdfapp.ui.document.SearchController
 import kotlinx.coroutines.delay
 
 /**
