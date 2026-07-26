@@ -34,8 +34,8 @@ import java.io.File
  * produce: a zoom that stays anchored on the point you tapped (the horizontal
  * anchor used to be clamped away to the left edge), and a single drag that pans
  * horizontally *and* scrolls vertically (nested scroll containers lock a drag
- * to one axis). Positions come from the page node's bounds in the root, which
- * move with the pan offset.
+ * to one axis). Positions come from the page node's unclipped position in the
+ * root, which moves with the pan offset.
  */
 @RunWith(AndroidJUnit4::class)
 class ReaderPanE2ETest {
@@ -54,14 +54,17 @@ class ReaderPanE2ETest {
 
     private fun pageNode() = composeRule.onNodeWithContentDescription(pageLabel).fetchSemanticsNode()
 
-    private fun pageLeft(): Float = pageNode().boundsInRoot.left
+    // `positionInRoot`, not `boundsInRoot`: bounds are clipped to the viewport,
+    // so a page panned off the left edge reports 0 instead of how far it moved —
+    // which is exactly the quantity under test.
+    private fun pageLeft(): Float = pageNode().positionInRoot.x
 
-    private fun pageTop(): Float = pageNode().boundsInRoot.top
+    private fun pageTop(): Float = pageNode().positionInRoot.y
 
     private fun pageWidth(): Int = pageNode().size.width
 
     private fun viewportSize(): Pair<Float, Float> =
-        composeRule.onRoot().fetchSemanticsNode().boundsInRoot.let { it.width to it.height }
+        composeRule.onRoot().fetchSemanticsNode().size.let { it.width.toFloat() to it.height.toFloat() }
 
     /** Open [pageCount] blank A4 pages in the reader and wait for page 1. */
     private fun withReader(
