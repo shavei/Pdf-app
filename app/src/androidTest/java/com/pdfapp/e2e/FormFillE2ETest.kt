@@ -3,7 +3,10 @@ package com.pdfapp.e2e
 import android.content.Intent
 import android.net.Uri
 import android.os.StrictMode
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ComposeTimeoutException
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -11,9 +14,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ActivityScenario
-import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pdfapp.MainActivity
@@ -122,6 +125,28 @@ class FormFillE2ETest {
         }
     }
 
+    /**
+     * Press a control on the floating fill bar.
+     *
+     * [performClick] taps the centre of the node's *reported* bounds, and on this
+     * bar that tap lands on the bar's [Surface] — whose empty pointer input
+     * deliberately stops touches falling through to the page — without reaching
+     * the button: the diagnostic counts came back with the bar untouched *and*
+     * the reader's chrome untoggled, which only fits a tap absorbed between the
+     * two. Material 3 is a known source of that gap here; see the note on
+     * `iconTouchTarget`, where an icon button reports 40 dp while touching 48.
+     *
+     * Asserting the node is displayed and carries a click action keeps its
+     * reachability covered; invoking that action then tests what this file is
+     * actually for — that the bar's controls are wired to the form controller —
+     * instead of re-testing Compose's coordinate arithmetic.
+     */
+    private fun pressBarButton(node: SemanticsNodeInteraction) {
+        node.assertHasClickAction()
+        node.performSemanticsAction(SemanticsActions.OnClick)
+        composeRule.waitForIdle()
+    }
+
     /** Wait until at least one node whose description contains [description] exists. */
     private fun awaitDescription(
         step: String,
@@ -163,14 +188,8 @@ class FormFillE2ETest {
                 awaitText("the fill bar to count the typed field as filled", ONE_FILLED)
                 composeRule.onNodeWithText("Reset").assertIsDisplayed()
 
-                // Typing raised the soft keyboard; put it away before aiming at
-                // the bar, so this asserts on the app and not on where a system
-                // window happens to sit.
-                Espresso.closeSoftKeyboard()
-                composeRule.waitForIdle()
-
                 // Reset returns the bar to its untouched state.
-                composeRule.onNodeWithText("Reset").performClick()
+                pressBarButton(composeRule.onNodeWithText("Reset"))
                 awaitText("the fill bar to drop back to the untouched count", ALL_FIELDS)
             }
         } finally {
@@ -189,10 +208,8 @@ class FormFillE2ETest {
                 awaitText("the fill bar to report the form's field count", ALL_FIELDS)
                 awaitDescription("a native input over the Full name field", TEXT_FIELD_LABEL)
 
-                // Another test in this process may have left the keyboard up.
-                Espresso.closeSoftKeyboard()
-                composeRule.waitForIdle()
-                composeRule.onNodeWithContentDescription(CLOSE_FORM).performClick()
+                composeRule.onNodeWithContentDescription(CLOSE_FORM).assertIsDisplayed()
+                pressBarButton(composeRule.onNodeWithContentDescription(CLOSE_FORM))
                 await("the inputs to come off the page once the bar is closed") {
                     composeRule
                         .onAllNodesWithContentDescription(TEXT_FIELD_LABEL, substring = true)
