@@ -12,7 +12,6 @@ import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -20,11 +19,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -51,6 +50,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -74,6 +74,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -82,11 +83,12 @@ import kotlin.math.roundToInt
 /**
  * Drive-style continuous reader: all pages stacked in one vertically scrolling
  * [LazyColumn]. Zoom is document-level — pinching (or double-tapping) scales
- * every page and survives scrolling across page boundaries; horizontal panning
- * is a plain [horizontalScroll] once the pages are wider than the viewport.
- * A single tap follows a link or toggles the chrome; long-press starts text
- * selection. Crisp high-zoom tiles are rendered only for the strips actually
- * on screen, so quality never trades off against memory.
+ * every page and survives scrolling across page boundaries. Horizontal panning
+ * is a [ReaderPan] offset the reader owns, applied at placement, so a zoomed
+ * page follows the finger in both axes at once instead of being locked to one
+ * by a scroll container. A single tap follows a link or toggles the chrome;
+ * long-press starts text selection. Crisp high-zoom tiles are rendered only for
+ * the strips actually on screen, so quality never trades off against memory.
  */
 @Composable
 fun ReaderView(
@@ -116,8 +118,12 @@ fun ReaderView(
                         viewModel.currentPageIndex.coerceIn(0, (session.pageCount - 1).coerceAtLeast(0)),
                 )
             }
-        val hScroll = key(session) { rememberScrollState() }
         var zoom by remember(session) { mutableFloatStateOf(1f) }
+        // Horizontal pan, in view pixels, owned by the reader instead of a
+        // `horizontalScroll` container — see [ReaderPan] for why. Only ever read
+        // from the placement lambda and gesture callbacks, never from
+        // composition, so panning stays a layout-phase invalidation.
+        var panX by remember(session) { mutableFloatStateOf(0f) }
 
         // Live pinch transform. During a gesture we do NOT touch `zoom` (which
         // drives the list's measured width/height); instead we scale the
@@ -165,11 +171,11 @@ fun ReaderView(
         suspend fun setZoomAnchored(
             target: Float,
             centroid: Offset,
-            pan: Offset = Offset.Zero,
+            gesturePan: Offset = Offset.Zero,
         ) {
             val clamped = target.coerceIn(MIN_ZOOM, MAX_ZOOM)
             val k = clamped / zoom
-            if (k == 1f && pan == Offset.Zero) {
+            if (k == 1f && gesturePan == Offset.Zero) {
                 // Nothing to bake in, but always drop back to the identity
                 // transform so a released gesture cannot leave the layer scaled.
                 liveScale = 1f
@@ -178,17 +184,31 @@ fun ReaderView(
             }
             val anchorIndex = listState.firstVisibleItemIndex
             val anchorOffset = listState.firstVisibleItemScrollOffset
-            val newOffset = ((anchorOffset + centroid.y) * k - centroid.y - pan.y).roundToInt()
-            val newHorizontal = ((hScroll.value + centroid.x) * k - centroid.x - pan.x).roundToInt()
-            // Swap layout zoom and the live transform in one snapshot (no
+            val newOffset = ((anchorOffset + centroid.y) * k - centroid.y - gesturePan.y).roundToInt()
+            // The pan is our own state, so it clamps against the width the
+            // document is zooming *to* — no relayout has to land first for the
+            // horizontal anchor to be right.
+            val newPanX =
+                ReaderPan.clamp(
+                    pan =
+                        ReaderPan.anchored(
+                            pan = panX,
+                            focusX = centroid.x,
+                            scaleFactor = k,
+                            gesturePan = gesturePan.x,
+                        ),
+                    contentWidthPx = viewportWidthPx * max(1f, clamped),
+                    viewportWidthPx = viewportWidthPx,
+                )
+            // Swap layout zoom, pan and the live transform in one snapshot (no
             // suspension between the writes) so recomposition never sees the new
             // zoom with the old preview scale still applied — that would flash a
             // doubled magnification for a frame.
             zoom = clamped
+            panX = newPanX
             liveScale = 1f
             liveTranslation = Offset.Zero
             listState.scrollToItem(anchorIndex, max(0, newOffset))
-            hScroll.scrollTo(max(0, newHorizontal))
         }
 
         // Double-tap: animate the cheap live layer toward the target, then bake
@@ -272,7 +292,7 @@ fun ReaderView(
                 val pageSize = session.cache.pageSize(item.index)
                 val pointScale = pageWidthPx / pageSize.widthPt
                 val centering = max(0f, (lazyWidthPx - pageWidthPx) / 2f)
-                val xPt = (hScroll.value + tap.x - centering) / pointScale
+                val xPt = (panX + tap.x - centering) / pointScale
                 val yPt = pageSize.heightPt - (tap.y - item.offset) / pointScale
                 val link =
                     runCatching { session.links(item.index) }.getOrNull()
@@ -292,8 +312,9 @@ fun ReaderView(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .documentPinchGestures(
-                        onStart = { centroid ->
+                    .documentGestures(
+                        gestureKey = viewportWidthPx,
+                        onPinchStart = { centroid ->
                             livePivot = centroid
                             liveScale = 1f
                             liveTranslation = Offset.Zero
@@ -306,11 +327,25 @@ fun ReaderView(
                             liveScale = clampedZoom / zoom
                             liveTranslation += pan
                         },
-                        onEnd = {
+                        onPinchEnd = {
                             val committedScale = liveScale
                             val pivot = livePivot
                             val pan = liveTranslation
                             scope.launch { setZoomAnchored(zoom * committedScale, pivot, pan) }
+                        },
+                        onPan = { dx ->
+                            // Nothing to pan at fit-width, and a long-press drag
+                            // belongs to text selection, not the viewport.
+                            if (zoom > 1f && !viewModel.selectionController.isSelecting) {
+                                // Fingers-right reveals content to the left, so
+                                // the offset moves opposite the finger.
+                                panX =
+                                    ReaderPan.clamp(
+                                        pan = panX - dx,
+                                        contentWidthPx = viewportWidthPx * max(1f, zoom),
+                                        viewportWidthPx = viewportWidthPx,
+                                    )
+                            }
                         },
                     ).pointerInput(session) {
                         detectTapGestures(
@@ -342,15 +377,25 @@ fun ReaderView(
                             val w = if (size.width > 0f) size.width else 1f
                             val h = if (size.height > 0f) size.height else 1f
                             transformOrigin = TransformOrigin(livePivot.x / w, livePivot.y / h)
-                        }.horizontalScroll(hScroll),
+                        },
             ) {
                 LazyColumn(
                     state = listState,
                     verticalArrangement = Arrangement.spacedBy(PAGE_SPACING.dp),
                     modifier =
                         Modifier
-                            .width(with(density) { lazyWidthPx.toDp() })
-                            .fillMaxHeight(),
+                            // A zoomed document is wider than the viewport, and
+                            // nothing hands it an unbounded width now that the
+                            // horizontal scroll is gone — so it has to escape the
+                            // incoming constraint itself.
+                            .requiredWidth(with(density) { lazyWidthPx.toDp() })
+                            .fillMaxHeight()
+                            // Placement-phase read of `panX`: a pan re-places the
+                            // list without recomposing a single page.
+                            .offset {
+                                val x = ReaderPan.clamp(panX, lazyWidthPx, viewportWidthPx)
+                                IntOffset(-x.roundToInt(), 0)
+                            },
                 ) {
                     items(count = session.pageCount, key = { it }) { index ->
                         ReaderPage(
@@ -601,49 +646,88 @@ private fun PageDecorations(
 }
 
 /**
- * Intercept multi-touch on the initial pass so a pinch is never half-eaten by
- * the scroll containers: two or more fingers zoom about — and pan with — their
- * centroid, and the rest of that gesture stays consumed even after a finger
- * lifts. Single-finger events pass through untouched to the vertical list,
- * the horizontal scroll, and the tap/long-press detectors.
+ * All document-level touch handling, taken on the initial pass so it is never
+ * half-eaten by the list underneath.
+ *
+ * Two or more fingers zoom about — and pan with — their centroid, and the rest
+ * of that gesture stays consumed even after a finger lifts. A single finger
+ * feeds its *horizontal* travel to [onPan] once it clears touch slop, and
+ * deliberately does **not** consume: the same drag goes on to scroll the
+ * vertical list, which is what lets one finger pan a zoomed page diagonally.
+ * (Two nested scroll containers cannot do that — whichever orientation wins the
+ * drag owns it until the finger lifts.) Taps and the long-press selection drag
+ * are likewise left untouched.
+ *
+ * [gestureKey] restarts the detector when the viewport changes, so the pan
+ * clamp is never computed from a stale width.
  */
-private fun Modifier.documentPinchGestures(
-    onStart: (centroid: Offset) -> Unit,
+private fun Modifier.documentGestures(
+    gestureKey: Any?,
+    onPinchStart: (centroid: Offset) -> Unit,
     onPinch: (zoomChange: Float, pan: Offset) -> Unit,
-    onEnd: () -> Unit,
+    onPinchEnd: () -> Unit,
+    onPan: (dx: Float) -> Unit,
 ): Modifier =
-    pointerInput(Unit) {
+    pointerInput(gestureKey) {
+        val slop = viewConfiguration.touchSlop
         awaitEachGesture {
-            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            val drag = OneFingerPan(startX = down.position.x, slop = slop)
             var pinching = false
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Initial)
-                val pressed = event.changes.count { it.pressed }
-                if (pressed == 0) break
+                if (event.changes.none { it.pressed }) break
                 when {
-                    pressed >= 2 -> {
+                    event.changes.count { it.pressed } >= 2 -> {
                         if (!pinching) {
                             pinching = true
                             // Anchor the whole gesture on the centroid where the
                             // second finger landed; pan tracks it from there.
-                            onStart(event.calculateCentroid(useCurrent = true))
+                            onPinchStart(event.calculateCentroid(useCurrent = true))
                         }
-                        val zoomChange = event.calculateZoom()
-                        val pan = event.calculatePan()
-                        if (zoomChange != 1f || pan != Offset.Zero) {
-                            onPinch(zoomChange, pan)
-                        }
-                        event.changes.forEach { it.consume() }
+                        event.applyPinch(onPinch)
                     }
                     // Finishing a pinch with one finger down: swallow its moves
                     // so the document does not lurch as the second finger lifts.
                     pinching -> event.changes.forEach { it.consume() }
+                    else -> drag.update(event, onPan)
                 }
             }
             // Lifted the last finger: bake the live transform into the layout.
-            if (pinching) onEnd()
+            if (pinching) onPinchEnd()
         }
     }
+
+/** Report one two-finger step, then keep the event away from the scrolling list. */
+private fun PointerEvent.applyPinch(onPinch: (zoomChange: Float, pan: Offset) -> Unit) {
+    val zoomChange = calculateZoom()
+    val pan = calculatePan()
+    if (zoomChange != 1f || pan != Offset.Zero) onPinch(zoomChange, pan)
+    changes.forEach { it.consume() }
+}
+
+/**
+ * Horizontal travel of a one-finger drag that began at [startX], reported once
+ * it clears [slop]. Slop is measured from the press rather than accumulated, so
+ * the jitter of a long vertical drag never engages a pan.
+ */
+private class OneFingerPan(
+    private val startX: Float,
+    private val slop: Float,
+) {
+    private var lastX = startX
+    private var engaged = false
+
+    fun update(
+        event: PointerEvent,
+        onPan: (dx: Float) -> Unit,
+    ) {
+        val x = event.changes.firstOrNull { it.pressed }?.position?.x ?: return
+        if (!engaged && abs(x - startX) >= slop) engaged = true
+        if (engaged) onPan(x - lastX)
+        lastX = x
+    }
+}
 
 private val NIGHT_FILTER =
     ColorFilter.colorMatrix(
