@@ -15,6 +15,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.pdfapp.MainActivity
 import com.pdfapp.ui.common.ReaderSemantics
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -30,12 +31,13 @@ import java.io.File
 /**
  * The reader's viewport gestures, on a device.
  *
- * Both cases guard behaviour the old two-scroll-container layout could not
- * produce: a zoom that stays anchored on the point you tapped (the horizontal
- * anchor used to be clamped away to the left edge), and a single drag that pans
- * horizontally *and* scrolls vertically (nested scroll containers lock a drag
- * to one axis). Positions come from the page node's unclipped position in the
- * root, which moves with the pan offset.
+ * Each case guards behaviour the old scroll-container layout could not produce:
+ * a zoom that stays anchored on the point you tapped — horizontally, where the
+ * anchor used to be clamped away to the left edge, and vertically, where it
+ * used to be measured against pre-zoom pages — and a single drag that pans
+ * horizontally *and* scrolls vertically, which nested scroll containers cannot
+ * do because they lock a drag to one axis. Positions come from the page node's
+ * unclipped position in the root, which moves with both.
  */
 @RunWith(AndroidJUnit4::class)
 class ReaderPanE2ETest {
@@ -66,16 +68,17 @@ class ReaderPanE2ETest {
     private fun viewportSize(): Pair<Float, Float> =
         composeRule.onRoot().fetchSemanticsNode().size.let { it.width.toFloat() to it.height.toFloat() }
 
-    /** Open [pageCount] blank A4 pages in the reader and wait for page 1. */
+    /** Open [pageCount] blank [pageSize] pages in the reader and wait for page 1. */
     private fun withReader(
         pageCount: Int,
+        pageSize: PDRectangle = PDRectangle.A4,
         body: () -> Unit,
     ) {
         pageLabel = ReaderSemantics.pageLabel(pageIndex = 0, pageCount = pageCount)
         val pdf = File.createTempFile("readerpan", ".pdf", context.cacheDir)
         try {
             PDDocument().use { doc ->
-                repeat(pageCount) { doc.addPage(PDPage(PDRectangle.A4)) }
+                repeat(pageCount) { doc.addPage(PDPage(pageSize)) }
                 doc.save(pdf)
             }
             StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
@@ -98,17 +101,24 @@ class ReaderPanE2ETest {
         }
     }
 
-    /** Double-tap at [x] of the viewport width, vertically centred, and let it settle. */
-    private fun doubleTapAt(x: Float) {
+    /**
+     * Double-tap at ([x], [y]) as fractions of the viewport, let the zoom
+     * settle, and report the factor the page actually grew by.
+     */
+    private fun doubleTapAt(
+        x: Float,
+        y: Float = 0.5f,
+    ): Float {
         val (width, height) = viewportSize()
         val fitWidth = pageWidth()
         composeRule.onRoot().performTouchInput {
-            doubleClick(Offset(width * x, height / 2f))
+            doubleClick(Offset(width * x, height * y))
         }
         composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS) {
             pageWidth() > fitWidth * ZOOM_IN_THRESHOLD
         }
         composeRule.waitForIdle()
+        return pageWidth().toFloat() / fitWidth
     }
 
     @Test
@@ -124,6 +134,38 @@ class ReaderPanE2ETest {
             doubleTapAt(x = 0.8f)
 
             assertThat(pageLeft()).isLessThan(-width)
+        }
+    }
+
+    @Test
+    fun doubleTapOnAShortPage_keepsThatLineInPlace() {
+        // Landscape-ish pages, so a tap at the middle of the screen asks for a
+        // scroll offset taller than the un-zoomed page but shorter than the
+        // zoomed one — exactly the case a forced remeasure used to mismeasure
+        // against pre-zoom pages, rolling the anchor into a later page and
+        // leaving it there. (An upright page needs a tap near the bottom edge
+        // to reach that offset, which is chrome territory.)
+        withReader(pageCount = 3, pageSize = SHORT_PAGE) {
+            val (width, height) = viewportSize()
+            val focusY = height / 2f
+            val topBefore = pageTop()
+            val pageHeightBefore = pageNode().size.height
+
+            // Anchored properly, every content point maps
+            // y -> focusY + (y - focusY) * zoom, page 1's top included.
+            val zoom = doubleTapAt(x = 0.5f)
+            val topAfter = pageTop()
+
+            // The geometry rides along in the message: this assertion is only
+            // as good as its model of where the reader sits in the window, and
+            // a failure has to say which of the two is wrong.
+            assertWithMessage(
+                "root ${width}x$height, focusY $focusY, zoom $zoom, " +
+                    "page 1 top $topBefore -> $topAfter, " +
+                    "height $pageHeightBefore -> ${pageNode().size.height}",
+            ).that(topAfter)
+                .isWithin(height * TOP_TOLERANCE_FRACTION)
+                .of(focusY + (topBefore - focusY) * zoom)
         }
     }
 
@@ -163,5 +205,15 @@ class ReaderPanE2ETest {
 
         // Sub-pixel rounding drift in the committed offsets.
         const val TOLERANCE_PX = 2f
+
+        // A page 0.7 as tall as it is wide. Tapping the middle of the screen
+        // then lands an anchor offset of 0.75 x viewport height, between the
+        // page's fit height (0.7 x viewport *width*) and its zoomed height —
+        // the rollover case — for any screen from square to 2.3:1.
+        val SHORT_PAGE = PDRectangle(600f, 420f)
+
+        // The committed offset is a rounded pixel value and the un-scaled gap
+        // between pages drifts a little; a mis-anchored zoom misses by pages.
+        const val TOP_TOLERANCE_FRACTION = 0.03f
     }
 }
