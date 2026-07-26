@@ -16,7 +16,7 @@ expect from a device-default viewer.
 | Getting PDFs in | Own SAF file picker, **"Open with" / share-target intents ✅, recent files ✅** | — |
 | Viewing | **Drive-style continuous vertical scroll ✅, document-level pinch/double-tap zoom ✅, immersive tap-to-hide chrome ✅, fast-scroll handle with page bubble ✅, thumbnails ✅, go-to-page ✅, outline/TOC ✅, night mode ✅, text selection ✅, search ✅, password-protected files ✅** | — |
 | Editing | Text overlay, ink signature, undo, save flattened copy | *(annotation suite intentionally out of scope — see Phase 3)* |
-| Forms | — | AcroForm fill & save |
+| Forms | **AcroForm fill ✅ (text, checkbox, radio, dropdown), save editable or flattened ✅** | *(XFA intentionally out of scope — see Phase 4)* |
 | Organizing | — | Reorder/rotate/delete pages, merge/split, extract |
 | Output | Save flattened copy via SAF | Print, share out, compress |
 | Security | — | Open encrypted PDFs; add/remove password; PAdES signing (long-term) |
@@ -229,16 +229,43 @@ highlighter, eraser/redo, saved signatures and image stamps are explicitly not
 planned; if that decision is ever revisited, the git history of the shape tool
 is the reference implementation.
 
-## Phase 4 — Forms (AcroForm fill & sign)
+## Phase 4 — Forms (AcroForm fill & sign) ✅ *shipped*
 
-The single biggest functional gap vs. Acrobat/Foxit for a default app.
+The single biggest functional gap vs. Acrobat/Foxit for a default app — now
+closed. Building blocks: `PdfFormReader` behind `PdfTextDocument.formFields()` in
+`:core-renderer`, `PdfFormWriter` in `:file-persistence`, and a `FormController`
+plus the fill layer (`ReaderFormFields`) and fill bar (`ReaderFormBar`) in
+`:app`.
 
-- Detect `PDAcroForm` on open; render field widgets (text fields, checkboxes,
-  radio groups, dropdowns) as native Compose inputs positioned via
-  `CoordinateMapper`.
-- Write values back with PdfBox (`PDField.setValue`), offer "Save" (fields stay
-  editable) and "Save flattened" (`PDAcroForm.flatten()`).
-- XFA forms are explicitly out of scope (Acrobat-proprietary, dying format).
+- **Detection on open** ✅ — every opened document gets one background AcroForm
+  scan, and the "Fill form" action appears on the bottom bar / nav rail only when
+  that scan finds fields.
+- **Native inputs over the page** ✅ — `PdfFormReader` flattens the form to one
+  `PdfFormField` per *widget* (a radio group is one field with a button per
+  widget), each carrying its rectangle in PDF points. The fill layer draws a
+  `BasicTextField`, tick mark, radio mark or dropdown over each, positioned by the
+  page's points-to-pixels scale, so the inputs stay glued to their boxes through
+  zoom and rotation. The layer is composed only while filling, so text fields
+  never contest the reader's pan / tap / long-press gestures. Read-only fields
+  render without a caret; character limits truncate; auto-sized fields take their
+  text size from the widget's own height.
+- **Write-back** ✅ — edits live in `FormController` until a save, so the source
+  file is untouched and Reset is free. `PdfFormWriter.applyValues` sets values
+  through `PDField.setValue` (`check`/`unCheck` for checkboxes, the export value
+  for radios) and *reports* the fields it could not write instead of failing the
+  whole save.
+- **Two save shapes** ✅ — "Save filled form" leaves the form interactive;
+  "Save flattened (not editable)" runs `PDAcroForm.flatten()` (refreshing
+  appearances first when `/NeedAppearances` is set) before the overlay signature
+  is burned in on top — which is what "fill **and sign**" means.
+- **XFA** — out of scope as planned (Acrobat-proprietary, dying format). An
+  XFA-only form is detected and says so in the snackbar rather than offering an
+  empty form.
+- Verified across all three layers: lint, unit (`PdfFormReaderTest`,
+  `PdfFormWriterTest`, `FormControllerTest`, `FormSemanticsTest`), harness
+  (`PdfTestHarnessFormsTest`) and E2E (`FormPipelineE2ETest`,
+  `FormFillE2ETest`), against a hand-built `AcroFormFixture` shared by the
+  reader's and the writer's tests.
 
 ## Phase 5 — Page organization & document tools
 
@@ -296,9 +323,10 @@ All buildable on PdfBox; each is a small headless operation + a picker UI.
 
 1. **Phase 1** shipped first and alone (small, unblocked "default app" status).
 2. **Phase 2** shipped next and was reworked into the Drive-style viewer.
-3. Phase 3 is removed; Phases 4–6 can proceed feature-by-feature; each feature
-   is independently shippable and must pass the project's three verification
-   layers (Lint, Unit, E2E/PDF-Test-Harness) before merge, per `README.md`.
+3. Phase 3 is removed; **Phase 4** (forms) shipped after it. Phases 5–6 can
+   proceed feature-by-feature; each feature is independently shippable and must
+   pass the project's three verification layers (Lint, Unit,
+   E2E/PDF-Test-Harness) before merge, per `README.md`.
 
 ## Competitive research sources
 

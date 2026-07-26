@@ -3,7 +3,7 @@
 Native Android (Kotlin) app: a Google-Drive-style PDF viewer (continuous scroll, document zoom, immersive chrome) plus focused editing — text overlays and a flattened ink signature, saved via SAF. Offline, open-source libs only.
 
 ## Roadmap
-The full product roadmap — where the app is and where it's going, phase by phase — lives in [`plan.md`](plan.md). Phases 1 (system integration) and 2 (Drive-style reading experience) are shipped; Phase 3 (annotation suite) was removed by product decision, so Phase 4 (forms) onward is next.
+The full product roadmap — where the app is and where it's going, phase by phase — lives in [`plan.md`](plan.md). Phases 1 (system integration), 2 (Drive-style reading experience) and 4 (AcroForm fill & sign) are shipped; Phase 3 (annotation suite) was removed by product decision, so Phase 5 (page organization & document tools) is next.
 
 ## Build & Verify
 - Build:   `./gradlew assembleDebug`
@@ -20,9 +20,9 @@ The full product roadmap — where the app is and where it's going, phase by pha
 PdfRenderer (view) · Canvas (overlay) · PdfBox-Android / Tom Roush (write) · SAF (storage).
 
 ## Modules
-- `:core-renderer` — load + render PDF pages; owns the shared `CoordinateMapper`.
+- `:core-renderer` — load + render PDF pages; owns the shared `CoordinateMapper`, the read-only PdfBox facade (text geometry, outline, links, AcroForm fields) and the AcroForm test fixture shared with `:file-persistence`.
 - `:overlay-engine` — text + ink-signature overlay models and the interactive canvas view.
-- `:file-persistence` — flatten overlays into the PDF, decrypt password-protected files, save via SAF.
+- `:file-persistence` — flatten overlays into the PDF, write AcroForm values back (editable or flattened), decrypt password-protected files, save via SAF.
 - `:app` — UI shell wiring the three modules; calls `PDFBoxResourceLoader.init` at startup.
 
 ## Style

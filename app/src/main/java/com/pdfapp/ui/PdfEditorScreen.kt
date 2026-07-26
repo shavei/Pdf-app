@@ -91,13 +91,16 @@ fun PdfEditorScreen(
             ActivityResultContracts.OpenDocument(),
         ) { uri -> uri?.let { viewModel.open(context, it) } }
 
+    // Which of the two form-save shapes the pending SAF request stands for; the
+    // picker cannot carry it, so it is latched when the save is asked for.
+    var saveFlattensForm by remember { mutableStateOf(false) }
     val saveLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument(MIME_PDF),
         ) { uri ->
             uri?.let { dest ->
                 canvasView?.commitSignature()
-                viewModel.save(context, dest)
+                viewModel.save(context, dest, flattenForm = saveFlattensForm)
             }
         }
 
@@ -143,12 +146,14 @@ fun PdfEditorScreen(
         ReaderBack.actionFor(
             hasSession = hasSession,
             searchActive = searchActive,
+            formActive = viewModel.formController.active,
             mode = viewModel.mode,
             chromeVisible = chromeVisible,
         )
     BackHandler(enabled = backAction != ReaderBackAction.SYSTEM) {
         when (backAction) {
             ReaderBackAction.CLOSE_SEARCH -> viewModel.searchController.close()
+            ReaderBackAction.CLOSE_FORM -> viewModel.formController.hide()
             ReaderBackAction.EXIT_EDIT -> {
                 canvasView?.commitSignature()
                 viewModel.exitEditMode()
@@ -250,7 +255,14 @@ fun PdfEditorScreen(
                 if (session != null && viewModel.mode == ViewerMode.EDIT) {
                     val saveEnabled = viewModel.renderedPage != null && !viewModel.busy
                     FloatingActionButton(
-                        onClick = { if (saveEnabled) saveLauncher.launch(DEFAULT_SAVE_NAME) },
+                        onClick = {
+                            if (saveEnabled) {
+                                // The editor's Save keeps the form interactive;
+                                // flattening it is the fill bar's own choice.
+                                saveFlattensForm = false
+                                saveLauncher.launch(DEFAULT_SAVE_NAME)
+                            }
+                        },
                     ) {
                         Icon(Icons.Filled.Save, contentDescription = "Save PDF")
                     }
@@ -288,6 +300,10 @@ fun PdfEditorScreen(
                                 snackbarHostState = snackbarHostState,
                                 chromeVisible = chromeVisible,
                                 onToggleChrome = { chromeVisible = !chromeVisible },
+                                onSaveForm = { flatten ->
+                                    saveFlattensForm = flatten
+                                    saveLauncher.launch(FILLED_SAVE_NAME)
+                                },
                             )
                         }
                     else ->
@@ -363,3 +379,4 @@ private fun AppTitleBar() {
 
 private const val MIME_PDF = "application/pdf"
 private const val DEFAULT_SAVE_NAME = "signed.pdf"
+private const val FILLED_SAVE_NAME = "filled.pdf"

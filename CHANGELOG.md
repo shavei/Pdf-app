@@ -14,6 +14,18 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 
 ### Added
 
+- **Fill PDF forms** (plan Phase 4) — an AcroForm document now opens with a
+  "Fill form" action. Turning it on lays a native input over every field
+  — text boxes, checkboxes, radio groups and dropdowns — positioned on the page
+  itself, so they stay in place as you zoom and scroll. Read-only fields are
+  shown but not editable, and a field's character limit is respected as you type.
+  Nothing is written to the original file: edits are held until you save, and
+  "Reset" puts them all back.
+- **Save a filled form two ways** — "Save filled form" keeps the fields
+  editable for whoever gets it next; "Save flattened (not editable)" burns the
+  values into the page, and combines with the ink signature in the same save, so
+  a form can be filled and signed in one pass. Fields that could not be written
+  are named in the confirmation rather than dropped silently.
 - **Version on the home screen** — the running build names itself
   ("Signet 1.4.1", or "Signet 1.4.1 (build 102)" for a rolling build), so a
   sideloaded APK can be identified without opening Android's App info.
