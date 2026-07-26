@@ -3,14 +3,17 @@ package com.pdfapp
 import android.content.Intent
 import android.net.Uri
 import android.os.StrictMode
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.printToString
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -71,20 +74,46 @@ class FormFillE2ETest {
             }
         }
 
-    /** Wait until at least one node matching [description] exists. */
-    private fun awaitDescription(description: String) {
-        composeRule.waitUntil(timeoutMillis = LOAD_TIMEOUT_MS) {
-            composeRule
-                .onAllNodesWithContentDescription(description, substring = true)
-                .fetchSemanticsNodes()
-                .isNotEmpty()
+    /**
+     * Wait for [condition], saying *what* was being waited for if it never comes
+     * true. Compose's own `ComposeTimeoutException` carries no message, so a
+     * multi-step test that fails on CI would otherwise report the same
+     * "condition still not satisfied" for any of half a dozen waits — and these
+     * tests only ever run on CI, where nobody is watching the screen. The
+     * semantics tree goes into the message for the same reason.
+     */
+    private fun await(
+        step: String,
+        condition: () -> Boolean,
+    ) {
+        try {
+            composeRule.waitUntil(timeoutMillis = STEP_TIMEOUT_MS, condition = condition)
+        } catch (timeout: ComposeTimeoutException) {
+            throw AssertionError(
+                "Timed out after ${STEP_TIMEOUT_MS}ms waiting for $step.\n" +
+                    "Semantics tree at that point:\n" +
+                    composeRule.onRoot().printToString(maxDepth = SEMANTICS_DUMP_DEPTH),
+                timeout,
+            )
         }
     }
 
-    private fun awaitText(text: String) {
-        composeRule.waitUntil(timeoutMillis = LOAD_TIMEOUT_MS) {
-            composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
-        }
+    /** Wait until at least one node whose description contains [description] exists. */
+    private fun awaitDescription(
+        step: String,
+        description: String,
+    ) = await(step) {
+        composeRule
+            .onAllNodesWithContentDescription(description, substring = true)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+    }
+
+    private fun awaitText(
+        step: String,
+        text: String,
+    ) = await(step) {
+        composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
     }
 
     @Test
@@ -92,17 +121,14 @@ class FormFillE2ETest {
         val pdf = formPdf()
         try {
             ActivityScenario.launch<MainActivity>(viewIntent(pdf)).use {
-                // Page 1 rendered: the reader is live.
-                awaitDescription(FORM_PAGE_1)
-                // Detection is a background PdfBox scan, so the action appears
-                // a moment after the page does.
-                awaitDescription(FILL_FORM)
+                awaitDescription("page 1 of the form to render", FORM_PAGE_1)
+                // Detection is a background PdfBox parse racing the reader's own
+                // rendering, so the action appears some time after the page does.
+                awaitDescription("the Fill form action to appear after the AcroForm scan", FILL_FORM)
                 composeRule.onNodeWithContentDescription(FILL_FORM).performClick()
 
-                // The fill bar reports how many widgets are on offer.
-                awaitText(ALL_FIELDS)
-                // And a native input sits over the first page's text field.
-                awaitDescription(TEXT_FIELD_LABEL)
+                awaitText("the fill bar to report the form's field count", ALL_FIELDS)
+                awaitDescription("a native input over the Full name field", TEXT_FIELD_LABEL)
                 composeRule.onNodeWithContentDescription(TEXT_FIELD_LABEL, substring = true)
                     .assertIsDisplayed()
 
@@ -110,12 +136,12 @@ class FormFillE2ETest {
                 composeRule
                     .onNodeWithContentDescription(TEXT_FIELD_LABEL, substring = true)
                     .performTextReplacement(TYPED_NAME)
-                awaitText(ONE_FILLED)
+                awaitText("the fill bar to count the typed field as filled", ONE_FILLED)
                 composeRule.onNodeWithText("Reset").assertIsDisplayed()
 
                 // Reset returns the bar to its untouched state.
                 composeRule.onNodeWithText("Reset").performClick()
-                awaitText(ALL_FIELDS)
+                awaitText("the fill bar to drop back to the untouched count", ALL_FIELDS)
             }
         } finally {
             pdf.delete()
@@ -127,13 +153,14 @@ class FormFillE2ETest {
         val pdf = formPdf()
         try {
             ActivityScenario.launch<MainActivity>(viewIntent(pdf)).use {
-                awaitDescription(FORM_PAGE_1)
-                awaitDescription(FILL_FORM)
+                awaitDescription("page 1 of the form to render", FORM_PAGE_1)
+                awaitDescription("the Fill form action to appear after the AcroForm scan", FILL_FORM)
                 composeRule.onNodeWithContentDescription(FILL_FORM).performClick()
-                awaitDescription(TEXT_FIELD_LABEL)
+                awaitText("the fill bar to report the form's field count", ALL_FIELDS)
+                awaitDescription("a native input over the Full name field", TEXT_FIELD_LABEL)
 
                 composeRule.onNodeWithContentDescription("Close form filling").performClick()
-                composeRule.waitUntil(timeoutMillis = LOAD_TIMEOUT_MS) {
+                await("the inputs to come off the page once the bar is closed") {
                     composeRule
                         .onAllNodesWithContentDescription(TEXT_FIELD_LABEL, substring = true)
                         .fetchSemanticsNodes()
@@ -150,11 +177,8 @@ class FormFillE2ETest {
         val pdf = blankPdf()
         try {
             ActivityScenario.launch<MainActivity>(viewIntent(pdf)).use {
-                awaitDescription(BLANK_PAGE_1)
-                // The reader's own chrome is up, so the scan that runs alongside
-                // the (much slower) first render has long since finished — and it
-                // found nothing to offer.
-                awaitDescription("Edit document")
+                awaitDescription("the blank page to render", BLANK_PAGE_1)
+                awaitDescription("the reader's own actions to come up", "Edit document")
                 composeRule.onNodeWithContentDescription(FILL_FORM).assertDoesNotExist()
             }
         } finally {
@@ -173,6 +197,12 @@ class FormFillE2ETest {
             FormSemantics.statusText(AcroFormFixture.FILLABLE_WIDGETS, editedCount = 0)
         val ONE_FILLED: String =
             FormSemantics.statusText(AcroFormFixture.FILLABLE_WIDGETS, editedCount = 1)
-        const val LOAD_TIMEOUT_MS = 15_000L
+
+        // Generous on purpose: the CI emulator is a 2-core API 29 image with
+        // software rendering, and the form scan is a full PdfBox parse competing
+        // with the reader's first page renders. The budget only costs time when a
+        // test is already failing.
+        const val STEP_TIMEOUT_MS = 45_000L
+        const val SEMANTICS_DUMP_DEPTH = 100
     }
 }

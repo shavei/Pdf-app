@@ -76,16 +76,28 @@ class FormController(
         detectJob?.cancel()
         detectJob =
             scope.launch {
-                val document = withContext(Dispatchers.IO) { open.textDocument() }
-                val found = withContext(Dispatchers.IO) { document.formFields() }
+                // The scan is speculative background work on a file we did not
+                // write, so a malformed form must not take the app down with an
+                // uncaught coroutine failure: an unreadable form is simply a
+                // document with nothing to fill, which still reads perfectly.
+                val found =
+                    runCatching {
+                        val document = withContext(Dispatchers.IO) { open.textDocument() }
+                        withContext(Dispatchers.IO) { document.formFields() } to document
+                    }.getOrNull()
                 // A late-returning scan from a document the user has already
                 // closed must not populate the new one's chrome.
                 if (session() !== open) return@launch
-                fields = found
-                xfaOnly = found.isEmpty() && withContext(Dispatchers.IO) { document.isXfaOnlyForm() }
-                // No fill action can appear for an XFA form, so say why once
-                // rather than leave the user hunting for one (plan Phase 4).
-                if (xfaOnly) onMessage(XFA_MESSAGE)
+                val (widgets, document) = found ?: (emptyList<PdfFormField>() to null)
+                fields = widgets
+                if (widgets.isEmpty() && document != null) {
+                    xfaOnly =
+                        runCatching { withContext(Dispatchers.IO) { document.isXfaOnlyForm() } }
+                            .getOrDefault(false)
+                    // No fill action can appear for an XFA form, so say why once
+                    // rather than leave the user hunting for one (plan Phase 4).
+                    if (xfaOnly) onMessage(XFA_MESSAGE)
+                }
             }
     }
 
