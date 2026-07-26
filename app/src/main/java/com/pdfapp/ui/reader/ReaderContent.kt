@@ -28,10 +28,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pdfapp.ui.PdfEditorViewModel
-import com.pdfapp.ui.ReaderSemantics
-import com.pdfapp.ui.iconTouchTarget
-import com.pdfapp.ui.touchTargetFloor
+import com.pdfapp.ui.common.ReaderSemantics
+import com.pdfapp.ui.common.iconTouchTarget
+import com.pdfapp.ui.common.touchTargetFloor
+import com.pdfapp.ui.document.PdfEditorViewModel
 import kotlinx.coroutines.launch
 
 /**

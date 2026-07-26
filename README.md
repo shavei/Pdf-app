@@ -161,7 +161,7 @@ overlays, and saves a flattened copy via SAF. Verification runs as three CI
 layers (Lint, Unit + PDF-Test-Harness, and an on-device emulator E2E).
 
 Signet is a focused **viewer + signer** — the Phase 3 annotation suite was
-removed by product decision (see [`plan.md`](plan.md)). Next up — the remaining
+removed by product decision (see [`docs/plan.md`](docs/plan.md)). Next up — the remaining
 roadmap toward a full default PDF app, detailed phase by phase there:
 
 4. **Forms** — AcroForm fill & save.
