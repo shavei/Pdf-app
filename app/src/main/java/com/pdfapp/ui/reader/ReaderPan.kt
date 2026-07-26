@@ -36,18 +36,23 @@ object ReaderPan {
     ): Float = pan.coerceIn(0f, maxPan(contentWidthPx, viewportWidthPx))
 
     /**
-     * The pan that keeps whatever sits under the view-space x [focusX] still
-     * under it after the content scales by [scaleFactor], less the [gesturePan]
-     * a live gesture already showed (view-space, fingers-down positive).
+     * The offset that keeps whatever sits under the view-space coordinate
+     * [focus] still under it after the content scales by [scaleFactor], less
+     * the [gesturePan] a live gesture already showed (view-space, fingers-down
+     * positive).
      *
-     * Unclamped: the caller [clamp]s it against the width the document is
-     * zooming *to*, which is the whole point of owning the offset — the anchor
-     * is correct the moment it is written, with no relayout in between.
+     * Axis-agnostic: the reader anchors a zoom with it horizontally (against
+     * [pan]) and vertically (against the list's scroll offset).
+     *
+     * Unclamped — a caller that has bounds applies them. Horizontally that is
+     * [clamp] against the width the document is zooming *to*, which is the
+     * whole point of owning the offset: the anchor is correct the moment it is
+     * written, with no relayout in between.
      */
     fun anchored(
         pan: Float,
-        focusX: Float,
+        focus: Float,
         scaleFactor: Float,
         gesturePan: Float,
-    ): Float = (pan + focusX) * scaleFactor - focusX - gesturePan
+    ): Float = (pan + focus) * scaleFactor - focus - gesturePan
 }

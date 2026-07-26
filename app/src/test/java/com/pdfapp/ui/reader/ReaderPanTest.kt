@@ -37,7 +37,7 @@ class ReaderPanTest {
         val pan =
             ReaderPan.anchored(
                 pan = 0f,
-                focusX = 800f,
+                focus = 800f,
                 scaleFactor = 2.5f,
                 gesturePan = 0f,
             )
@@ -52,7 +52,7 @@ class ReaderPanTest {
         val pan =
             ReaderPan.anchored(
                 pan = 200f,
-                focusX = 300f,
+                focus = 300f,
                 scaleFactor = 2f,
                 gesturePan = 0f,
             )
@@ -67,7 +67,7 @@ class ReaderPanTest {
         val anchored =
             ReaderPan.anchored(
                 pan = 0f,
-                focusX = 900f,
+                focus = 900f,
                 scaleFactor = 2.5f,
                 gesturePan = 0f,
             )
@@ -84,7 +84,7 @@ class ReaderPanTest {
         val anchored =
             ReaderPan.anchored(
                 pan = 0f,
-                focusX = 1000f,
+                focus = 1000f,
                 scaleFactor = 2.5f,
                 gesturePan = -300f,
             )
@@ -100,7 +100,7 @@ class ReaderPanTest {
         val pan =
             ReaderPan.anchored(
                 pan = 800f,
-                focusX = 500f,
+                focus = 500f,
                 scaleFactor = 1f,
                 gesturePan = 200f,
             )
@@ -114,7 +114,7 @@ class ReaderPanTest {
         val anchored =
             ReaderPan.anchored(
                 pan = 1200f,
-                focusX = 500f,
+                focus = 500f,
                 scaleFactor = 1f / 2.5f,
                 gesturePan = 0f,
             )
