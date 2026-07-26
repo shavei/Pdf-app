@@ -8,13 +8,13 @@ import com.pdfapp.R
 /**
  * How the running build names itself in the UI.
  *
- * The version string is whatever CI stamped as the `versionName` — `1.4.0` for a
- * tagged release, `1.4.0 (build 102)` for a rolling build from `main` — so the
+ * The version string is whatever CI stamped as the `versionName` — `1.4.1` for a
+ * tagged release, `1.4.1 (build 102)` for a rolling build from `main` — so the
  * home screen, the release notes and Android's App info all read the same.
  */
 object AppVersion {
     /**
-     * "Signet 1.4.0". Falls back to the bare app name if a build somehow carries
+     * "Signet 1.4.1". Falls back to the bare app name if a build somehow carries
      * no version, so the line never renders as a dangling app name and a blank.
      */
     fun label(

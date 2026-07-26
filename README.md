@@ -9,7 +9,7 @@
      this repo is private. Bump the version in the pinned v1.3.0 links (the
      heading, the Download badge, and the blockquote) when cutting a new tagged
      release; the "Latest build" badge tracks the rolling build and needs no
-     bump. Releases from v1.4.0 on name their asset `Signet-<version>.apk`;
+     bump. Releases from v1.4.1 on name their asset `Signet-<version>.apk`;
      v1.3.0 and earlier used AGP's generic `app-release.apk`. -->
 [![Download v1.3.0](https://img.shields.io/badge/Download-v1.3.0-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/shavei/Pdf-app/releases/download/v1.3.0/app-release.apk)
 [![Latest build](https://img.shields.io/badge/Latest%20build-rolling-blue?style=for-the-badge&logo=github)](https://github.com/shavei/Pdf-app/releases/latest)

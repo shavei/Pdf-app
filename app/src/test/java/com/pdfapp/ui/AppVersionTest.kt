@@ -11,13 +11,13 @@ import org.junit.Test
 class AppVersionTest {
     @Test
     fun label_shows_a_release_version_as_is() {
-        assertThat(AppVersion.label("Signet", "1.4.0")).isEqualTo("Signet 1.4.0")
+        assertThat(AppVersion.label("Signet", "1.4.1")).isEqualTo("Signet 1.4.1")
     }
 
     @Test
     fun label_keeps_the_build_number_of_a_rolling_build() {
-        assertThat(AppVersion.label("Signet", "1.4.0 (build 102)"))
-            .isEqualTo("Signet 1.4.0 (build 102)")
+        assertThat(AppVersion.label("Signet", "1.4.1 (build 102)"))
+            .isEqualTo("Signet 1.4.1 (build 102)")
     }
 
     @Test

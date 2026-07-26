@@ -105,24 +105,26 @@ You can now delete the local `keystore.b64` (keep `release.keystore` backed up).
 The version a release ships as is **`appVersionName` in `gradle.properties`** —
 the tag only confirms it. So a release is two steps:
 
-**Step 1 — the release-prep commit on `main`.** Set `appVersionName` to the
-version you are about to ship, move the CHANGELOG's `[Unreleased]` entries under
-a `[X.Y.Z]` heading, and bump the pinned download links in the README.
+**Step 1 — the release-prep commit on `main`.** `appVersionName` already holds
+the version you are about to ship (it was set when the last release was cut), so
+this is just: move the CHANGELOG's `[Unreleased]` entries under a `[X.Y.Z]`
+heading and bump the pinned download links in the README.
 
 **Step 2 — tag that commit** with `vX.Y.Z`, using either option below. The
 `release` job re-reads `gradle.properties` and **fails if the tag disagrees**, so
 a tag can never ship a mislabelled build.
 
-Afterwards, bump `appVersionName` to the next version (e.g. `1.5.0`) so rolling
-builds from `main` stop claiming the version that just shipped.
+Afterwards, bump the patch (`1.4.1` → `1.4.2`) so rolling builds from `main` stop
+claiming the version that just shipped. Every release moves the version by one
+patch unless you decide it deserves a minor or major bump.
 
 ### Option A — GitHub website (no git needed; works on a phone too)
 
 1. Repo → **`Releases`** (right sidebar, or visit `/releases`).
 2. **`Draft a new release`**.
-3. Under **`Choose a tag`**, type `v0.1.0`, then click
-   **`Create new tag: v0.1.0 on publish`**.
-4. Title: `v0.1.0`. Leave the body empty (notes are auto-generated).
+3. Under **`Choose a tag`**, type `v1.4.1`, then click
+   **`Create new tag: v1.4.1 on publish`**.
+4. Title: `v1.4.1`. Leave the body empty (notes are auto-generated).
 5. **`Publish release`**.
 
 ### Option B — terminal (laptop)
@@ -130,8 +132,8 @@ builds from `main` stop claiming the version that just shipped.
 ```bash
 git clone https://github.com/shavei/Pdf-app.git    # or: git pull, if already cloned
 cd Pdf-app
-git tag v0.1.0
-git push origin v0.1.0
+git tag v1.4.1
+git push origin v1.4.1
 ```
 
 ### What happens next
@@ -142,10 +144,10 @@ Publishing the tag triggers the **`release` job in
 1. checks the tag against `appVersionName` in `gradle.properties` and stops there
    if they disagree,
 2. builds `:app:assembleRelease` and `:app:bundleRelease` with
-   `versionName = 0.1.0`, `versionCode = <commit count>`,
+   `versionName = 1.4.1`, `versionCode = <commit count>`,
 3. signs with your keystore (Part 1) — or debug-signs if you skipped it,
-4. uploads the **APK + AAB** to the GitHub Release as `Signet-0.1.0.apk` and
-   `Signet-0.1.0.aab`.
+4. uploads the **APK + AAB** to the GitHub Release as `Signet-1.4.1.apk` and
+   `Signet-1.4.1.aab`.
 
 Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
 **Build + publish release** job does this, ~3–5 min).
@@ -154,8 +156,8 @@ Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
 
 ## Part 3 — Get and install the app
 
-- **The release:** repo → **`Releases`** → `v0.1.0` → under **Assets**, download
-  `Signet-0.1.0.apk` (and `Signet-0.1.0.aab` for the Play Store).
+- **The release:** repo → **`Releases`** → `v1.4.1` → under **Assets**, download
+  `Signet-1.4.1.apk` (and `Signet-1.4.1.aab` for the Play Store).
 - **On an Android phone:** tap the downloaded `.apk`; the first time, allow
   "install unknown apps" for your browser/files app when prompted.
 - **Latest build (no release needed):** the rolling
@@ -175,9 +177,9 @@ One marketing version, one build number, no commit hashes in the version name:
 
 | Build | Version shown in the app and in App info | `versionCode` |
 | --- | --- | --- |
-| Tagged release (`v1.4.0`) | `1.4.0` | commit count |
-| Rolling "Latest build" from `main` | `1.4.0 (build 102)` | commit count |
-| Local `./gradlew assembleDebug` | `1.4.0` | `1` |
+| Tagged release (`v1.4.1`) | `1.4.1` | commit count |
+| Rolling "Latest build" from `main` | `1.4.1 (build 102)` | commit count |
+| Local `./gradlew assembleDebug` | `1.4.1` | `1` |
 
 **One source of truth.** `appVersionName` in **`gradle.properties`** is the
 version under development. Everything else derives from it:
@@ -196,12 +198,12 @@ version under development. Everything else derives from it:
 Check what a build would stamp, without unpacking an APK:
 
 ```bash
-./gradlew -q :app:appVersion                     # 1.4.0 (versionCode 1)
-./gradlew -q :app:appVersion -PappBuildNumber=102  # 1.4.0 (build 102) (versionCode 102)
+./gradlew -q :app:appVersion                     # 1.4.1 (versionCode 1)
+./gradlew -q :app:appVersion -PappBuildNumber=102  # 1.4.1 (build 102) (versionCode 102)
 ```
 
-The latest published release is `v1.3.0`. Ship the next one by following Part 2:
-set `appVersionName=1.4.0`, then tag `v1.4.0`.
+The latest published release is `v1.3.0`; `appVersionName` is already `1.4.1`, so
+the next release is `v1.4.1` — tag it per Part 2, then bump to `1.4.2`.
 
 ### Artifact names
 
@@ -221,10 +223,10 @@ those old links still work.
 - **Release has no APK/AAB attached** — open the **Actions → CI** run for your
   tag and check the **Build + publish release** job; if it
   failed, the logs say why. A common cause is a typo in a secret name.
-- **"Tag v1.4.0 does not match appVersionName=1.3.0"** — the tag was pushed
-  before the release-prep commit (Part 2, step 1). Bump `appVersionName` to
-  `1.4.0` on `main`, delete the tag (`git push --delete origin v1.4.0`), and
-  re-tag the new commit.
+- **"Tag v1.4.2 does not match appVersionName=1.4.1"** — the tag and
+  `gradle.properties` disagree (Part 2, step 1). Either tag `v1.4.1` instead, or
+  bump `appVersionName` to `1.4.2` on `main`, delete the tag
+  (`git push --delete origin v1.4.2`) and re-tag the new commit.
 - **"keytool: command not found"** — the JDK isn't installed or not on your PATH
   (see Part 1, step 1).
 - **APK installs but won't update later from the Play Store** — the build was

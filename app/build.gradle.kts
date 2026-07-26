@@ -10,7 +10,7 @@ plugins {
 //                   release build (passed as -PappVersionName by CI).
 //   appBuildNumber  set by CI (commit count) for untagged builds. It is
 //                   appended to the version name so an installed build is
-//                   identifiable at a glance — "1.4.0 (build 102)" reads like a
+//                   identifiable at a glance — "1.4.1 (build 102)" reads like a
 //                   version, unlike a raw commit hash — and doubles as the
 //                   versionCode when none is given.
 //   appVersionCode  monotonic install ordering; CI passes the commit count for

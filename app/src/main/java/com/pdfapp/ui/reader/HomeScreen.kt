@@ -61,7 +61,7 @@ fun HomeScreen(
         )
         // Sideloaded builds arrive without a store listing to check, so the app
         // states which one it is: the same string CI stamps as the versionName
-        // ("1.4.0", or "1.4.0 (build 102)" for a rolling build).
+        // ("1.4.1", or "1.4.1 (build 102)" for a rolling build).
         Text(
             appVersionLabel(),
             style = MaterialTheme.typography.labelSmall,

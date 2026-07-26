@@ -8,14 +8,14 @@ description: >
 inputs:
   tag:
     description: >
-      Release tag (e.g. v1.4.0) to verify against gradle.properties. The job
+      Release tag (e.g. v1.4.1) to verify against gradle.properties. The job
       fails if they disagree. Empty (the default) skips the check.
     required: false
     default: ""
 
 outputs:
   version:
-    description: Marketing version, e.g. 1.4.0.
+    description: Marketing version, e.g. 1.4.1.
     value: ${{ steps.resolve.outputs.version }}
   build_number:
     description: >

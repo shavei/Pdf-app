@@ -158,7 +158,7 @@ jobs:
       # the build number is the commit count (monotonically increasing, so
       # Android offers an in-place update instead of refusing) and it is both the
       # versionCode and the human-readable suffix on the version name — App info
-      # reads "1.4.0 (build 102)". The commit SHA stays in the release notes,
+      # reads "1.4.1 (build 102)". The commit SHA stays in the release notes,
       # where it belongs, instead of masquerading as a version.
       - name: Resolve app version
         id: version
@@ -242,7 +242,7 @@ jobs:
           fetch-depth: 0
 
       # gradle.properties stays the source of truth even for a tagged build; the
-      # tag only has to agree with it. Tagging v1.4.0 while appVersionName still
+      # tag only has to agree with it. Tagging v1.4.1 while appVersionName still
       # says 1.3.0 fails here rather than shipping a mislabelled release.
       - name: Resolve app version
         id: version
@@ -282,8 +282,8 @@ jobs:
             -PappVersionCode="${{ steps.version.outputs.build_number }}" \
             --stacktrace
 
-      # Published under the app's name and version — Signet-1.4.0.apk /
-      # Signet-1.4.0.aab — rather than AGP's generic app-release.*, so a
+      # Published under the app's name and version — Signet-1.4.1.apk /
+      # Signet-1.4.1.aab — rather than AGP's generic app-release.*, so a
       # downloaded file is self-describing on the phone that installs it.
       - name: Collect artifacts
         env:
