@@ -15,6 +15,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.pdfapp.MainActivity
 import com.pdfapp.ui.common.ReaderSemantics
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
@@ -145,15 +146,24 @@ class ReaderPanE2ETest {
         // leaving it there. (An upright page needs a tap near the bottom edge
         // to reach that offset, which is chrome territory.)
         withReader(pageCount = 3, pageSize = SHORT_PAGE) {
-            val (_, height) = viewportSize()
+            val (width, height) = viewportSize()
             val focusY = height / 2f
             val topBefore = pageTop()
+            val pageHeightBefore = pageNode().size.height
 
             // Anchored properly, every content point maps
             // y -> focusY + (y - focusY) * zoom, page 1's top included.
             val zoom = doubleTapAt(x = 0.5f)
+            val topAfter = pageTop()
 
-            assertThat(pageTop())
+            // The geometry rides along in the message: this assertion is only
+            // as good as its model of where the reader sits in the window, and
+            // a failure has to say which of the two is wrong.
+            assertWithMessage(
+                "root ${width}x$height, focusY $focusY, zoom $zoom, " +
+                    "page 1 top $topBefore -> $topAfter, " +
+                    "height $pageHeightBefore -> ${pageNode().size.height}",
+            ).that(topAfter)
                 .isWithin(height * TOP_TOLERANCE_FRACTION)
                 .of(focusY + (topBefore - focusY) * zoom)
         }
