@@ -124,6 +124,9 @@ fun ReaderView(
         // from the placement lambda and gesture callbacks, never from
         // composition, so panning stays a layout-phase invalidation.
         var panX by remember(session) { mutableFloatStateOf(0f) }
+        // The vertical half of a zoom anchor, waiting for the pages to re-compose
+        // at the new zoom before it can be scrolled to — see the effect below.
+        var pendingAnchor by remember(session) { mutableStateOf<PendingAnchor?>(null) }
 
         // Live pinch transform. During a gesture we do NOT touch `zoom` (which
         // drives the list's measured width/height); instead we scale the
@@ -168,15 +171,9 @@ fun ReaderView(
          * transform showed during the gesture (fingers-down positive), folded
          * straight into the new offsets so committing produces no visible jump.
          *
-         * Every write lands in one snapshot, and the vertical anchor is
-         * *requested* rather than scrolled to: `scrollToItem` forces a remeasure
-         * on the spot, which — since the pages have not recomposed at their new
-         * height yet — measured a post-zoom offset against pre-zoom items and
-         * rolled the anchor into the wrong page whenever the offset outgrew the
-         * old one. [LazyListState.requestScrollToItem] instead applies the
-         * position during the next measure: the same pass that first sees the
-         * new zoom, so the offset is measured against the items it was computed
-         * for.
+         * Every write lands in one snapshot, but the vertical anchor is only
+         * *recorded* here — see [pendingAnchor] for why it cannot be scrolled to
+         * until the pages have re-composed at the new zoom.
          */
         fun setZoomAnchored(
             target: Float,
@@ -224,7 +221,12 @@ fun ReaderView(
             panX = newPanX
             liveScale = 1f
             liveTranslation = Offset.Zero
-            listState.requestScrollToItem(anchorIndex, max(0, newOffset))
+            pendingAnchor =
+                PendingAnchor(
+                    index = anchorIndex,
+                    offset = max(0, newOffset),
+                    seq = (pendingAnchor?.seq ?: 0) + 1,
+                )
         }
 
         // Double-tap: animate the cheap live layer toward the target, then bake
@@ -249,6 +251,19 @@ fun ReaderView(
             setZoomAnchored(clampedTarget, centroid)
         }
 
+        // Apply a committed zoom's vertical anchor, one composition after the
+        // zoom itself. Scrolling from inside the gesture callback cannot work:
+        // every scroll API forces a remeasure on the spot, and at that moment
+        // the list still holds the pre-zoom pages — the item lambda only picks
+        // up the new page size when *this* composable recomposes. A post-zoom
+        // offset measured against pre-zoom pages is both too large for the
+        // content (so it clamps to the old maximum scroll) and liable to roll
+        // the anchor into a later page. Running here, the pages are already
+        // their new height, so the offset means what it was computed to mean.
+        LaunchedEffect(pendingAnchor) {
+            val anchor = pendingAnchor ?: return@LaunchedEffect
+            listState.scrollToItem(anchor.index, anchor.offset)
+        }
         // One-shot navigation requests from search / outline / go-to-page.
         LaunchedEffect(viewModel.pendingReadTarget) {
             viewModel.pendingReadTarget?.let { target ->
@@ -739,6 +754,17 @@ private class OneFingerPan(
         lastX = x
     }
 }
+
+/**
+ * A committed zoom's vertical anchor: the list position it should be scrolled
+ * to once the pages exist at the new zoom. [seq] distinguishes two anchors that
+ * happen to land on the same line, so every commit re-triggers the effect.
+ */
+private data class PendingAnchor(
+    val index: Int,
+    val offset: Int,
+    val seq: Int,
+)
 
 private val NIGHT_FILTER =
     ColorFilter.colorMatrix(
