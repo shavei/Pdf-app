@@ -68,6 +68,16 @@ class ReaderPanE2ETest {
     private fun viewportSize(): Pair<Float, Float> =
         composeRule.onRoot().fetchSemanticsNode().size.let { it.width.toFloat() to it.height.toFloat() }
 
+    /** Every currently composed page of a [pageCount]-page document, by its top. */
+    private fun composedPageTops(pageCount: Int): Map<Int, Float> =
+        (0 until pageCount).mapNotNull { index ->
+            composeRule
+                .onAllNodesWithContentDescription(ReaderSemantics.pageLabel(index, pageCount))
+                .fetchSemanticsNodes()
+                .firstOrNull()
+                ?.let { index to it.positionInRoot.y }
+        }.toMap()
+
     /** Open [pageCount] blank [pageSize] pages in the reader and wait for page 1. */
     private fun withReader(
         pageCount: Int,
@@ -170,6 +180,36 @@ class ReaderPanE2ETest {
     }
 
     @Test
+    fun zoomScalesTheGapsBetweenPages() {
+        // Strip-shaped pages, so several page boundaries sit under one screen.
+        // The distance between two pages is their heights plus the gaps between
+        // them; if the gaps do not scale with the zoom, that distance grows by
+        // less than the zoom, and an anchor spanning those boundaries lands
+        // short by exactly the difference.
+        withReader(pageCount = STRIP_PAGE_COUNT, pageSize = STRIP_PAGE) {
+            val before = composedPageTops(STRIP_PAGE_COUNT)
+
+            val zoom = doubleTapAt(x = 0.5f)
+
+            val after = composedPageTops(STRIP_PAGE_COUNT)
+            // Whatever survived the zoom on screen, measured between its
+            // outermost pages — no assumption about which pages those are, or
+            // about where the reader sits in the window.
+            val shared = before.keys.intersect(after.keys).sorted()
+            assertWithMessage("pages composed before $before and after $after")
+                .that(shared.size)
+                .isAtLeast(2)
+            val first = shared.first()
+            val last = shared.last()
+
+            assertWithMessage("pages $first..$last, zoom $zoom, before $before, after $after")
+                .that(after.getValue(last) - after.getValue(first))
+                .isWithin(GAP_TOLERANCE_PX)
+                .of((before.getValue(last) - before.getValue(first)) * zoom)
+        }
+    }
+
+    @Test
     fun oneFingerDrag_pansAndScrollsInTheSameGesture() {
         withReader(pageCount = 3) {
             val (width, height) = viewportSize()
@@ -205,6 +245,18 @@ class ReaderPanE2ETest {
 
         // Sub-pixel rounding drift in the committed offsets.
         const val TOLERANCE_PX = 2f
+
+        // Pages an eighth as tall as they are wide, so a screenful spans several
+        // page boundaries; enough of them that a zoomed document still has room
+        // to scroll to its anchor.
+        val STRIP_PAGE = PDRectangle(600f, 75f)
+        const val STRIP_PAGE_COUNT = 12
+
+        // Every page and gap rounds to whole pixels, so a span of several of
+        // them drifts a little either way. One unscaled 8dp gap costs 12px at
+        // the 2.5x reading zoom, and the span measured here covers a handful —
+        // tens of pixels — so this absorbs the rounding without hiding them.
+        const val GAP_TOLERANCE_PX = 8f
 
         // A page 0.7 as tall as it is wide. Tapping the middle of the screen
         // then lands an anchor offset of 0.75 x viewport height, between the

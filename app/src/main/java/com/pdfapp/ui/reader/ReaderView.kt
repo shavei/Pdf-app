@@ -411,7 +411,8 @@ fun ReaderView(
             ) {
                 LazyColumn(
                     state = listState,
-                    verticalArrangement = Arrangement.spacedBy(PAGE_SPACING.dp),
+                    // The gap scales with the pages: see [PAGE_SPACING].
+                    verticalArrangement = Arrangement.spacedBy((PAGE_SPACING * zoom).dp),
                     modifier =
                         Modifier
                             // A zoomed document is wider than the viewport, and
@@ -786,6 +787,13 @@ private val MATCH_COLOR = Color(0x66FFEB3B)
 private val CURRENT_MATCH_COLOR = Color(0x99FF9800)
 private val SELECTION_COLOR = Color(0x552196F3)
 
+/**
+ * Gap between pages, in dp at fit-width. It is multiplied by the zoom, so the
+ * document — pages *and* the space between them — is one uniformly scaled
+ * coordinate space. Anything in the scroll content that did not scale would put
+ * a zoom anchor out by that much per page boundary it spans, because the anchor
+ * scales the whole distance from the anchor page's top down to the focal point.
+ */
 private const val PAGE_SPACING = 8
 
 private const val MIN_ZOOM = 0.5f
