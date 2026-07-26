@@ -33,6 +33,16 @@ class SelectionController(
     private var anchor: PdfPoint? = null
     private var computeJob: Job? = null
 
+    /**
+     * Whether a long-press selection is latched. Set the instant the press
+     * lands — before the (asynchronous) text lookup fills [selection] — so a
+     * gesture handler can tell a selection drag from a viewport pan without
+     * waiting a frame. Deliberately not snapshot state: it is read from pointer
+     * callbacks, which must not drive recomposition.
+     */
+    val isSelecting: Boolean
+        get() = anchor != null
+
     /** Long-press at [point] on [pageIndex]: select the word underneath. */
     fun startAt(
         pageIndex: Int,
