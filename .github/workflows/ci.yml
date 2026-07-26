@@ -32,6 +32,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve app version
+        id: version
+        uses: ./.github/actions/app-version
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -58,6 +62,15 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
+      # AGP names every module's output app-debug.apk. Stage it under the app's
+      # own name and version so a downloaded file says what it is.
+      - name: Stage debug APK
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/Signet-$VERSION-debug.apk"
+
       # Artifact uploads are archival: a full Actions storage quota must not
       # fail an otherwise-green build. Real lint/unit/build failures still fail
       # the job at their own steps above.
@@ -65,8 +78,8 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: signet-debug-apk
+          path: dist/*.apk
           if-no-files-found: error
 
       - name: Upload test reports
@@ -138,8 +151,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history so commit count can serve as the versionCode below.
+          # Full history so the commit count is the real build number.
           fetch-depth: 0
+
+      # Stamps each rolling build so it is distinguishable from the previous one:
+      # the build number is the commit count (monotonically increasing, so
+      # Android offers an in-place update instead of refusing) and it is both the
+      # versionCode and the human-readable suffix on the version name — App info
+      # reads "1.4.1 (build 102)". The commit SHA stays in the release notes,
+      # where it belongs, instead of masquerading as a version.
+      - name: Resolve app version
+        id: version
+        uses: ./.github/actions/app-version
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -153,28 +176,25 @@ jobs:
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      # Stamp each rolling build so it is distinguishable from the previous
-      # one: versionCode = commit count (monotonically increasing, so Android
-      # offers an in-place update instead of refusing), versionName carries the
-      # short commit SHA (visible in Android's App info), and the release title
-      # carries the build date.
       - name: Compute build stamp
         run: |
-          echo "VERSION_CODE=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
-          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
-          echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')" >> "$GITHUB_ENV"
+          {
+            echo "SHORT_SHA=${GITHUB_SHA::7}"
+            echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M UTC')"
+          } >> "$GITHUB_ENV"
 
       - name: Assemble debug APK
         run: |
           ./gradlew assembleDebug \
-            -PappVersionCode="$VERSION_CODE" \
-            -PappVersionName="0.1.0+$SHORT_SHA" \
+            -PappBuildNumber="${{ steps.version.outputs.build_number }}" \
             --stacktrace
 
       # Stable asset name so the README "Download APK" link is a permalink:
-      # https://github.com/<owner>/<repo>/releases/latest/download/pdf-app.apk
+      # https://github.com/<owner>/<repo>/releases/latest/download/Signet.apk
+      # (the version is in the release title, the notes and Android's App info —
+      # putting it in the filename too would break the permalink).
       - name: Stage APK with stable name
-        run: cp app/build/outputs/apk/debug/app-debug.apk pdf-app.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk Signet.apk
 
       # GitHub displays a release's original creation date forever — merely
       # swapping the asset kept showing "released weeks ago" for fresh builds.
@@ -190,16 +210,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Latest build — ${{ env.BUILD_DATE }}"
+          name: "Latest build — ${{ steps.version.outputs.version }} (build ${{ steps.version.outputs.build_number }})"
           body: |
             Built **${{ env.BUILD_DATE }}** from commit `${{ env.SHORT_SHA }}` on `main`
-            after all checks passed. Installed version shows as
-            `0.1.0+${{ env.SHORT_SHA }}` (versionCode ${{ env.VERSION_CODE }})
-            in Android's App info.
+            after all checks passed. It installs as
+            `${{ steps.version.outputs.version }} (build ${{ steps.version.outputs.build_number }})` —
+            shown on Signet's home screen and in Android's App info.
 
-            **[⬇️ Download pdf-app.apk](https://github.com/${{ github.repository }}/releases/latest/download/pdf-app.apk)** and sideload it on your device.
+            **[⬇️ Download Signet.apk](https://github.com/${{ github.repository }}/releases/latest/download/Signet.apk)** and sideload it on your device.
             New builds install directly over previous ones — no uninstall needed.
-          files: pdf-app.apk
+          files: Signet.apk
           make_latest: true
 
   release:
@@ -220,6 +240,15 @@ jobs:
           # rolling "Latest build" job uses, so a tagged release always
           # outranks any rolling build already installed on a device.
           fetch-depth: 0
+
+      # gradle.properties stays the source of truth even for a tagged build; the
+      # tag only has to agree with it. Tagging v1.4.1 while appVersionName still
+      # says 1.3.0 fails here rather than shipping a mislabelled release.
+      - name: Resolve app version
+        id: version
+        uses: ./.github/actions/app-version
+        with:
+          tag: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -247,21 +276,22 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            VERSION_NAME="${GITHUB_REF_NAME#v}"
-          else
-            VERSION_NAME="0.1.0"
-          fi
+          # No build-number suffix here: a release is its version, full stop.
           ./gradlew :app:assembleRelease :app:bundleRelease \
-            -PappVersionName="$VERSION_NAME" \
-            -PappVersionCode="$(git rev-list --count HEAD)" \
+            -PappVersionName="${{ steps.version.outputs.version }}" \
+            -PappVersionCode="${{ steps.version.outputs.build_number }}" \
             --stacktrace
 
+      # Published under the app's name and version — Signet-1.4.1.apk /
+      # Signet-1.4.1.aab — rather than AGP's generic app-release.*, so a
+      # downloaded file is self-describing on the phone that installs it.
       - name: Collect artifacts
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/*.apk dist/ 2>/dev/null || true
-          cp app/build/outputs/bundle/release/*.aab dist/ 2>/dev/null || true
+          cp app/build/outputs/apk/release/app-release.apk "dist/Signet-$VERSION.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "dist/Signet-$VERSION.aab"
           ls -la dist
 
       # Archival only — the release publish below reads dist/** from disk, so a
@@ -281,3 +311,37 @@ jobs:
           files: dist/**
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+      # The version climbs on its own: once v1.4.1 is published, main moves to
+      # 1.4.2, so shipping the next release is just "tag v1.4.2" — no file to
+      # edit, and the tag check above can never be the thing that stops a
+      # release. To jump a minor or major instead, set appVersionName by hand on
+      # main and tag that. A push authenticated with GITHUB_TOKEN does not
+      # trigger workflows, so this cannot loop back into CI.
+      - name: Bump the patch version on main
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          RELEASED: ${{ steps.version.outputs.version }}
+        run: |
+          if [[ ! "$RELEASED" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            # A pre-release like 1.4.1-rc1 has no obvious "+1", and guessing one
+            # would silently drop the suffix.
+            echo "::warning::$RELEASED is not X.Y.Z, so there is no patch to bump. Set appVersionName on main by hand."
+            exit 0
+          fi
+          git fetch --quiet origin main
+          git checkout --quiet -B main origin/main
+          current="$(sed -n 's/^appVersionName=//p' gradle.properties | tr -d '[:space:]')"
+          if [ "$current" != "$RELEASED" ]; then
+            # Already moved on — a re-run of an old tag, or a hand-picked next
+            # version. Either way, main knows better than this job does.
+            echo "main is on $current, released $RELEASED. Nothing to bump."
+            exit 0
+          fi
+          next="$(echo "$current" | awk -F. -v OFS=. '{ $NF += 1 } 1')"
+          sed -i "s/^appVersionName=.*/appVersionName=$next/" gradle.properties
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --quiet -am "Bump version to $next after the $GITHUB_REF_NAME release"
+          git push origin main
+          echo "Released $RELEASED; main is now on $next."

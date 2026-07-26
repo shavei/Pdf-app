@@ -1,0 +1,48 @@
+name: App version
+description: >
+  Resolves the app's version from the single source of truth — appVersionName in
+  gradle.properties — and the build number (commit count), so every job in the
+  pipeline names and stamps builds the same way. Optionally verifies a release
+  tag agrees with it.
+
+inputs:
+  tag:
+    description: >
+      Release tag (e.g. v1.4.1) to verify against gradle.properties. The job
+      fails if they disagree. Empty (the default) skips the check.
+    required: false
+    default: ""
+
+outputs:
+  version:
+    description: Marketing version, e.g. 1.4.1.
+    value: ${{ steps.resolve.outputs.version }}
+  build_number:
+    description: >
+      Commit count — the versionCode, and the "(build N)" suffix on untagged
+      builds. Only meaningful when the job checked out with fetch-depth 0.
+    value: ${{ steps.resolve.outputs.build_number }}
+
+runs:
+  using: composite
+  steps:
+    - id: resolve
+      shell: bash
+      env:
+        # Via env rather than inline ${{ }}, so the tag is data, not script.
+        TAG: ${{ inputs.tag }}
+      run: |
+        version="$(sed -n 's/^appVersionName=//p' gradle.properties | tr -d '[:space:]')"
+        if [ -z "$version" ]; then
+          echo "::error file=gradle.properties::appVersionName is missing. It is the single source of truth for the app version."
+          exit 1
+        fi
+        if [ -n "$TAG" ] && [ "${TAG#v}" != "$version" ]; then
+          echo "::error file=gradle.properties::Tag $TAG does not match appVersionName=$version. Bump appVersionName to ${TAG#v} (with the CHANGELOG and README links) and tag that commit."
+          exit 1
+        fi
+        {
+          echo "version=$version"
+          echo "build_number=$(git rev-list --count HEAD)"
+        } >> "$GITHUB_OUTPUT"
+        echo "Version $version, build $(git rev-list --count HEAD)"

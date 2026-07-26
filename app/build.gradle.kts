@@ -4,10 +4,21 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// Version is overridable from the release workflow via -P flags; defaults keep
-// local/CI debug builds working without any arguments.
-val appVersionName = (findProperty("appVersionName") as String?) ?: "0.1.0"
-val appVersionCode = (findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1
+// Version naming, in one place:
+//   appVersionName  the marketing version — `appVersionName` in
+//                   gradle.properties for dev builds, the `vX.Y.Z` tag for a
+//                   release build (passed as -PappVersionName by CI).
+//   appBuildNumber  set by CI (commit count) for untagged builds. It is
+//                   appended to the version name so an installed build is
+//                   identifiable at a glance — "1.4.1 (build 102)" reads like a
+//                   version, unlike a raw commit hash — and doubles as the
+//                   versionCode when none is given.
+//   appVersionCode  monotonic install ordering; CI passes the commit count for
+//                   releases, so a tagged build always outranks a rolling one.
+val appVersionName = (findProperty("appVersionName") as String?) ?: "1.0.0"
+val appBuildNumber = (findProperty("appBuildNumber") as String?)?.toIntOrNull()
+val appVersionCode = (findProperty("appVersionCode") as String?)?.toIntOrNull() ?: appBuildNumber ?: 1
+val appDisplayVersion = appBuildNumber?.let { "$appVersionName (build $it)" } ?: appVersionName
 
 // Release signing reads from environment variables supplied by CI secrets, so no
 // keystore is ever committed. Absent these, release builds fall back to the
@@ -23,7 +34,7 @@ android {
         minSdk = 21
         targetSdk = 35
         versionCode = appVersionCode
-        versionName = appVersionName
+        versionName = appDisplayVersion
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -64,6 +75,9 @@ android {
 
     buildFeatures {
         compose = true
+        // The home screen shows the running build's version; BuildConfig is how
+        // it reads back what was stamped above.
+        buildConfig = true
     }
 
     compileOptions {
@@ -95,6 +109,15 @@ android {
                 "LabelFor",
             )
     }
+}
+
+// `./gradlew -q :app:appVersion` prints exactly what a build would stamp, so the
+// scheme can be checked — locally or from a CI log — without unpacking an APK.
+tasks.register("appVersion") {
+    group = "help"
+    description = "Prints the versionName and versionCode this build would stamp."
+    val summary = "$appDisplayVersion (versionCode $appVersionCode)"
+    doLast { println(summary) }
 }
 
 dependencies {

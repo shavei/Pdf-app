@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pdfapp.data.RecentFile
 import com.pdfapp.ui.ReaderSemantics
+import com.pdfapp.ui.appVersionLabel
 import com.pdfapp.ui.scaledDp
 import com.pdfapp.ui.touchTargetFloor
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +57,14 @@ fun HomeScreen(
         Text(
             "View, sign and annotate PDFs — entirely on this device.",
             style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        // Sideloaded builds arrive without a store listing to check, so the app
+        // states which one it is: the same string CI stamps as the versionName
+        // ("1.4.1", or "1.4.1 (build 102)" for a rolling build).
+        Text(
+            appVersionLabel(),
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Button(onClick = onOpenClick, modifier = Modifier.touchTargetFloor()) { Text("Open PDF") }

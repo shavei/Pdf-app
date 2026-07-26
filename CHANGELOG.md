@@ -14,6 +14,9 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 
 ### Added
 
+- **Version on the home screen** — the running build names itself
+  ("Signet 1.4.1", or "Signet 1.4.1 (build 102)" for a rolling build), so a
+  sideloaded APK can be identified without opening Android's App info.
 - **Accessibility & dynamic type** (mobile-ui-plan Phase F) — TalkBack
   announces a rendered page by its position and, while a screen reader is
   running, reads the page's extracted text; the immersive chrome toggle is
@@ -33,6 +36,20 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 - Android lint's accessibility checks (`ContentDescription`,
   `ClickableViewAccessibility`, `KeyboardInaccessibleWidget`, `LabelFor`) are
   build errors in `:app` and `:overlay-engine`.
+- **Build naming** — builds install as a version plus a build number,
+  `1.4.1 (build 102)`, instead of `0.1.0+9caa14e`; the commit SHA stays in the
+  release notes. Published files are named after the app: `Signet-<version>.apk`
+  / `.aab` on tagged releases, `Signet.apk` on the rolling `Latest build`
+  (unversioned, so the download permalink is stable), and
+  `Signet-<version>-debug.apk` in CI artifacts.
+- **One source of truth for the version** — `appVersionName` in
+  `gradle.properties`. Builds and all three CI jobs read that one line (via the
+  new `.github/actions/app-version`), and a `vX.Y.Z` tag that disagrees with it
+  fails the release instead of shipping a mislabelled build. The version is never
+  edited by hand: publishing a release commits the next patch (`1.4.1` → `1.4.2`)
+  to `main`, so it climbs by one every time and cutting a release is just
+  "tag the version `main` is on". `./gradlew -q :app:appVersion` prints what a
+  build would stamp. See [`docs/RELEASING.md`](docs/RELEASING.md#versioning).
 
 ## [1.3.0] — 2026-07-22
 
