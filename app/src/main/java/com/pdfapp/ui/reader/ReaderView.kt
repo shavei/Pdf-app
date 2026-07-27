@@ -10,11 +10,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -192,15 +192,18 @@ fun ReaderView(
                 liveTranslation = Offset.Zero
                 return
             }
-            val anchorIndex = listState.firstVisibleItemIndex
-            val newOffset =
-                ReaderPan
-                    .anchored(
-                        pan = listState.firstVisibleItemScrollOffset.toFloat(),
-                        focus = centroid.y,
-                        scaleFactor = k,
-                        gesturePan = gesturePan.y,
-                    ).roundToInt()
+            // Vertically the anchor is a *distance to travel*, not a position:
+            // scroll offset zero is the top of the first visible page, not the
+            // top of the document, so an anchor that belongs on an earlier page
+            // is a negative offset no absolute scroll can express. See
+            // [ReaderPan.anchorDelta].
+            val scrollDelta =
+                ReaderPan.anchorDelta(
+                    pan = listState.firstVisibleItemScrollOffset.toFloat(),
+                    focus = centroid.y,
+                    scaleFactor = k,
+                    gesturePan = gesturePan.y,
+                )
             // The pan is our own state, so it clamps against the width the
             // document is zooming *to* — no relayout has to land first for the
             // horizontal anchor to be right.
@@ -226,8 +229,7 @@ fun ReaderView(
             liveTranslation = Offset.Zero
             pendingAnchor =
                 PendingAnchor(
-                    index = anchorIndex,
-                    offset = max(0, newOffset),
+                    scrollDelta = scrollDelta,
                     seq = (pendingAnchor?.seq ?: 0) + 1,
                 )
         }
@@ -259,14 +261,21 @@ fun ReaderView(
         // zoom itself. Scrolling from inside the gesture callback cannot work:
         // every scroll API forces a remeasure on the spot, and at that moment
         // the list still holds the pre-zoom pages — the item lambda only picks
-        // up the new page size when *this* composable recomposes. A post-zoom
-        // offset measured against pre-zoom pages is both too large for the
-        // content (so it clamps to the old maximum scroll) and liable to roll
-        // the anchor into a later page. Running here, the pages are already
-        // their new height, so the offset means what it was computed to mean.
+        // up the new page size when *this* composable recomposes. A distance
+        // measured in post-zoom pixels, spent against pre-zoom pages, lands
+        // short and can roll the anchor into the wrong page entirely. Running
+        // here, the pages are already their new height, so the scroll covers
+        // exactly the content it was computed to cover — forwards or, on a
+        // zoom-out, back through the pages above.
+        //
+        // A *relative* scroll is safe across that remeasure because the list
+        // re-measures from the index and offset it stored, so it comes out of
+        // the zoom at the same numeric position the delta was computed against
+        // — even where the new page sizes make the list express that position
+        // as a different page.
         LaunchedEffect(pendingAnchor) {
             val anchor = pendingAnchor ?: return@LaunchedEffect
-            listState.scrollToItem(anchor.index, anchor.offset)
+            listState.scrollBy(anchor.scrollDelta)
         }
         // One-shot navigation requests from search / outline / go-to-page.
         LaunchedEffect(viewModel.pendingReadTarget) {
@@ -716,9 +725,9 @@ private fun Modifier.documentGestures(
                     event.changes.count { it.pressed } >= 2 -> {
                         if (!pinching) {
                             pinching = true
-                            // Anchor the whole gesture on the centroid where the
-                            // second finger landed; pan tracks it from there.
-                            onPinchStart(event.calculateCentroid(useCurrent = true))
+                            // Anchor the whole gesture on the midpoint of the
+                            // fingers; pan tracks it from there.
+                            onPinchStart(event.pressedCentroid())
                         }
                         event.applyPinch(onPinch)
                     }
@@ -732,6 +741,30 @@ private fun Modifier.documentGestures(
             if (pinching) onPinchEnd()
         }
     }
+
+/**
+ * Midpoint of every finger currently down.
+ *
+ * Not `calculateCentroid`, which averages only the pointers that were *also*
+ * down in the previous event — the right rule for a step of a gesture, and the
+ * wrong one for its first frame. A pinch starts on the event that puts the
+ * second finger down, and on that event the second finger has no previous
+ * position, so the standard centroid is the first finger's position alone. Used
+ * as the pivot, that turns the document about whichever finger happened to land
+ * first instead of the point between them: the zoom lands half a finger-spread
+ * away from what the user pinched about.
+ */
+private fun PointerEvent.pressedCentroid(): Offset {
+    var sum = Offset.Zero
+    var count = 0
+    changes.forEach { change ->
+        if (change.pressed) {
+            sum += change.position
+            count++
+        }
+    }
+    return if (count == 0) Offset.Zero else sum / count.toFloat()
+}
 
 /** Report one two-finger step, then keep the event away from the scrolling list. */
 private fun PointerEvent.applyPinch(onPinch: (zoomChange: Float, pan: Offset) -> Unit) {
@@ -765,13 +798,13 @@ private class OneFingerPan(
 }
 
 /**
- * A committed zoom's vertical anchor: the list position it should be scrolled
- * to once the pages exist at the new zoom. [seq] distinguishes two anchors that
- * happen to land on the same line, so every commit re-triggers the effect.
+ * A committed zoom's vertical anchor: how far the list should scroll — in
+ * post-zoom pixels, signed, so a zoom-out can travel back up the document —
+ * once the pages exist at the new zoom. [seq] distinguishes two anchors that
+ * happen to ask for the same distance, so every commit re-triggers the effect.
  */
 private data class PendingAnchor(
-    val index: Int,
-    val offset: Int,
+    val scrollDelta: Float,
     val seq: Int,
 )
 

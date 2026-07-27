@@ -107,6 +107,12 @@ scope is refocused to **viewer + signer** (the annotation suite is removed).
 
 ### Fixed
 
+- **Zooming lands where you asked for it.** Two ways it didn't: a pinch turned
+  the document about whichever finger touched down first rather than the point
+  between the fingers, and any zoom whose anchor sat above the top of the page
+  the reader was on — most double-taps back to fit-width, and any pinch that
+  drew the fingers down the screen — was pinned to that page's top instead of
+  travelling back to the line it was asked to hold.
 - Edit bottom bar no longer overflows on small phones.
 - Stepper touch targets sized to 48 dp.
 - `OpenWithIntentTest` updated for the chip-less continuous reader.

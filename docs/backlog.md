@@ -96,14 +96,9 @@ anyone browsing the repository. Beneath them sit roughly forty merged `claude/*`
 feature branches that were never pruned — cosmetic, but it makes the branch list
 useless.
 
-### M3 · `PAGE_SPACING` is not scaled with zoom
-
-**Flagged:** PR #47 · **Where:** `ui/reader/ReaderView.kt:414`, `:789`.
-
-The 8 dp gap between pages is a constant, while the pages around it grow with
-the zoom. An anchored zoom whose target is several pages away from the first
-visible item therefore drifts by a few dp per gap. Pre-existing, and unrelated to
-the anchor bugs #46/#47 fixed.
+*(M3 — `PAGE_SPACING` not scaled with zoom — shipped in PR #48: the gap is
+`(PAGE_SPACING * zoom).dp`, guarded by `zoomScalesTheGapsBetweenPages`. Its
+number is not reused, so PRs citing M4–M10 still resolve.)*
 
 ### M4 · Two-finger pan during a pinch is deferred to the settle
 
@@ -170,6 +165,19 @@ consequence of the best-effort persistable grant.
 A PDF opened from another app carries a temporary grant, so its Recents entry
 stops resolving once the task dies. Fixing it means copying into app-private
 storage on open — a real design decision, not a bug, but users see a dead entry.
+
+### M11 · A committed zoom shows one un-anchored frame
+
+**Flagged:** the zoom-anchor fix · **Where:** the `pendingAnchor` effect in
+`ui/reader/ReaderView.kt`.
+
+The vertical half of a zoom anchor can only be applied once the pages have
+re-composed at the new zoom, so the frame in between presents the new zoom at the
+old scroll position, before the anchor lands. It reads as a flicker on the way to
+the right place rather than a wrong resting position. Compose 1.9's
+`LazyListState.requestScrollToItem` sets a position for the *next* measure
+instead of forcing one, which would close the gap; the project is on Compose 1.7
+(BOM 2024.10.01), so it moves with the next BOM upgrade — alongside S8.
 
 ---
 

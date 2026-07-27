@@ -108,6 +108,39 @@ class ReaderPanTest {
     }
 
     @Test
+    fun anchorDeltaIsTheTravelFromWhereTheViewportSits() {
+        // The same anchor, expressed as a distance: 1200 away from an offset
+        // of 0 is 1200 of travel.
+        assertThat(ReaderPan.anchorDelta(pan = 0f, focus = 800f, scaleFactor = 2.5f, gesturePan = 0f))
+            .isEqualTo(1200f)
+        // From 200 in, the 700 anchor is only 500 of travel.
+        assertThat(ReaderPan.anchorDelta(pan = 200f, focus = 300f, scaleFactor = 2f, gesturePan = 0f))
+            .isEqualTo(500f)
+    }
+
+    @Test
+    fun zoomingOutTravelsBackwards() {
+        // The regression the vertical axis hit: 400px into the first visible
+        // page at 2.5x, double-tapping back to fit-width at y=1000. The line
+        // under the finger belongs 440px *above* that page's top, so the
+        // travel is negative — and a scroll offset, which cannot go below the
+        // page it is measured from, could only ever pin it to zero and drop
+        // the reader 840px away from where it was asked to stay.
+        assertThat(ReaderPan.anchored(pan = 400f, focus = 1000f, scaleFactor = 0.4f, gesturePan = 0f))
+            .isWithin(ROUNDING).of(-440f)
+        assertThat(ReaderPan.anchorDelta(pan = 400f, focus = 1000f, scaleFactor = 0.4f, gesturePan = 0f))
+            .isWithin(ROUNDING).of(-840f)
+    }
+
+    @Test
+    fun zoomingInCanAlsoTravelBackwards() {
+        // Not only zoom-outs: a pinch that dragged the fingers 900px down the
+        // screen while magnifying a little still reveals content above.
+        assertThat(ReaderPan.anchorDelta(pan = 100f, focus = 500f, scaleFactor = 1.2f, gesturePan = 900f))
+            .isWithin(ROUNDING).of(-780f)
+    }
+
+    @Test
     fun zoomingBackToFitWidthResetsThePan() {
         // Fit-width has no travel, so whatever the pan was collapses to 0 —
         // which is also what keeps a zoom-out centred.
@@ -120,5 +153,10 @@ class ReaderPanTest {
             )
         assertThat(ReaderPan.clamp(anchored, contentWidthPx = 1000f, viewportWidthPx = 1000f))
             .isEqualTo(0f)
+    }
+
+    private companion object {
+        // Fit-width is 1/2.5 of the reading zoom, which no float holds exactly.
+        const val ROUNDING = 0.01f
     }
 }
