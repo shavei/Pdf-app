@@ -2,6 +2,9 @@ package com.pdfapp.ui.reader
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -241,13 +244,14 @@ fun ReaderView(
             if (clampedTarget == start) return
             livePivot = centroid
             liveTranslation = Offset.Zero
-            val steps = DOUBLE_TAP_ZOOM_STEPS
-            repeat(steps) { step ->
-                val fraction = (step + 1) / steps.toFloat()
-                val z = start + (clampedTarget - start) * fraction
-                liveScale = z / start
-                delay(DOUBLE_TAP_FRAME_MS)
-            }
+            // Frame-driven, not a delay() loop: `animate` resumes on the frame
+            // callback, so each step lands on a vsync instead of drifting
+            // against it, and the easing takes the lurch out of both ends.
+            animate(
+                initialValue = start,
+                targetValue = clampedTarget,
+                animationSpec = tween(DOUBLE_TAP_ZOOM_MS, easing = FastOutSlowInEasing),
+            ) { value, _ -> liveScale = value / start }
             setZoomAnchored(clampedTarget, centroid)
         }
 
@@ -600,25 +604,25 @@ private fun VisibleZoomStrips(
     val session = viewModel.session ?: return
     val density = LocalDensity.current
 
-    // The item's live offset in the list viewport drives which strips exist.
-    val itemTop by remember(listState, pageIndex) {
+    // The page's offset in the list viewport drives which strips exist — but
+    // only the strip *range* is derived state. The offset itself changes on
+    // every frame of a scroll, and reading it here would recompose this page,
+    // and every other visible one, sixty times a second for the whole gesture.
+    // The range changes when a boundary crosses the viewport, so that is what
+    // this composable wakes for. See [ReaderStrips].
+    val strips by remember(listState, pageIndex, pageHeightPx, viewportHeightPx, bucket) {
         derivedStateOf {
-            listState.layoutInfo.visibleItemsInfo
-                .firstOrNull { it.index == pageIndex }
-                ?.offset
+            val top =
+                listState.layoutInfo.visibleItemsInfo
+                    .firstOrNull { it.index == pageIndex }
+                    ?.offset ?: return@derivedStateOf IntRange.EMPTY
+            ReaderStrips.visibleRange(top, pageHeightPx, viewportHeightPx, bucket)
         }
     }
-    val top = itemTop ?: return
+    if (strips.isEmpty()) return
     val stripHeightPx = pageHeightPx / bucket
-    if (stripHeightPx <= 0f) return
-    val margin = stripHeightPx / 2f
-    val firstStrip = floor((-top - margin) / stripHeightPx).toInt().coerceAtLeast(0)
-    val lastStrip =
-        (ceil((viewportHeightPx - top + margin) / stripHeightPx).toInt() - 1)
-            .coerceAtMost(bucket - 1)
-    if (firstStrip > lastStrip) return
 
-    for (strip in firstStrip..lastStrip) {
+    for (strip in strips) {
         key(strip) {
             val stripBitmap by produceState<ImageBitmap?>(null, session, pageIndex, baseScale, bucket, strip) {
                 value =
@@ -798,8 +802,10 @@ private const val PAGE_SPACING = 8
 
 private const val MIN_ZOOM = 0.5f
 private const val MAX_ZOOM = 8f
-private const val DOUBLE_TAP_ZOOM_STEPS = 12
-private const val DOUBLE_TAP_FRAME_MS = 16L
+
+// Long enough to read as a movement rather than a cut, short enough not to
+// hold up the tap; the easing does the rest.
+private const val DOUBLE_TAP_ZOOM_MS = 200
 
 // Debounce after the last pinch step before committing crisper strips.
 private const val TILE_SETTLE_MS = 180L
