@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.swipe
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -142,6 +143,37 @@ class ReaderPanE2ETest {
     }
 
     /**
+     * The layout width of a page the list has really placed, at today's zoom.
+     *
+     * Every page shares the document's zoom, but a page in the reuse pool still
+     * reports the size it was last laid out at — a whole zoom out of date. So
+     * this asks one of the pages [placedRun] vouches for.
+     */
+    private fun placedPageWidth(pageCount: Int): Float {
+        val placed = placedRun(composedPageTops(pageCount)).firstOrNull() ?: return 0f
+        val node =
+            composeRule
+                .onAllNodesWithContentDescription(ReaderSemantics.pageLabel(placed, pageCount))
+                .fetchSemanticsNodes()
+                .first()
+        return node.size.width.toFloat()
+    }
+
+    /** Double-tap at ([x], [y]) as fractions of the viewport; wait for [settled]. */
+    private fun doubleTapAndSettle(
+        x: Float,
+        y: Float,
+        settled: () -> Boolean,
+    ) {
+        val (width, height) = viewportSize()
+        composeRule.onRoot().performTouchInput {
+            doubleClick(Offset(width * x, height * y))
+        }
+        composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS, condition = settled)
+        composeRule.waitForIdle()
+    }
+
+    /**
      * Double-tap at ([x], [y]) as fractions of the viewport, let the zoom
      * settle, and report the factor the page actually grew by.
      */
@@ -149,15 +181,8 @@ class ReaderPanE2ETest {
         x: Float,
         y: Float = 0.5f,
     ): Float {
-        val (width, height) = viewportSize()
         val fitWidth = pageWidth()
-        composeRule.onRoot().performTouchInput {
-            doubleClick(Offset(width * x, height * y))
-        }
-        composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS) {
-            pageWidth() > fitWidth * ZOOM_IN_THRESHOLD
-        }
-        composeRule.waitForIdle()
+        doubleTapAndSettle(x, y) { pageWidth() > fitWidth * ZOOM_IN_THRESHOLD }
         return pageWidth().toFloat() / fitWidth
     }
 
@@ -210,6 +235,66 @@ class ReaderPanE2ETest {
     }
 
     @Test
+    fun doubleTapZoomOut_travelsBackAboveTheAnchorPage() {
+        // The zoom-out half of the anchor, and the half a scroll *offset*
+        // cannot express. Vertically the reader's position is measured from the
+        // top of whichever page is first visible, so a line held near the
+        // bottom of the screen while the document shrinks around it belongs on
+        // a page further up — a negative offset, which pins to zero and drops
+        // the reader at the top of the page it happened to be sitting on
+        // instead. That is most of the way through every double-tap back to
+        // fit-width, and it needs pages above the viewport to show up at all,
+        // which is why this scrolls into the document first.
+        withReader(pageCount = SCROLLED_PAGE_COUNT, pageSize = STRIP_PAGE) {
+            val (width, height) = viewportSize()
+
+            // Slowly: a fling would leave the reader somewhere unpredictable,
+            // and this needs room above *and* below to travel.
+            composeRule.onRoot().performTouchInput {
+                swipe(
+                    start = Offset(width * 0.5f, height * SCROLL_FROM_Y),
+                    end = Offset(width * 0.5f, height * SCROLL_TO_Y),
+                    durationMillis = SCROLL_MS,
+                )
+            }
+            composeRule.waitForIdle()
+            val fitWidth = placedPageWidth(SCROLLED_PAGE_COUNT)
+
+            // Zoom in high on the screen, which leaves the reader only a little
+            // way into a page — so the way back out has to cross that page's
+            // top rather than stopping at it.
+            doubleTapAndSettle(x = 0.5f, y = ZOOM_IN_Y) {
+                placedPageWidth(SCROLLED_PAGE_COUNT) > fitWidth * ZOOM_IN_THRESHOLD
+            }
+            val zoomedWidth = placedPageWidth(SCROLLED_PAGE_COUNT)
+            val topsBefore = composedPageTops(SCROLLED_PAGE_COUNT)
+
+            // Zoom back out low on the screen. Anchored, every content point
+            // maps y -> focusY + (y - focusY) * k about that line.
+            val focusY = height * ZOOM_OUT_Y
+            doubleTapAndSettle(x = 0.5f, y = ZOOM_OUT_Y) {
+                placedPageWidth(SCROLLED_PAGE_COUNT) < zoomedWidth / ZOOM_IN_THRESHOLD
+            }
+            val topsAfter = composedPageTops(SCROLLED_PAGE_COUNT)
+            val k = placedPageWidth(SCROLLED_PAGE_COUNT) / zoomedWidth
+
+            // Only pages both screenfuls placed: a page the reuse pool is
+            // holding reports where it last was, not where it is.
+            val common = placedRun(topsBefore).intersect(placedRun(topsAfter).toSet())
+            val diagnostics =
+                "root ${width}x$height, focusY $focusY, zoom out $k, " +
+                    "before $topsBefore, after $topsAfter"
+            assertWithMessage(diagnostics).that(common).isNotEmpty()
+            common.forEach { index ->
+                assertWithMessage("page $index; $diagnostics")
+                    .that(topsAfter.getValue(index))
+                    .isWithin(height * TOP_TOLERANCE_FRACTION)
+                    .of(focusY + (topsBefore.getValue(index) - focusY) * k)
+            }
+        }
+    }
+
+    @Test
     fun zoomScalesTheGapsBetweenPages() {
         // Strip-shaped pages, so several page boundaries sit under one screen.
         // The distance between two pages is their heights plus the gaps between
@@ -236,6 +321,46 @@ class ReaderPanE2ETest {
                 .that(pagePitch(after, runAfter))
                 .isWithin(GAP_TOLERANCE_PX)
                 .of(pagePitch(before, runBefore) * zoom)
+        }
+    }
+
+    @Test
+    fun pinch_zoomsAboutTheMidpointOfTheFingers() {
+        // A pinch turns the document about the point between the fingers. The
+        // gesture begins on the event that puts the second finger down, and on
+        // that event Compose's centroid helper — which only averages pointers
+        // that were down in the previous event too — reports the *first*
+        // finger's position, half a spread away from where the user pinched.
+        // Fingers on one vertical line, so only the vertical pivot can explain
+        // where the page ends up.
+        withReader(pageCount = 3) {
+            val (width, height) = viewportSize()
+            val focusY = height / 2f
+            val spread = height * PINCH_SPREAD_FRACTION
+            val topBefore = pageTop()
+            val fitWidth = pageWidth()
+
+            composeRule.onRoot().performTouchInput {
+                pinch(
+                    start0 = Offset(width / 2f, focusY - spread),
+                    end0 = Offset(width / 2f, focusY - spread * PINCH_FACTOR),
+                    start1 = Offset(width / 2f, focusY + spread),
+                    end1 = Offset(width / 2f, focusY + spread * PINCH_FACTOR),
+                    durationMillis = SWIPE_MS,
+                )
+            }
+            composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS) {
+                pageWidth() > fitWidth * ZOOM_IN_THRESHOLD
+            }
+            composeRule.waitForIdle()
+
+            val zoom = pageWidth().toFloat() / fitWidth
+            assertWithMessage(
+                "root ${width}x$height, focusY $focusY, spread $spread, zoom $zoom, " +
+                    "page 1 top $topBefore -> ${pageTop()}",
+            ).that(pageTop())
+                .isWithin(height * TOP_TOLERANCE_FRACTION)
+                .of(focusY + (topBefore - focusY) * zoom)
         }
     }
 
@@ -268,6 +393,34 @@ class ReaderPanE2ETest {
         const val LOAD_TIMEOUT_MS = 10_000L
         const val ZOOM_TIMEOUT_MS = 5_000L
         const val SWIPE_MS = 300L
+
+        // Slow enough to leave almost no fling velocity behind, so a test that
+        // scrolls to set up a case knows roughly where it ended up.
+        const val SCROLL_MS = 800L
+
+        // Enough strip pages that this much scrolling lands in the middle of
+        // the document — neither end can clamp an anchor. The strips also bound
+        // how far into a page the reader can end up after zooming in (one page,
+        // and they are short), which is what makes the anchor that follows
+        // reliably a *backward* one however far the swipe happened to go.
+        const val SCROLLED_PAGE_COUNT = 30
+        const val SCROLL_FROM_Y = 0.8f
+        const val SCROLL_TO_Y = 0.2f
+
+        // Well clear of the chrome at either end of the screen, and far enough
+        // apart that the anchor between them is a big backward scroll: zooming
+        // in about the upper line and back out about the lower one leaves the
+        // anchor roughly 0.4 viewports above the page the reader sat on.
+        const val ZOOM_IN_Y = 0.25f
+        const val ZOOM_OUT_Y = 0.75f
+
+        // Fingers start this far either side of the point being pinched about,
+        // and end PINCH_FACTOR times as far apart — so the document doubles,
+        // both fingers stay on screen, and pivoting on the first finger instead
+        // of the midpoint misses by a spread's worth of magnification: many
+        // times TOP_TOLERANCE_FRACTION either way.
+        const val PINCH_SPREAD_FRACTION = 0.18f
+        const val PINCH_FACTOR = 2f
 
         // The reading zoom is 2.5x; require clearly-more-than-fit so a stray
         // single tap (no zoom) can never satisfy the wait.

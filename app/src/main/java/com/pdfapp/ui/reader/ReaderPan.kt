@@ -55,4 +55,27 @@ object ReaderPan {
         scaleFactor: Float,
         gesturePan: Float,
     ): Float = (pan + focus) * scaleFactor - focus - gesturePan
+
+    /**
+     * How far the viewport has to move for that anchor to land: [anchored] less
+     * the [pan] the viewport already sits at.
+     *
+     * The vertical axis needs this difference rather than the absolute offset,
+     * because vertically `pan` is measured from the top of whichever page
+     * happens to be first visible — not from the top of the document. An anchor
+     * belonging *above* that page is a negative absolute offset, and the only
+     * thing an absolute scroll can do with it is pin it to zero, dropping the
+     * document at that page's top instead of where the zoom was asked for.
+     * That is not a corner case: the anchor is negative whenever [pan] is less
+     * than [focus] x (1 - [scaleFactor]) / [scaleFactor] — one and a half times
+     * the focal point when a double-tap drops 2.5x back to fit-width, which is
+     * most of the page. As a relative scroll the list walks back through the
+     * pages above by itself, so the sign stops mattering.
+     */
+    fun anchorDelta(
+        pan: Float,
+        focus: Float,
+        scaleFactor: Float,
+        gesturePan: Float,
+    ): Float = anchored(pan, focus, scaleFactor, gesturePan) - pan
 }
