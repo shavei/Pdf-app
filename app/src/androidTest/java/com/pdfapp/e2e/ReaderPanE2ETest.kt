@@ -5,10 +5,12 @@ import android.net.Uri
 import android.os.StrictMode
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.doubleClick
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.swipe
@@ -244,21 +246,25 @@ class ReaderPanE2ETest {
         // the reader at the top of the page it happened to be sitting on
         // instead. That is most of the way through every double-tap back to
         // fit-width, and it needs pages above the viewport to show up at all,
-        // which is why this scrolls into the document first.
+        // which is why this starts halfway through the document.
         withReader(pageCount = SCROLLED_PAGE_COUNT, pageSize = STRIP_PAGE) {
             val (width, height) = viewportSize()
 
-            // Slowly: a fling would leave the reader somewhere unpredictable,
-            // and this needs room above *and* below to travel.
-            composeRule.onRoot().performTouchInput {
-                swipe(
-                    start = Offset(width * 0.5f, height * SCROLL_FROM_Y),
-                    end = Offset(width * 0.5f, height * SCROLL_TO_Y),
-                    durationMillis = SCROLL_MS,
-                )
-            }
+            // Through the list's own scroll action rather than a swipe: a swipe
+            // has to start somewhere, and the far end of the screen — where a
+            // long one has to start — is chrome. This lands on a known page
+            // with the reader at its top, so what follows is arithmetic rather
+            // than wherever a fling happened to stop.
+            composeRule.onNode(hasScrollToIndexAction()).performScrollToIndex(START_PAGE)
             composeRule.waitForIdle()
             val fitWidth = placedPageWidth(SCROLLED_PAGE_COUNT)
+            // Nothing below can mean anything if the reader is still at the top
+            // of the document: there, both the anchored scroll and the pinned
+            // one stop at page 1, and the case never arises.
+            val startedAt = placedRun(composedPageTops(SCROLLED_PAGE_COUNT)).first()
+            assertWithMessage("reader did not scroll into the document")
+                .that(startedAt)
+                .isAtLeast(START_PAGE - 1)
 
             // Zoom in high on the screen, which leaves the reader only a little
             // way into a page — so the way back out has to cross that page's
@@ -394,25 +400,21 @@ class ReaderPanE2ETest {
         const val ZOOM_TIMEOUT_MS = 5_000L
         const val SWIPE_MS = 300L
 
-        // Slow enough to leave almost no fling velocity behind, so a test that
-        // scrolls to set up a case knows roughly where it ended up.
-        const val SCROLL_MS = 800L
-
-        // Enough strip pages that this much scrolling lands in the middle of
-        // the document — neither end can clamp an anchor. The strips also bound
-        // how far into a page the reader can end up after zooming in (one page,
-        // and they are short), which is what makes the anchor that follows
-        // reliably a *backward* one however far the swipe happened to go.
+        // Strip pages, so however the zoom-in leaves the reader positioned it
+        // is at most one short page into that page — which is what makes the
+        // zoom-out that follows a reliably *backward* anchor. Starting halfway
+        // through the document leaves several screenfuls of travel either way,
+        // so neither end of the document can clamp the anchor.
         const val SCROLLED_PAGE_COUNT = 30
-        const val SCROLL_FROM_Y = 0.8f
-        const val SCROLL_TO_Y = 0.2f
+        const val START_PAGE = 15
 
         // Well clear of the chrome at either end of the screen, and far enough
         // apart that the anchor between them is a big backward scroll: zooming
-        // in about the upper line and back out about the lower one leaves the
-        // anchor roughly 0.4 viewports above the page the reader sat on.
-        const val ZOOM_IN_Y = 0.25f
-        const val ZOOM_OUT_Y = 0.75f
+        // in about the upper line and back out about the lower one puts the
+        // anchor a third of a viewport or more above the page the reader sat
+        // on — many times TOP_TOLERANCE_FRACTION.
+        const val ZOOM_IN_Y = 0.3f
+        const val ZOOM_OUT_Y = 0.7f
 
         // Fingers start this far either side of the point being pinched about,
         // and end PINCH_FACTOR times as far apart — so the document doubles,
