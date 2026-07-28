@@ -74,9 +74,9 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # No per-run debug APK. It was 26 MB against a 500 MB account-wide
-      # Actions quota — this repository is private, so artifacts are billed —
-      # and at the default 90-day retention roughly ten commits filled it. It
+      # No per-run debug APK. It was 26 MB on every run at the default 90-day
+      # retention, which filled the account-wide Actions storage allowance in
+      # roughly ten commits back when this repository was private and billed. It
       # was also redundant: `publish` below puts an installable debug APK on
       # the rolling "Latest build" *release*, and release assets are not
       # Actions storage. A build off a specific PR is still reachable by
@@ -227,10 +227,15 @@ jobs:
             `${{ steps.version.outputs.version }} (build ${{ steps.version.outputs.build_number }})` —
             shown on Signet's home screen and in Android's App info.
 
-            **[⬇️ Download Signet.apk](https://github.com/${{ github.repository }}/releases/latest/download/Signet.apk)** and sideload it on your device.
+            **[⬇️ Download Signet.apk](https://github.com/${{ github.repository }}/releases/download/latest/Signet.apk)** and sideload it on your device.
             New builds install directly over previous ones — no uninstall needed.
           files: Signet.apk
-          make_latest: true
+          # Deliberately NOT make_latest. GitHub's "latest release" — and the
+          # /releases/latest/download/ permalink the README points at — belongs
+          # to the newest signed `vX.Y.Z`, not to a rolling debug build that
+          # republishes on every green push and would bury it. This release
+          # stays reachable by its own tag, which is what the link above uses.
+          make_latest: false
 
   release:
     name: Build + publish release
@@ -302,6 +307,11 @@ jobs:
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk "dist/Signet-$VERSION.apk"
           cp app/build/outputs/bundle/release/app-release.aab "dist/Signet-$VERSION.aab"
+          # An unversioned copy as well. Now that the rolling build no longer
+          # claims "latest", /releases/latest/download/Signet.apk resolves to
+          # this release — so the README's download button and badge keep
+          # working as permalinks and start serving the signed build.
+          cp app/build/outputs/apk/release/app-release.apk "dist/Signet.apk"
           ls -la dist
 
       # Archival only — the release publish below reads dist/** from disk, so a

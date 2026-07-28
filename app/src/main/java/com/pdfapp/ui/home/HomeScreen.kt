@@ -55,7 +55,7 @@ fun HomeScreen(
         modifier = modifier.fillMaxSize().padding(24.dp),
     ) {
         Text(
-            "View, sign and annotate PDFs — entirely on this device.",
+            "View, fill and sign PDFs — entirely on this device.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
