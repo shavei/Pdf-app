@@ -175,6 +175,20 @@ double-tap race fix: the anchor's undrained travel is held on the live layer
 anchored result. It needed no Compose 1.9 `requestScrollToItem` and so no BOM
 upgrade; S8 moves on its own.)*
 
+### M12 · The reader's viewport height disagrees with the list's
+
+**Flagged:** the zoomed-placement fix · **Where:** `ui/reader/ReaderView.kt`,
+`BoxWithConstraints` against `listState.layoutInfo.viewportSize`.
+
+Measured on a 1440x3200 device: with the chrome visible both report 2439px and
+agree; with it hidden the list re-measures to 3200 while the incoming constraint
+stays 2439. So `viewportHeightPx` is stale in immersive mode. Nothing in the zoom
+depends on it any more — the anchor works in the coordinate space the tap arrives
+in, and the horizontal axis uses the width, which is correct — but
+`ZoomPreset.FIT_PAGE` divides by it, so fit-page is wrong by that ratio while the
+chrome is hidden. Not yet explained; the Scaffold padding is applied, so a stale
+constraint should not be possible.
+
 ---
 
 ## Small

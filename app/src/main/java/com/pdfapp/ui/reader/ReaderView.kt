@@ -178,9 +178,16 @@ fun ReaderView(
         var liveTranslation by remember(session) { mutableStateOf(Offset.Zero) }
         var livePivot by remember(session) { mutableStateOf(Offset.Zero) }
 
-        // Crisp tiles follow a *settled* zoom: re-rendering on every pinch frame
-        // would stutter, so the stretched base bitmap covers the gap until the
-        // gesture pauses and the debounced value commits sharp strips.
+        // Crisp tiles follow a *settled* zoom. The debounce is not protecting
+        // against per-frame thrash, whatever its original intent: a live pinch
+        // only moves `liveScale`, and `zoom` is written once per gesture — at
+        // pinch-end, at a double-tap's commit, or from a preset. All it can
+        // coalesce is a burst of double-taps, and two frames does that.
+        //
+        // The delay is not free. Until it elapses the page is the fit-width
+        // bitmap stretched to the new zoom, so a double-tap landed soft and
+        // then resolved, and text edges settling reads as the content shifting
+        // even though nothing moved.
         var settledZoom by remember(session) { mutableFloatStateOf(1f) }
         LaunchedEffect(zoom) {
             delay(TILE_SETTLE_MS)
@@ -247,15 +254,16 @@ fun ReaderView(
             // The pan is our own state, so it clamps against the width the
             // document is zooming *to* — no relayout has to land first for the
             // horizontal anchor to be right.
+            val rawPan =
+                ReaderPan.anchored(
+                    pan = panX,
+                    focus = centroid.x,
+                    scaleFactor = k,
+                    gesturePan = gesturePan.x,
+                )
             val newPanX =
                 ReaderPan.clamp(
-                    pan =
-                        ReaderPan.anchored(
-                            pan = panX,
-                            focus = centroid.x,
-                            scaleFactor = k,
-                            gesturePan = gesturePan.x,
-                        ),
+                    pan = rawPan,
                     contentWidthPx = viewportWidthPx * max(1f, clamped),
                     viewportWidthPx = viewportWidthPx,
                 )
@@ -270,6 +278,7 @@ fun ReaderView(
             liveTranslation = Offset.Zero
             pendingScroll += scrollDelta
             anchorSeq++
+
             // The list has not scrolled yet, so the content sits `pendingScroll`
             // px below where the anchor puts it. Holding it up by exactly that
             // much means this frame already shows the anchored result; the drain
@@ -299,6 +308,38 @@ fun ReaderView(
             // here on. Zero at rest, where scale is 1 and no pivot is in force.
             liveTranslation += (livePivot - centroid) * (1f - from)
             livePivot = centroid
+            // Where the tapped point should end up, and the two axes do not
+            // want the same thing.
+            //
+            // Horizontally it comes to the middle. A zoomed page is wider than
+            // the screen — two and a half times at the reading zoom — so holding
+            // the tapped point under the finger strands a tap near either edge
+            // against the margin: measured on a device, a tap 88% across asked
+            // to pan 3159px of a possible 2160. Centring puts the column you
+            // aimed at where you can read it, whatever part of the page it was.
+            //
+            // Vertically it stays exactly where you tapped. Nothing forces it
+            // away — the document scrolls, so any line can sit at any height —
+            // and holding it still means the line you were reading is at the
+            // same height afterwards, instead of jumping to the middle and
+            // making you find it again.
+            //
+            // No new anchor maths either way: landing the focal point at
+            // [landing] is the existing formula with a gesture pan of
+            // (landing - focus), so the commit below stays the path a pinch
+            // uses — and a pinch keeps pinning both axes, which is right when
+            // the fingers themselves say where the content should stay.
+            // The tapped point stays exactly where you tapped it, both axes.
+            // Not the middle: an earlier build brought it there horizontally to
+            // stop a tap near an edge landing on the margin, and moving content
+            // away from the finger read as the zoom jumping around — which is
+            // worse than the margin it avoided. Pinning is what a pinch does
+            // too, so both gestures now behave the same way.
+            //
+            // The cost is real and accepted: tapping close to the left or right
+            // edge of a zoomed page holds that point at the edge, so there is
+            // little of the page beside it.
+            //
             // Frame-driven, not a delay() loop: `animate` resumes on the frame
             // callback, so each step lands on a vsync instead of drifting
             // against it, and the easing takes the lurch out of both ends.
@@ -307,9 +348,10 @@ fun ReaderView(
                 targetValue = to,
                 animationSpec = tween(DOUBLE_TAP_ZOOM_MS, easing = FastOutSlowInEasing),
             ) { value, _ -> liveScale = value }
-            // Commit through the same path a pinch uses: the live translation is
-            // a real part of what the screen shows by now, so it has to be baked
-            // into the offsets or committing would jump by exactly that much.
+            // Commit through the same path a pinch uses: any live translation —
+            // the compensation a mid-flight pivot swap left behind — is a real
+            // part of what the screen shows by now, so it has to be baked into
+            // the offsets or committing would jump by exactly that much.
             setZoomAnchored(clampedTarget, livePivot, liveTranslation)
         }
 
@@ -522,7 +564,30 @@ fun ReaderView(
                             // list without recomposing a single page.
                             .offset {
                                 val x = ReaderPan.clamp(panX, lazyWidthPx, viewportWidthPx)
-                                IntOffset(-x.roundToInt(), 0)
+                                // `requiredWidth` above makes the list wider
+                                // than the space it is given, and a child that
+                                // overflows its parent is *centred* in that
+                                // space — a silent shift of half the overflow,
+                                // which the pan knows nothing about. Measured on
+                                // a device: pan 2096 placed the page at root x
+                                // -3177 rather than -2096, out by exactly
+                                // (3600 - 1440) / 2.
+                                //
+                                // It is zero at fit-width and grows with the
+                                // zoom, so the reader was displaced by 1080px at
+                                // the 2.5x reading zoom and more above it. That
+                                // is what made a double-tap look like it jumped
+                                // away from the point it was aimed at, and why
+                                // the anchor could measure exact and still be
+                                // wrong on screen: every anchor calculation and
+                                // every test shared the same blind spot, and
+                                // fit-width — where the shift vanishes — is
+                                // where the tests did their measuring.
+                                //
+                                // Cancelling it here keeps the offset the one
+                                // place horizontal position is decided.
+                                val overflow = (lazyWidthPx - viewportWidthPx) / 2f
+                                IntOffset((overflow - x).roundToInt(), 0)
                             },
                 ) {
                     items(count = session.pageCount, key = { it }) { index ->
@@ -913,8 +978,9 @@ private const val MAX_ZOOM = 8f
 // hold up the tap; the easing does the rest.
 private const val DOUBLE_TAP_ZOOM_MS = 200
 
-// Debounce after the last pinch step before committing crisper strips.
-private const val TILE_SETTLE_MS = 180L
+// Just enough to coalesce a burst of commits; see the settle effect for why
+// this is two frames rather than the tenth of a second it used to be.
+private const val TILE_SETTLE_MS = 32L
 
 // Wait for the scroll to settle briefly before warming off-screen pages, so a
 // fast fling doesn't spend the single renderer on pages it's about to pass.
