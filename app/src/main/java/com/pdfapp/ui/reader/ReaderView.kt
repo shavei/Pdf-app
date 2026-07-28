@@ -33,6 +33,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -138,6 +139,15 @@ fun ReaderView(
         // anchor from where the list is *going* to be, so outstanding travel
         // composes by addition.
         var pendingScroll by remember(session) { mutableFloatStateOf(0f) }
+        // Bumped by every commit so the effect below is re-keyed, and with it
+        // re-launched — which is the whole point. A LaunchedEffect restarts at
+        // composition *apply*, so its body runs after the pages have re-measured
+        // at the new zoom. Collecting the travel from a flow instead would run
+        // it on snapshot apply, the instant the commit writes its state and well
+        // before any recomposition, spending a post-zoom distance against
+        // pre-zoom pages — which clamps at the old maximum scroll and leaves the
+        // reader short, the failure d1f009b and 889fe19 both chased.
+        var anchorSeq by remember(session) { mutableIntStateOf(0) }
         // Covers the frame between a committed zoom and its anchor landing: the
         // scroll cannot happen until the pages have re-measured, so without this
         // the new zoom draws once at the old scroll position and then snaps.
@@ -259,6 +269,7 @@ fun ReaderView(
             liveScale = 1f
             liveTranslation = Offset.Zero
             pendingScroll += scrollDelta
+            anchorSeq++
             // The list has not scrolled yet, so the content sits `pendingScroll`
             // px below where the anchor puts it. Holding it up by exactly that
             // much means this frame already shows the anchored result; the drain
@@ -319,27 +330,25 @@ fun ReaderView(
         // — even where the new page sizes make the list express that position
         // as a different page.
         //
-        // Keyed on the list, not on the anchor: a per-anchor effect is cancelled
-        // the moment the next zoom commits, which killed a scroll that had not
-        // finished and lost its travel for good. One long-lived collector drains
-        // the accumulator instead, so every commit's travel is spent even when
-        // commits arrive faster than the list can scroll.
-        LaunchedEffect(listState, session) {
-            snapshotFlow { pendingScroll }.collect { outstanding ->
-                if (outstanding == 0f) return@collect
-                // Take the whole debt before scrolling: a commit landing while
-                // this suspends adds to a cleared accumulator, so it re-emits
-                // as its own travel rather than being scrolled twice.
-                pendingScroll = 0f
-                listState.scrollBy(outstanding)
-                // This much has landed (or clamped at a document edge, where the
-                // content genuinely cannot move), so the layer stops standing in
-                // for it. Not a reset to zero: a zoom that committed while the
-                // scroll above was in flight has already left its own debt here,
-                // and clearing that would uncover the very frame this exists to
-                // hide. Whatever is still owed stays covered.
-                anchorOffsetY = -pendingScroll
-            }
+        // Re-keying is also what used to lose the travel: the next commit
+        // cancels this effect, and the delta lived in the key, so a scroll still
+        // waiting on the list's mutex was dropped outright and the reader rested
+        // where neither zoom asked. The distance now lives in an accumulator
+        // this only clears once the scroll has actually run — so a cancelled one
+        // stays owed and the relaunch spends it, while a commit that lands
+        // mid-scroll simply adds to what is left.
+        LaunchedEffect(anchorSeq) {
+            val owed = pendingScroll
+            if (owed == 0f) return@LaunchedEffect
+            listState.scrollBy(owed)
+            // Reached only if the scroll ran to completion — being cancelled
+            // skips it and leaves the whole debt for the effect that replaced
+            // us. Subtracting `owed` rather than zeroing keeps any debt a commit
+            // added while this was scrolling. A short scroll at a document edge
+            // forgives the remainder: the content genuinely is not there, and
+            // carrying it would bend the next zoom's anchor.
+            pendingScroll -= owed
+            anchorOffsetY = -pendingScroll
         }
         // One-shot navigation requests from search / outline / go-to-page.
         LaunchedEffect(viewModel.pendingReadTarget) {
