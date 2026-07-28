@@ -145,6 +145,24 @@ class ReaderPanE2ETest {
     }
 
     /**
+     * The left edge of a page the list has really placed, in the root.
+     *
+     * Every page shares the document's width, centring and pan, so any placed
+     * one reports the same x — which is what lets a before/after comparison use
+     * whichever pages happen to be on screen at the time. [pageLeft] cannot: it
+     * asks for page 1 by name, and a test that has scrolled into the document
+     * does not have a page 1 any more.
+     */
+    private fun placedPageLeft(pageCount: Int): Float {
+        val placed = placedRun(composedPageTops(pageCount)).firstOrNull() ?: return 0f
+        return composeRule
+            .onAllNodesWithContentDescription(ReaderSemantics.pageLabel(placed, pageCount))
+            .fetchSemanticsNodes()
+            .first()
+            .positionInRoot.x
+    }
+
+    /**
      * The layout width of a page the list has really placed, at today's zoom.
      *
      * Every page shares the document's zoom, but a page in the reuse pool still
@@ -327,7 +345,7 @@ class ReaderPanE2ETest {
 
             val fitWidth = placedPageWidth(SCROLLED_PAGE_COUNT)
             val before = composedPageTops(SCROLLED_PAGE_COUNT)
-            val leftBefore = pageLeft()
+            val leftBefore = placedPageLeft(SCROLLED_PAGE_COUNT)
 
             // Off-centre horizontally, so the pan has somewhere to go and coming
             // home is a real assertion rather than 0 == 0. Away from the top of
@@ -339,7 +357,11 @@ class ReaderPanE2ETest {
                 doubleClick(point)
             }
             composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS) {
-                placedPageWidth(SCROLLED_PAGE_COUNT) <= fitWidth + TOLERANCE_PX
+                // Positive as well as back at fit: an empty placed run reports a
+                // width of 0, which would satisfy "no wider than fit" without a
+                // page on screen to say so.
+                val width = placedPageWidth(SCROLLED_PAGE_COUNT)
+                width > 0f && width <= fitWidth + TOLERANCE_PX
             }
             composeRule.waitForIdle()
 
@@ -350,7 +372,10 @@ class ReaderPanE2ETest {
 
             // Back at fit-width, so back against the left edge: at fit-width the
             // document is exactly as wide as the viewport and no pan survives.
-            assertWithMessage(diagnostics).that(pageLeft()).isWithin(TOLERANCE_PX).of(leftBefore)
+            assertWithMessage(diagnostics)
+                .that(placedPageLeft(SCROLLED_PAGE_COUNT))
+                .isWithin(TOLERANCE_PX)
+                .of(leftBefore)
 
             val common = placedRun(before).intersect(placedRun(after).toSet())
             assertWithMessage(diagnostics).that(common).isNotEmpty()
