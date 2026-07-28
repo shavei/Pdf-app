@@ -34,13 +34,17 @@ import java.io.File
 /**
  * The reader's viewport gestures, on a device.
  *
- * Each case guards behaviour the old scroll-container layout could not produce:
- * a zoom that stays anchored on the point you tapped — horizontally, where the
- * anchor used to be clamped away to the left edge, and vertically, where it
- * used to be measured against pre-zoom pages — and a single drag that pans
- * horizontally *and* scrolls vertically, which nested scroll containers cannot
- * do because they lock a drag to one axis. Positions come from the page node's
- * unclipped position in the root, which moves with both.
+ * A double-tap brings what you tapped to the middle of the screen; a pinch
+ * pins its centroid, since there the fingers say where the content should stay.
+ * The cases here guard both, plus a single drag that pans horizontally *and*
+ * scrolls vertically, which nested scroll containers cannot do because they
+ * lock a drag to one axis.
+ *
+ * Where a case can, it asserts separations rather than absolute positions. The
+ * reader is inset from the window by chrome that varies with the device, so a
+ * test that models where it sits is only as good as that model — and the two
+ * are hard to tell apart in a failure. A distance between pages needs no such
+ * model. Positions come from the page node's unclipped position in the root.
  */
 @RunWith(AndroidJUnit4::class)
 class ReaderPanE2ETest {
@@ -207,50 +211,107 @@ class ReaderPanE2ETest {
     }
 
     @Test
-    fun doubleTap_keepsTheTappedPointInPlace() {
+    fun doubleTap_bringsTheTappedPointToTheMiddle() {
         withReader(pageCount = 1) {
             val (width, _) = viewportSize()
             assertThat(pageLeft()).isWithin(TOLERANCE_PX).of(0f)
 
-            // Double-tap 80% across the page: at 2.5x, holding that point still
-            // needs the document panned 1.2 viewports to the right, so the
-            // page's left edge leaves the screen. Clamped to the pre-zoom width
-            // (the old behaviour) it could not move at all.
-            doubleTapAt(x = 0.8f)
+            // Horizontally the reader spans the whole window, so the landing
+            // point is a number this test knows exactly — unlike the vertical
+            // axis, where the reader is inset by chrome. That makes this the one
+            // place the centring can be asserted against arithmetic rather than
+            // against itself.
+            //
+            // Tapping TAP_X across at 2.5x: the tapped content point sits at
+            // TAP_X x width x 2.5, and bringing it to the middle leaves the
+            // viewport's left edge that far along, less half a screen. Pinning
+            // it under the finger instead — the old behaviour — would subtract a
+            // whole TAP_X x width, landing the page a good fraction of a
+            // screen further left. The two are far enough apart that no
+            // tolerance hides the difference.
+            val zoom = doubleTapAt(x = TAP_X)
+            val expectedPan = TAP_X * width * zoom - width / 2f
 
-            assertThat(pageLeft()).isLessThan(-width)
+            assertWithMessage("width $width, zoom $zoom")
+                .that(pageLeft())
+                .isWithin(width * LANDING_TOLERANCE_FRACTION)
+                .of(-expectedPan)
         }
     }
 
     @Test
-    fun doubleTapOnAShortPage_keepsThatLineInPlace() {
+    fun doubleTapLandsOnTheSameLine_whereverOnThePageYouTap() {
+        // Centring, asserted without knowing where the reader sits in the
+        // window — which this test cannot know, since the reader is inset by
+        // chrome by an amount that varies with the device.
+        //
+        // Work in root coordinates and let R be the reader's unknown top, L its
+        // unknown landing point. A tap at root y=Y has reader-local focus Y-R,
+        // so a page top maps to R + L + (topBefore - Y) x zoom: the two unknowns
+        // only ever appear as the sum R+L. That sum is computable from measured
+        // numbers, and centring means it does not depend on Y. Pinning would
+        // make it exactly Y — so tapping at two heights and comparing tells the
+        // two behaviours apart without either being modelled.
+        withReader(pageCount = 3, pageSize = SHORT_PAGE) {
+            val (width, height) = viewportSize()
+
+            fun landingAfterTapAt(yFraction: Float): Float {
+                val topBefore = pageTop()
+                val fitWidth = pageWidth()
+                val zoom = doubleTapAt(x = 0.5f, y = yFraction)
+                val landing = pageTop() - (topBefore - height * yFraction) * zoom
+                // Back to fit-width, so the next measurement starts where this
+                // one did rather than compounding.
+                doubleTapAndSettle(0.5f, yFraction) { pageWidth() <= fitWidth + TOLERANCE_PX }
+                return landing
+            }
+
+            val high = landingAfterTapAt(ZOOM_IN_Y)
+            val low = landingAfterTapAt(ZOOM_OUT_Y)
+
+            assertWithMessage(
+                "root ${width}x$height; landing from y=$ZOOM_IN_Y was $high, " +
+                    "from y=$ZOOM_OUT_Y was $low; pinning would give " +
+                    "${height * ZOOM_IN_Y} and ${height * ZOOM_OUT_Y}",
+            ).that(low)
+                .isWithin(height * TOP_TOLERANCE_FRACTION)
+                .of(high)
+        }
+    }
+
+    @Test
+    fun doubleTapOnAShortPage_scalesAboutThatLine() {
         // Landscape-ish pages, so a tap at the middle of the screen asks for a
         // scroll offset taller than the un-zoomed page but shorter than the
         // zoomed one — exactly the case a forced remeasure used to mismeasure
         // against pre-zoom pages, rolling the anchor into a later page and
         // leaving it there. (An upright page needs a tap near the bottom edge
         // to reach that offset, which is chrome territory.)
-        withReader(pageCount = 3, pageSize = SHORT_PAGE) {
+        withReader(pageCount = ROLLOVER_PAGE_COUNT, pageSize = SHORT_PAGE) {
             val (width, height) = viewportSize()
-            val focusY = height / 2f
-            val topBefore = pageTop()
-            val pageHeightBefore = pageNode().size.height
+            val before = composedPageTops(ROLLOVER_PAGE_COUNT)
 
-            // Anchored properly, every content point maps
-            // y -> focusY + (y - focusY) * zoom, page 1's top included.
             val zoom = doubleTapAt(x = 0.5f)
-            val topAfter = pageTop()
+            val after = composedPageTops(ROLLOVER_PAGE_COUNT)
 
-            // The geometry rides along in the message: this assertion is only
-            // as good as its model of where the reader sits in the window, and
-            // a failure has to say which of the two is wrong.
-            assertWithMessage(
-                "root ${width}x$height, focusY $focusY, zoom $zoom, " +
-                    "page 1 top $topBefore -> $topAfter, " +
-                    "height $pageHeightBefore -> ${pageNode().size.height}",
-            ).that(topAfter)
-                .isWithin(height * TOP_TOLERANCE_FRACTION)
-                .of(focusY + (topBefore - focusY) * zoom)
+            // Distances between pages, not absolute positions: where the zoom
+            // lands is the centring test's business, and unlike a position a
+            // separation needs no model of the reader's inset. A rollover into
+            // the wrong page breaks the relationship outright — the anchor page
+            // ends up somewhere its neighbours' spacing cannot explain — so this
+            // still catches what the case was written for.
+            val common = placedRun(before).intersect(placedRun(after).toSet()).sorted()
+            val diagnostics =
+                "root ${width}x$height, zoom $zoom, before $before, after $after"
+            assertWithMessage(diagnostics).that(common.size).isAtLeast(2)
+
+            val first = common.first()
+            common.drop(1).forEach { index ->
+                assertWithMessage("page $index; $diagnostics")
+                    .that(after.getValue(index) - after.getValue(first))
+                    .isWithin(height * TOP_TOLERANCE_FRACTION)
+                    .of((before.getValue(index) - before.getValue(first)) * zoom)
+            }
         }
     }
 
@@ -308,82 +369,92 @@ class ReaderPanE2ETest {
             val diagnostics =
                 "root ${width}x$height, focusY $focusY, zoom out $k, " +
                     "before $topsBefore, after $topsAfter"
-            assertWithMessage(diagnostics).that(common).isNotEmpty()
-            common.forEach { index ->
+            // As above, separations rather than positions: a zoom-out that
+            // stopped at the anchor page's top instead of travelling above it
+            // leaves the pages it did reach spaced by something other than k,
+            // which this catches without modelling where the reader sits.
+            val ordered = common.sorted()
+            assertWithMessage(diagnostics).that(ordered.size).isAtLeast(2)
+            val first = ordered.first()
+            ordered.drop(1).forEach { index ->
                 assertWithMessage("page $index; $diagnostics")
-                    .that(topsAfter.getValue(index))
+                    .that(topsAfter.getValue(index) - topsAfter.getValue(first))
                     .isWithin(height * TOP_TOLERANCE_FRACTION)
-                    .of(focusY + (topsBefore.getValue(index) - focusY) * k)
+                    .of((topsBefore.getValue(index) - topsBefore.getValue(first)) * k)
             }
         }
     }
 
     @Test
-    fun twoDoubleTapsInOneBurst_leaveTheDocumentExactlyWhereItStarted() {
-        // Zoom in about a point and straight back out about the same point and
-        // the layout has to be restored exactly: the second anchor's travel is
-        // the first one's, negated. That makes this a round trip with no model
-        // of where the reader sits in the window — anything the reader loses on
-        // the way shows up as pages that do not come home.
+    fun aBurstOfDoubleTaps_settlesWhereTheSameTapsDoneSlowlyWould() {
+        // What the burst has to preserve is no longer "the layout comes home" —
+        // centring means zooming in about a point and back out about the same
+        // point does not return you to the start unless that point was already
+        // the landing. What must hold is that hurrying changes nothing: two
+        // double-taps injected in one gesture, so the second lands inside the
+        // first's 200ms animation, have to settle exactly where the same two
+        // taps do when each is allowed to finish.
         //
-        // What it catches is the *burst*. Both taps are injected in one gesture,
-        // so the second lands inside the first's 200ms animation, and every case
-        // above taps once and waits. Two overlapping zooms used to race: the
-        // anchor was a single state slot applied by an effect keyed on it, so
-        // committing the second cancelled the first's scroll part-way and threw
-        // away the travel it still owed. The document then rested somewhere
-        // neither tap asked for — and tapping again to correct it only stacked
-        // another race on top, which is what made it look unfixable.
-        //
-        // It holds either way round: if the injections happen to land further
-        // apart than the animation, the first simply commits before the second
-        // starts and the same round trip has to close.
+        // That is the property the race broke. The anchor was a single state
+        // slot applied by an effect keyed on it, so committing the second
+        // cancelled the first's scroll part-way and threw away the travel it
+        // still owed; the document rested somewhere neither tap asked for, and
+        // tapping again to correct it only stacked another race on top. Every
+        // other case here taps once and waits, and cannot see it.
         withReader(pageCount = SCROLLED_PAGE_COUNT, pageSize = STRIP_PAGE) {
             val (width, height) = viewportSize()
+            val point = Offset(width * TAP_X, height * BURST_Y)
+
+            fun settleAtFit(fit: Float) =
+                composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS) {
+                    // Positive as well as back at fit: an empty placed run
+                    // reports a width of 0, which would satisfy "no wider than
+                    // fit" with no page on screen to say so.
+                    val w = placedPageWidth(SCROLLED_PAGE_COUNT)
+                    w > 0f && w <= fit + TOLERANCE_PX
+                }
+
+            // Reference: in and out, each allowed to finish.
             composeRule.onNode(hasScrollToIndexAction()).performScrollToIndex(START_PAGE)
             composeRule.waitForIdle()
-
             val fitWidth = placedPageWidth(SCROLLED_PAGE_COUNT)
-            val before = composedPageTops(SCROLLED_PAGE_COUNT)
-            val leftBefore = placedPageLeft(SCROLLED_PAGE_COUNT)
+            doubleTapAndSettle(TAP_X, BURST_Y) {
+                placedPageWidth(SCROLLED_PAGE_COUNT) > fitWidth * ZOOM_IN_THRESHOLD
+            }
+            doubleTapAndSettle(TAP_X, BURST_Y) {
+                settleAtFit(fitWidth)
+                true
+            }
+            val slow = composedPageTops(SCROLLED_PAGE_COUNT)
+            val slowLeft = placedPageLeft(SCROLLED_PAGE_COUNT)
 
-            // Off-centre horizontally, so the pan has somewhere to go and coming
-            // home is a real assertion rather than 0 == 0. Away from the top of
-            // the page vertically, so the zoom-out's travel crosses a page top
-            // instead of clamping against the document's.
-            val point = Offset(width * BURST_X, height * BURST_Y)
+            // Same two taps, one gesture.
+            composeRule.onNode(hasScrollToIndexAction()).performScrollToIndex(START_PAGE)
+            composeRule.waitForIdle()
             composeRule.onRoot().performTouchInput {
                 doubleClick(point)
                 doubleClick(point)
             }
-            composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS) {
-                // Positive as well as back at fit: an empty placed run reports a
-                // width of 0, which would satisfy "no wider than fit" without a
-                // page on screen to say so.
-                val width = placedPageWidth(SCROLLED_PAGE_COUNT)
-                width > 0f && width <= fitWidth + TOLERANCE_PX
-            }
+            settleAtFit(fitWidth)
             composeRule.waitForIdle()
+            val burst = composedPageTops(SCROLLED_PAGE_COUNT)
 
-            val after = composedPageTops(SCROLLED_PAGE_COUNT)
             val diagnostics =
-                "root ${width}x$height, tap $point, fit width $fitWidth -> " +
-                    "${placedPageWidth(SCROLLED_PAGE_COUNT)}, before $before, after $after"
+                "root ${width}x$height, tap $point, fit $fitWidth, " +
+                    "slow $slow, burst $burst"
 
-            // Back at fit-width, so back against the left edge: at fit-width the
-            // document is exactly as wide as the viewport and no pan survives.
             assertWithMessage(diagnostics)
                 .that(placedPageLeft(SCROLLED_PAGE_COUNT))
                 .isWithin(TOLERANCE_PX)
-                .of(leftBefore)
+                .of(slowLeft)
 
-            val common = placedRun(before).intersect(placedRun(after).toSet())
+            val common = placedRun(slow).intersect(placedRun(burst).toSet())
             assertWithMessage(diagnostics).that(common).isNotEmpty()
             common.forEach { index ->
                 assertWithMessage("page $index; $diagnostics")
-                    .that(after.getValue(index))
+                    .that(burst.getValue(index))
                     .isWithin(height * TOP_TOLERANCE_FRACTION)
-                    .of(before.getValue(index))
+                    .of(slow.getValue(index))
             }
         }
     }
@@ -509,8 +580,18 @@ class ReaderPanE2ETest {
         // round trip has a real distance to come back from. Below the middle
         // vertically, so the zoom-out's anchor travels back *above* the page the
         // zoom-in left the reader on rather than clamping at its top.
-        const val BURST_X = 0.7f
+        const val TAP_X = 0.7f
         const val BURST_Y = 0.6f
+
+        // Pages and gaps round to whole pixels and the reader's inset is not
+        // modelled, so the landing lands within a small fraction of a screen —
+        // far tighter than the gap between centring and pinning, which at
+        // TAP_X is a fifth of a viewport.
+        const val LANDING_TOLERANCE_FRACTION = 0.03f
+
+        // Enough short pages that a zoom has somewhere to travel and at least
+        // two survive on screen either side of it.
+        const val ROLLOVER_PAGE_COUNT = 8
 
         // Fingers start this far either side of the point being pinched about,
         // and end PINCH_FACTOR times as far apart — so the document doubles,
