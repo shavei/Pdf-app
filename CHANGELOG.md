@@ -59,8 +59,7 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
   `1.4.1 (build 102)`, instead of `0.1.0+9caa14e`; the commit SHA stays in the
   release notes. Published files are named after the app: `Signet-<version>.apk`
   / `.aab` on tagged releases, `Signet.apk` on the rolling `Latest build`
-  (unversioned, so the download permalink is stable), and
-  `Signet-<version>-debug.apk` in CI artifacts.
+  (unversioned, so the download permalink is stable).
 - **One source of truth for the version** — `appVersionName` in
   `gradle.properties`. Builds and all three CI jobs read that one line (via the
   new `.github/actions/app-version`), and a `vX.Y.Z` tag that disagrees with it
@@ -72,6 +71,19 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 
 ### Fixed
 
+- **Double-tapping twice in a row no longer leaves the page somewhere you did
+  not ask for.** The reader worked out the right distance to travel and then
+  lost it: a second zoom arriving before the first had finished scrolling
+  cancelled that scroll outright, so the document settled short and stayed
+  there — and because every double-tap started an animation without stopping
+  the one already running, two taps read the same zoom, fought over the same
+  transform and committed two conflicting positions. Tapping again to correct a
+  bad zoom therefore made it worse, which is what made it look unfixable.
+  A double-tap now takes over from the one in flight instead of racing it,
+  toggles against the zoom the reader is heading for rather than the one
+  mid-animation on screen, and no anchor is discarded while it is still owed.
+  The moment between a committed zoom and its anchor landing is covered too, so
+  a zoom finishes where it was aimed rather than arriving and then jumping.
 - **Zooming lands where you asked for it.** Two ways it didn't: a pinch turned
   the document about whichever finger touched down first rather than the point
   between the fingers, and any zoom whose anchor sat above the top of the page
@@ -156,4 +168,10 @@ scope is refocused to **viewer + signer** (the annotation suite is removed).
 [1.2.0]: ../../releases/tag/v1.2.0
 [1.1.1]: ../../releases/tag/v1.1.1
 [1.1.0]: ../../releases/tag/v1.1.0
-[1.0.0]: ../../releases/tag/v1.0.0
+
+<!-- 1.0.0 is deliberately unlinked. Its tag pointed at a commit from an
+     unrelated project that shared this repository before it was cleaned up, so
+     the tag and its release were deleted rather than re-cut; there is nothing
+     left to link to. Its entry above stays as the record of what shipped, and
+     renders unlinked — which Keep a Changelog allows. -->
+
