@@ -576,13 +576,29 @@ fun ReaderView(
                             onTap = { handleTap(it) },
                             onDoubleTap = { tap ->
                                 if (BuildConfig.DEBUG) {
+                                    // Anchor the probe to the page the tap is
+                                    // actually on, not to whichever page
+                                    // happens to be first visible. A tap low on
+                                    // the screen usually belongs to a later
+                                    // page, and that first page then scrolls out
+                                    // of view and takes the reading with it —
+                                    // which is every NO READING in the logs so
+                                    // far. The page under the tap stays put by
+                                    // definition, since the tapped line holds
+                                    // its height.
+                                    val hit =
+                                        listState.layoutInfo.visibleItemsInfo.firstOrNull {
+                                            tap.y >= it.offset && tap.y < it.offset + it.size
+                                        }
                                     probe =
                                         ZoomProbe(
                                             tap = tap,
                                             zoomBefore = zoom,
                                             docX = (panX + tap.x) / zoom,
-                                            itemIndex = listState.firstVisibleItemIndex,
-                                            offsetInItem = listState.firstVisibleItemScrollOffset + tap.y,
+                                            itemIndex = hit?.index ?: listState.firstVisibleItemIndex,
+                                            offsetInItem =
+                                                hit?.let { tap.y - it.offset }
+                                                    ?: (listState.firstVisibleItemScrollOffset + tap.y),
                                         )
                                 }
                                 val inFlight = zoomJob
