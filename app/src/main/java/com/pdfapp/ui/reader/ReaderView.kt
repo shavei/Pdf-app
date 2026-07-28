@@ -33,6 +33,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -73,6 +74,8 @@ import com.pdfapp.ui.common.ReaderSemantics
 import com.pdfapp.ui.common.rememberTouchExplorationEnabled
 import com.pdfapp.ui.document.PdfEditorViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -127,9 +130,40 @@ fun ReaderView(
         // from the placement lambda and gesture callbacks, never from
         // composition, so panning stays a layout-phase invalidation.
         var panX by remember(session) { mutableFloatStateOf(0f) }
-        // The vertical half of a zoom anchor, waiting for the pages to re-compose
-        // at the new zoom before it can be scrolled to — see the effect below.
-        var pendingAnchor by remember(session) { mutableStateOf<PendingAnchor?>(null) }
+        // Vertical anchor travel the list still owes, in post-zoom pixels,
+        // waiting for the pages to re-compose at the new zoom before it can be
+        // scrolled — see the effect below. An accumulator rather than a slot:
+        // two zooms can commit before the first has scrolled, and a slot loses
+        // the first one's travel entirely (a state write replaces, and the
+        // effect reading it is cancelled mid-scroll). Each commit measures its
+        // anchor from where the list is *going* to be, so outstanding travel
+        // composes by addition.
+        var pendingScroll by remember(session) { mutableFloatStateOf(0f) }
+        // Bumped by every commit so the effect below is re-keyed, and with it
+        // re-launched — which is the whole point. A LaunchedEffect restarts at
+        // composition *apply*, so its body runs after the pages have re-measured
+        // at the new zoom. Collecting the travel from a flow instead would run
+        // it on snapshot apply, the instant the commit writes its state and well
+        // before any recomposition, spending a post-zoom distance against
+        // pre-zoom pages — which clamps at the old maximum scroll and leaves the
+        // reader short, the failure d1f009b and 889fe19 both chased.
+        var anchorSeq by remember(session) { mutableIntStateOf(0) }
+        // Covers the frame between a committed zoom and its anchor landing: the
+        // scroll cannot happen until the pages have re-measured, so without this
+        // the new zoom draws once at the old scroll position and then snaps.
+        // Holding the content at its anchored position for that one frame turns
+        // the snap into no visible motion at all (backlog M11).
+        var anchorOffsetY by remember(session) { mutableFloatStateOf(0f) }
+        // The in-flight double-tap animation, so a second double-tap takes over
+        // from it instead of racing it to a second, conflicting commit.
+        var zoomJob by remember(session) { mutableStateOf<Job?>(null) }
+        // The zoom the reader is committed to reaching: an animation's target
+        // while one is in flight, the committed zoom otherwise. The double-tap
+        // toggle reads this rather than the zoom currently on screen, which
+        // mid-animation is an arbitrary point between the two — and creeps past
+        // the fit-width epsilon within a frame of starting, so a toggle made
+        // against it would flip direction depending on when the tap landed.
+        var targetZoom by remember(session) { mutableFloatStateOf(1f) }
 
         // Live pinch transform. During a gesture we do NOT touch `zoom` (which
         // drives the list's measured width/height); instead we scale the
@@ -175,8 +209,8 @@ fun ReaderView(
          * straight into the new offsets so committing produces no visible jump.
          *
          * Every write lands in one snapshot, but the vertical anchor is only
-         * *recorded* here — see [pendingAnchor] for why it cannot be scrolled to
-         * until the pages have re-composed at the new zoom.
+         * *recorded* here — see the drain effect below for why it cannot be
+         * scrolled to until the pages have re-composed at the new zoom.
          */
         fun setZoomAnchored(
             target: Float,
@@ -197,9 +231,15 @@ fun ReaderView(
             // top of the document, so an anchor that belongs on an earlier page
             // is a negative offset no absolute scroll can express. See
             // [ReaderPan.anchorDelta].
+            //
+            // It is measured from where the list is *going* to be — its current
+            // offset plus whatever travel it still owes — not from where it
+            // happens to sit. A zoom committed while an earlier anchor is
+            // undrained would otherwise anchor against a position the document
+            // is already leaving, and the two deltas could not be added.
             val scrollDelta =
                 ReaderPan.anchorDelta(
-                    pan = listState.firstVisibleItemScrollOffset.toFloat(),
+                    pan = listState.firstVisibleItemScrollOffset + pendingScroll,
                     focus = centroid.y,
                     scaleFactor = k,
                     gesturePan = gesturePan.y,
@@ -224,14 +264,17 @@ fun ReaderView(
             // zoom with the old preview scale still applied — that would flash a
             // doubled magnification for a frame.
             zoom = clamped
+            targetZoom = clamped
             panX = newPanX
             liveScale = 1f
             liveTranslation = Offset.Zero
-            pendingAnchor =
-                PendingAnchor(
-                    scrollDelta = scrollDelta,
-                    seq = (pendingAnchor?.seq ?: 0) + 1,
-                )
+            pendingScroll += scrollDelta
+            anchorSeq++
+            // The list has not scrolled yet, so the content sits `pendingScroll`
+            // px below where the anchor puts it. Holding it up by exactly that
+            // much means this frame already shows the anchored result; the drain
+            // below releases it as the real scroll lands underneath.
+            anchorOffsetY = -pendingScroll
         }
 
         // Double-tap: animate the cheap live layer toward the target, then bake
@@ -241,20 +284,33 @@ fun ReaderView(
             target: Float,
             centroid: Offset,
         ) {
-            val start = zoom
             val clampedTarget = target.coerceIn(MIN_ZOOM, MAX_ZOOM)
-            if (clampedTarget == start) return
+            // Scale is animated on the live layer, so a takeover starts from
+            // whatever the previous animation had reached rather than snapping
+            // back to the committed zoom and running again.
+            val from = liveScale
+            val to = clampedTarget / zoom
+            if (from == to) return
+            targetZoom = clampedTarget
+            // Moving the pivot mid-transform would re-render the same scale
+            // about a different origin — a jump. Translating by the difference
+            // the origin swap introduces, (p - p') x (1 - scale), leaves this
+            // frame pixel-identical and lets the new pivot take effect from
+            // here on. Zero at rest, where scale is 1 and no pivot is in force.
+            liveTranslation += (livePivot - centroid) * (1f - from)
             livePivot = centroid
-            liveTranslation = Offset.Zero
             // Frame-driven, not a delay() loop: `animate` resumes on the frame
             // callback, so each step lands on a vsync instead of drifting
             // against it, and the easing takes the lurch out of both ends.
             animate(
-                initialValue = start,
-                targetValue = clampedTarget,
+                initialValue = from,
+                targetValue = to,
                 animationSpec = tween(DOUBLE_TAP_ZOOM_MS, easing = FastOutSlowInEasing),
-            ) { value, _ -> liveScale = value / start }
-            setZoomAnchored(clampedTarget, centroid)
+            ) { value, _ -> liveScale = value }
+            // Commit through the same path a pinch uses: the live translation is
+            // a real part of what the screen shows by now, so it has to be baked
+            // into the offsets or committing would jump by exactly that much.
+            setZoomAnchored(clampedTarget, livePivot, liveTranslation)
         }
 
         // Apply a committed zoom's vertical anchor, one composition after the
@@ -273,9 +329,26 @@ fun ReaderView(
         // the zoom at the same numeric position the delta was computed against
         // — even where the new page sizes make the list express that position
         // as a different page.
-        LaunchedEffect(pendingAnchor) {
-            val anchor = pendingAnchor ?: return@LaunchedEffect
-            listState.scrollBy(anchor.scrollDelta)
+        //
+        // Re-keying is also what used to lose the travel: the next commit
+        // cancels this effect, and the delta lived in the key, so a scroll still
+        // waiting on the list's mutex was dropped outright and the reader rested
+        // where neither zoom asked. The distance now lives in an accumulator
+        // this only clears once the scroll has actually run — so a cancelled one
+        // stays owed and the relaunch spends it, while a commit that lands
+        // mid-scroll simply adds to what is left.
+        LaunchedEffect(anchorSeq) {
+            val owed = pendingScroll
+            if (owed == 0f) return@LaunchedEffect
+            listState.scrollBy(owed)
+            // Reached only if the scroll ran to completion — being cancelled
+            // skips it and leaves the whole debt for the effect that replaced
+            // us. Subtracting `owed` rather than zeroing keeps any debt a commit
+            // added while this was scrolling. A short scroll at a document edge
+            // forgives the remainder: the content genuinely is not there, and
+            // carrying it would bend the next zoom's anchor.
+            pendingScroll -= owed
+            anchorOffsetY = -pendingScroll
         }
         // One-shot navigation requests from search / outline / go-to-page.
         LaunchedEffect(viewModel.pendingReadTarget) {
@@ -394,9 +467,20 @@ fun ReaderView(
                         detectTapGestures(
                             onTap = { handleTap(it) },
                             onDoubleTap = { tap ->
-                                scope.launch {
-                                    animateZoom(ReaderZoom.doubleTapTarget(zoom), tap)
-                                }
+                                val inFlight = zoomJob
+                                zoomJob =
+                                    scope.launch {
+                                        // One animation at a time. Left to run
+                                        // concurrently, two double-taps both
+                                        // read the same un-committed `zoom`,
+                                        // fight over the live layer and commit
+                                        // two anchors — which is why tapping
+                                        // again to correct a bad zoom made it
+                                        // worse. Joining also means the toggle
+                                        // below reads a settled zoom.
+                                        inFlight?.cancelAndJoin()
+                                        animateZoom(ReaderZoom.doubleTapTarget(targetZoom), tap)
+                                    }
                             },
                         )
                     },
@@ -416,7 +500,7 @@ fun ReaderView(
                             scaleX = liveScale
                             scaleY = liveScale
                             translationX = liveTranslation.x
-                            translationY = liveTranslation.y
+                            translationY = liveTranslation.y + anchorOffsetY
                             val w = if (size.width > 0f) size.width else 1f
                             val h = if (size.height > 0f) size.height else 1f
                             transformOrigin = TransformOrigin(livePivot.x / w, livePivot.y / h)
@@ -796,17 +880,6 @@ private class OneFingerPan(
         lastX = x
     }
 }
-
-/**
- * A committed zoom's vertical anchor: how far the list should scroll — in
- * post-zoom pixels, signed, so a zoom-out can travel back up the document —
- * once the pages exist at the new zoom. [seq] distinguishes two anchors that
- * happen to ask for the same distance, so every commit re-triggers the effect.
- */
-private data class PendingAnchor(
-    val scrollDelta: Float,
-    val seq: Int,
-)
 
 private val NIGHT_FILTER =
     ColorFilter.colorMatrix(

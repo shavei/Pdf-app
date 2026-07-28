@@ -145,6 +145,24 @@ class ReaderPanE2ETest {
     }
 
     /**
+     * The left edge of a page the list has really placed, in the root.
+     *
+     * Every page shares the document's width, centring and pan, so any placed
+     * one reports the same x — which is what lets a before/after comparison use
+     * whichever pages happen to be on screen at the time. [pageLeft] cannot: it
+     * asks for page 1 by name, and a test that has scrolled into the document
+     * does not have a page 1 any more.
+     */
+    private fun placedPageLeft(pageCount: Int): Float {
+        val placed = placedRun(composedPageTops(pageCount)).firstOrNull() ?: return 0f
+        return composeRule
+            .onAllNodesWithContentDescription(ReaderSemantics.pageLabel(placed, pageCount))
+            .fetchSemanticsNodes()
+            .first()
+            .positionInRoot.x
+    }
+
+    /**
      * The layout width of a page the list has really placed, at today's zoom.
      *
      * Every page shares the document's zoom, but a page in the reuse pool still
@@ -301,6 +319,76 @@ class ReaderPanE2ETest {
     }
 
     @Test
+    fun twoDoubleTapsInOneBurst_leaveTheDocumentExactlyWhereItStarted() {
+        // Zoom in about a point and straight back out about the same point and
+        // the layout has to be restored exactly: the second anchor's travel is
+        // the first one's, negated. That makes this a round trip with no model
+        // of where the reader sits in the window — anything the reader loses on
+        // the way shows up as pages that do not come home.
+        //
+        // What it catches is the *burst*. Both taps are injected in one gesture,
+        // so the second lands inside the first's 200ms animation, and every case
+        // above taps once and waits. Two overlapping zooms used to race: the
+        // anchor was a single state slot applied by an effect keyed on it, so
+        // committing the second cancelled the first's scroll part-way and threw
+        // away the travel it still owed. The document then rested somewhere
+        // neither tap asked for — and tapping again to correct it only stacked
+        // another race on top, which is what made it look unfixable.
+        //
+        // It holds either way round: if the injections happen to land further
+        // apart than the animation, the first simply commits before the second
+        // starts and the same round trip has to close.
+        withReader(pageCount = SCROLLED_PAGE_COUNT, pageSize = STRIP_PAGE) {
+            val (width, height) = viewportSize()
+            composeRule.onNode(hasScrollToIndexAction()).performScrollToIndex(START_PAGE)
+            composeRule.waitForIdle()
+
+            val fitWidth = placedPageWidth(SCROLLED_PAGE_COUNT)
+            val before = composedPageTops(SCROLLED_PAGE_COUNT)
+            val leftBefore = placedPageLeft(SCROLLED_PAGE_COUNT)
+
+            // Off-centre horizontally, so the pan has somewhere to go and coming
+            // home is a real assertion rather than 0 == 0. Away from the top of
+            // the page vertically, so the zoom-out's travel crosses a page top
+            // instead of clamping against the document's.
+            val point = Offset(width * BURST_X, height * BURST_Y)
+            composeRule.onRoot().performTouchInput {
+                doubleClick(point)
+                doubleClick(point)
+            }
+            composeRule.waitUntil(timeoutMillis = ZOOM_TIMEOUT_MS) {
+                // Positive as well as back at fit: an empty placed run reports a
+                // width of 0, which would satisfy "no wider than fit" without a
+                // page on screen to say so.
+                val width = placedPageWidth(SCROLLED_PAGE_COUNT)
+                width > 0f && width <= fitWidth + TOLERANCE_PX
+            }
+            composeRule.waitForIdle()
+
+            val after = composedPageTops(SCROLLED_PAGE_COUNT)
+            val diagnostics =
+                "root ${width}x$height, tap $point, fit width $fitWidth -> " +
+                    "${placedPageWidth(SCROLLED_PAGE_COUNT)}, before $before, after $after"
+
+            // Back at fit-width, so back against the left edge: at fit-width the
+            // document is exactly as wide as the viewport and no pan survives.
+            assertWithMessage(diagnostics)
+                .that(placedPageLeft(SCROLLED_PAGE_COUNT))
+                .isWithin(TOLERANCE_PX)
+                .of(leftBefore)
+
+            val common = placedRun(before).intersect(placedRun(after).toSet())
+            assertWithMessage(diagnostics).that(common).isNotEmpty()
+            common.forEach { index ->
+                assertWithMessage("page $index; $diagnostics")
+                    .that(after.getValue(index))
+                    .isWithin(height * TOP_TOLERANCE_FRACTION)
+                    .of(before.getValue(index))
+            }
+        }
+    }
+
+    @Test
     fun zoomScalesTheGapsBetweenPages() {
         // Strip-shaped pages, so several page boundaries sit under one screen.
         // The distance between two pages is their heights plus the gaps between
@@ -415,6 +503,14 @@ class ReaderPanE2ETest {
         // on — many times TOP_TOLERANCE_FRACTION.
         const val ZOOM_IN_Y = 0.3f
         const val ZOOM_OUT_Y = 0.7f
+
+        // Where the burst lands. Off-centre horizontally, so holding that point
+        // still at 2.5x pans the document a good fraction of a viewport and the
+        // round trip has a real distance to come back from. Below the middle
+        // vertically, so the zoom-out's anchor travels back *above* the page the
+        // zoom-in left the reader on rather than clamping at its top.
+        const val BURST_X = 0.7f
+        const val BURST_Y = 0.6f
 
         // Fingers start this far either side of the point being pinched about,
         // and end PINCH_FACTOR times as far apart — so the document doubles,
