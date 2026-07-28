@@ -46,11 +46,21 @@ class SearchController(
 
     private var searchJob: Job? = null
 
+    /**
+     * Bumped per submission so a cancelled run cannot clear [searching] out from
+     * under the run that replaced it. Without it the *previous* job's `finally`
+     * — which resumes on the main thread one turn after the new job has already
+     * started — reports "not searching" while the new scan is still going, and
+     * the counter reads "0/0" (TalkBack: "No matches") for the whole scan.
+     */
+    private var searchSeq = 0
+
     fun open() {
         active = true
     }
 
     fun close() {
+        searchSeq++
         searchJob?.cancel()
         active = false
         searching = false
@@ -66,16 +76,20 @@ class SearchController(
         matches = emptyList()
         currentIndex = 0
         if (newQuery.isBlank()) {
+            searchSeq++
             searching = false
             return
         }
+        val seq = ++searchSeq
+        // Set before launching, so the bar shows progress from the keystroke on
+        // rather than from whenever the coroutine happens to be dispatched.
+        searching = true
         searchJob =
             scope.launch {
-                searching = true
                 try {
                     runSearch(newQuery)
                 } finally {
-                    searching = false
+                    if (seq == searchSeq) searching = false
                 }
             }
     }

@@ -87,6 +87,45 @@ class PdfTextDocumentTest {
         }
     }
 
+    /**
+     * The regression this whole normalisation exists for: on a real two-line
+     * page the stripper puts a `\n` where the layout wrapped, so a literal
+     * search missed any phrase that straddled it.
+     */
+    @Test
+    fun `phrases and hyphenated words are found across a real line wrap`() {
+        buildWrappedPdf("The quick brown fox jumps over the", "lazy dog, unin-", "terrupted").use {
+            val page = it.pageText(0)
+
+            assertThat(page.text).contains("the\nlazy")
+            assertThat(it.searchPage(0, "over the lazy dog").single().boxes).hasSize(2)
+            assertThat(it.searchPage(0, "uninterrupted")).hasSize(1)
+            assertThat(it.searchPage(0, "quick brown")).hasSize(1)
+        }
+    }
+
+    /** Build a one-page PDF with [lines] laid out as consecutive text lines. */
+    private fun buildWrappedPdf(vararg lines: String): PdfTextDocument {
+        val bytes =
+            PDDocument().use { document ->
+                val page = PDPage(PDRectangle.LETTER)
+                document.addPage(page)
+                PDPageContentStream(document, page).use { content ->
+                    content.beginText()
+                    content.setFont(PDType1Font.HELVETICA, FONT_SIZE)
+                    content.newLineAtOffset(TEXT_X, TEXT_Y)
+                    content.setLeading(LEADING)
+                    lines.forEach { line ->
+                        content.showText(line)
+                        content.newLine()
+                    }
+                    content.endText()
+                }
+                ByteArrayOutputStream().also(document::save).toByteArray()
+            }
+        return PdfTextDocument.load(ByteArrayInputStream(bytes))
+    }
+
     @Test
     fun `word selection round-trips through glyph geometry`() {
         buildPdf("Hello world").use { document ->
@@ -181,6 +220,7 @@ class PdfTextDocumentTest {
 
     private companion object {
         const val FONT_SIZE = 12f
+        const val LEADING = 16f
         const val TEXT_X = 72f
         const val TEXT_Y = 700f
         const val BASELINE_TOLERANCE_PT = 4f
