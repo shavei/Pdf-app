@@ -65,6 +65,9 @@ class ReaderPanE2ETest {
     /** The page-1 node; its content description carries the document's page count. */
     private var pageLabel: String = ""
 
+    /** How many pages the open document has, so helpers can find *any* placed page. */
+    private var openPageCount: Int = 0
+
     private fun pageNode() = composeRule.onNodeWithContentDescription(pageLabel).fetchSemanticsNode()
 
     // `positionInRoot`, not `boundsInRoot`: bounds are clipped to the viewport,
@@ -161,6 +164,7 @@ class ReaderPanE2ETest {
         body: () -> Unit,
     ) {
         pageLabel = ReaderSemantics.pageLabel(pageIndex = 0, pageCount = pageCount)
+        openPageCount = pageCount
         val pdf = File.createTempFile("readerpan", ".pdf", context.cacheDir)
         try {
             PDDocument().use { doc ->
@@ -244,9 +248,13 @@ class ReaderPanE2ETest {
         x: Float,
         y: Float = 0.5f,
     ): Float {
-        val fitWidth = pageWidth()
-        doubleTapAndSettle(x, y) { pageWidth() > fitWidth * ZOOM_IN_THRESHOLD }
-        return pageWidth().toFloat() / fitWidth
+        // Measured on whichever page the list has placed, not on page 1 by
+        // name. A zoom scrolls, and on a document of short pages it scrolls far
+        // enough that page 1 leaves the lazy list entirely — so asking for it
+        // fails on the wait rather than on anything the zoom did.
+        val fitWidth = placedPageWidth(openPageCount)
+        doubleTapAndSettle(x, y) { placedPageWidth(openPageCount) > fitWidth * ZOOM_IN_THRESHOLD }
+        return placedPageWidth(openPageCount) / fitWidth
     }
 
     @Test
