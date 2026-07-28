@@ -30,6 +30,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import kotlin.math.abs
 
 /**
  * The reader's viewport gestures, on a device.
@@ -108,6 +109,41 @@ class ReaderPanE2ETest {
             if (!continues) run = mutableListOf()
             run.add(index)
             if (run.size > best.size) best = run.toList()
+        }
+        return best
+    }
+
+    /**
+     * The longest run of consecutive pages that are evenly spaced.
+     *
+     * [placedRun] rejects a stale page only when it falls out of index order,
+     * and that is not enough: CI caught a zoom where the pages sat at -260, 320
+     * and 552, ascending and so accepted, when 552 was the third page's
+     * *pre-zoom* position left behind in the reuse pool. The first two were 580
+     * apart — exactly 2.5x the 232 they started at — and the stale third pulled
+     * the comparison to a number no zoom could produce.
+     *
+     * Every page in these documents is the same size, so a placed run has one
+     * pitch throughout; a page reporting where it used to be almost never
+     * happens to continue it. Requires the tops to be evenly spaced within
+     * [GAP_TOLERANCE_PX], which is the rounding a page plus a gap can carry.
+     */
+    private fun evenlySpacedRun(tops: Map<Int, Float>): List<Int> {
+        val ordered = placedRun(tops)
+        if (ordered.size < 3) return ordered
+        var best = emptyList<Int>()
+        var start = 0
+        while (start < ordered.size - 1) {
+            val pitch = tops.getValue(ordered[start + 1]) - tops.getValue(ordered[start])
+            var end = start + 1
+            while (end < ordered.size - 1) {
+                val next = tops.getValue(ordered[end + 1]) - tops.getValue(ordered[end])
+                if (abs(next - pitch) > GAP_TOLERANCE_PX) break
+                end++
+            }
+            val run = ordered.subList(start, end + 1)
+            if (run.size > best.size) best = run.toList()
+            start = end
         }
         return best
     }
@@ -301,7 +337,7 @@ class ReaderPanE2ETest {
             // the wrong page breaks the relationship outright — the anchor page
             // ends up somewhere its neighbours' spacing cannot explain — so this
             // still catches what the case was written for.
-            val common = placedRun(before).intersect(placedRun(after).toSet()).sorted()
+            val common = evenlySpacedRun(before).intersect(evenlySpacedRun(after).toSet()).sorted()
             val diagnostics =
                 "root ${width}x$height, zoom $zoom, before $before, after $after"
             assertWithMessage(diagnostics).that(common.size).isAtLeast(2)
@@ -366,7 +402,7 @@ class ReaderPanE2ETest {
 
             // Only pages both screenfuls placed: a page the reuse pool is
             // holding reports where it last was, not where it is.
-            val common = placedRun(topsBefore).intersect(placedRun(topsAfter).toSet())
+            val common = evenlySpacedRun(topsBefore).intersect(evenlySpacedRun(topsAfter).toSet())
             val diagnostics =
                 "root ${width}x$height, focusY $focusY, zoom out $k, " +
                     "before $topsBefore, after $topsAfter"
