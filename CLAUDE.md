@@ -28,4 +28,10 @@ A feature is **Done** only when all three layers (Lint, Unit, E2E/Harness) pass.
 - Never block the main thread with render/flatten/save.
 - Never hardcode file paths or request broad storage perms — use SAF only.
 - Never add commercial SDKs (PSPDFKit/Syncfusion) or telemetry.
-- Never commit secrets, keystores, or signed APKs.
+- Never commit secrets, keystores, or signed APKs. One deliberate exception:
+  `config/debug.keystore` is committed on purpose. A debug keystore is not a
+  secret — it cannot sign a release, and Android ships a well-known one — and
+  committing it is what gives every build the same debug signing identity, so
+  rolling `Latest build` APKs install over each other instead of being refused
+  as a different app. Release signing stays where it belongs, in the
+  `KEYSTORE_BASE64` CI secret. Nothing else earns an exception.

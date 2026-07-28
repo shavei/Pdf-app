@@ -171,8 +171,9 @@ Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
   The filename is deliberately unversioned so the link stays a permalink; the
   version it installs is in the release title, on Signet's home screen and in
   Android's App info.
-  (The same APK is also on **`Actions`** → newest **CI** run → **Artifacts** →
-  `signet-debug-apk`, named `Signet-<version>-debug.apk`.)
+  (CI no longer archives a per-run copy of this APK. It was 26 MB on every run
+  and the rolling release already carries the same build; to get an APK from a
+  branch that has not merged, run the workflow manually or build it locally.)
 
 ---
 
@@ -219,7 +220,9 @@ release after it is `v1.4.2` — the number keeps climbing by one on its own.
 | --- | --- |
 | Tagged release assets | `Signet-<version>.apk`, `Signet-<version>.aab` |
 | Rolling `Latest build` asset | `Signet.apk` (unversioned, keeps the permalink stable) |
-| CI artifact on every branch/PR run | `signet-debug-apk` → `Signet-<version>-debug.apk` |
+
+CI uploads no APK artifact. Test reports are archived only when a run fails, and
+expire after 7 days.
 
 Releases up to `v1.3.0` used AGP's default `app-release.apk` / `app-release.aab`;
 those old links still work.

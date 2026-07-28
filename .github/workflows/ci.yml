@@ -40,6 +40,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Nothing in this job consumes the output any more — the debug APK that
+      # used to be named from it is gone. It stays as an early check: `publish`
+      # and `release` both depend on this action resolving, and finding that
+      # out on every pull request beats finding it out at merge or tag time.
       - name: Resolve app version
         id: version
         uses: ./.github/actions/app-version
@@ -70,34 +74,28 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # AGP names every module's output app-debug.apk. Stage it under the app's
-      # own name and version so a downloaded file says what it is.
-      - name: Stage debug APK
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk "dist/Signet-$VERSION-debug.apk"
+      # No per-run debug APK. It was 26 MB against a 500 MB account-wide
+      # Actions quota — this repository is private, so artifacts are billed —
+      # and at the default 90-day retention roughly ten commits filled it. It
+      # was also redundant: `publish` below puts an installable debug APK on
+      # the rolling "Latest build" *release*, and release assets are not
+      # Actions storage. A build off a specific PR is still reachable by
+      # running that job manually (workflow_dispatch) or downloading from the
+      # rolling release once the branch merges.
 
-      # Artifact uploads are archival: a full Actions storage quota must not
-      # fail an otherwise-green build. Real lint/unit/build failures still fail
-      # the job at their own steps above.
-      - name: Upload debug APK
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: signet-debug-apk
-          path: dist/*.apk
-          if-no-files-found: error
-
+      # Only on failure, and only briefly: nobody opens a green run's reports,
+      # and an unread 90-day copy of every run is what exhausted the quota.
+      # Still archival, so a full quota must not fail an otherwise-green build
+      # — real lint/unit/build failures fail the job at their own steps above.
       - name: Upload test reports
-        if: always()
+        if: failure()
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
           path: "**/build/reports/**"
           if-no-files-found: ignore
+          retention-days: 7
 
   instrumented:
     name: E2E (emulator)
@@ -137,14 +135,18 @@ jobs:
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest --stacktrace
 
+      # As above: a passing emulator run's reports are never read, and these
+      # are the only diagnostics when a device test fails, so they are worth
+      # keeping for exactly as long as someone might look at them.
       - name: Upload androidTest reports
-        if: always()
+        if: failure()
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: androidTest-reports
           path: "**/build/reports/androidTests/**"
           if-no-files-found: ignore
+          retention-days: 7
 
   # Publishes a one-tap-installable APK to a rolling "Latest build" GitHub
   # Release, but only after every check above passes (lint + unit + E2E), and
@@ -311,6 +313,9 @@ jobs:
           name: release-artifacts
           path: dist/**
           if-no-files-found: error
+          # Tag builds are rare and the Release itself is the durable copy, so
+          # this is a short-lived convenience rather than an archive.
+          retention-days: 14
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')

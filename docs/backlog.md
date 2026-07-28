@@ -79,24 +79,25 @@ app window.
 
 ## Medium
 
-### M1 · The public `v1.0.0` tag points at an unrelated commit
+*(M1 — the `v1.0.0` tag pointing at an unrelated commit — done when the
+repository was made public. The tag and its GitHub Release are deleted, so
+`f4bdbb8` is no longer reachable by any ref, and `CHANGELOG.md`'s `[1.0.0]`
+link is dropped rather than re-cut: there is nothing left to point at. Note
+that a deleted ref is not a purge — the commit still resolves by direct SHA
+until GitHub garbage-collects.)*
 
-**Flagged:** PR #6 · **Status:** still true.
+*(M2's unrelated-project half — the `showcase-site` and `garmin-hebrew-widget`
+branches — went at the same time and for the same reason; both were preserved
+as git bundles first. What remains of M2 is below.)*
 
-`v1.0.0` resolves to `f4bdbb8 "Extract NEON SURVIVOR into its own repo"` — a
-commit from a different project that shared this repository before it was
-cleaned up. `CHANGELOG.md`'s `[1.0.0]` link points straight at that release.
-Needs the tag and its release deleted (and either re-cut at the real 1.0.0
-commit or the changelog link dropped).
+### M2 · Merged `claude/*` branches were never pruned
 
-### M2 · Stray branches on the public remote
+**Flagged:** PR #6 · **Status:** the unrelated-project branches are gone; the
+merged feature branches are not.
 
-**Flagged:** PR #6 · **Status:** still true.
-
-`showcase-site` and `garmin-hebrew-widget` are unrelated projects visible to
-anyone browsing the repository. Beneath them sit roughly forty merged `claude/*`
-feature branches that were never pruned — cosmetic, but it makes the branch list
-useless.
+Roughly forty-five merged `claude/*` branches sit on the remote. Purely
+cosmetic — but it makes the branch list useless for finding the one branch that
+is actually in flight.
 
 *(M3 — `PAGE_SPACING` not scaled with zoom — shipped in PR #48: the gap is
 `(PAGE_SPACING * zoom).dp`, guarded by `zoomScalesTheGapsBetweenPages`. Its
