@@ -5,26 +5,31 @@
 ### 📲 [**Download Signet**](https://github.com/shavei/Pdf-app/releases/latest/download/Signet.apk)
 
 <!-- Static badges only: dynamic shields.io badges (release version, CI status)
-     query the GitHub API anonymously and always show "repo not found" while
-     this repo is private. The download links above and in the Download section
-     point at the rolling `Latest build`, whose `Signet.apk` permalink is
-     unversioned — so they need no bump when a tagged release is cut. Only the
-     "last signed release" line in the Download section pins a version. Releases
-     from v1.4.1 on name their asset `Signet-<version>.apk`; v1.3.0 and earlier
-     used AGP's generic `app-release.apk`. -->
+     were added when this repo was private, where they always showed "repo not
+     found"; they can be revisited now that it is public.
+     The download links resolve to the newest *signed* release, which from
+     v1.4.1 on ships an unversioned `Signet.apk` alongside the versioned one
+     precisely so this stays a permalink and needs no bump per release. The
+     rolling debug build lives at its own `latest` tag and no longer claims
+     GitHub's "latest release" — see the Download section. Releases from v1.4.1
+     on also name their versioned asset `Signet-<version>.apk`; v1.3.0 and
+     earlier used AGP's generic `app-release.apk`. -->
 [![Download Signet](https://img.shields.io/badge/Download-Signet.apk-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/shavei/Pdf-app/releases/latest/download/Signet.apk)
-[![Latest build](https://img.shields.io/badge/Latest%20build-rolling-blue?style=for-the-badge&logo=github)](https://github.com/shavei/Pdf-app/releases/latest)
+[![Latest build](https://img.shields.io/badge/Latest%20build-rolling-blue?style=for-the-badge&logo=github)](https://github.com/shavei/Pdf-app/releases/tag/latest)
 [![CI](https://img.shields.io/badge/CI-workflow%20runs-555?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/shavei/Pdf-app/actions/workflows/ci.yml)
 
 > Tap **Download Signet** above, then open the file on your Android phone to
 > install (you may need to allow "install from unknown sources"). That is the
-> rolling **[Latest build](https://github.com/shavei/Pdf-app/releases/latest)**
-> — refreshed on every push to `main` that passes all checks, so it carries the
-> newest fixes; it is a debug-signed build and installs over a previous one
-> without an uninstall. You can also rebuild on demand from your phone:
-> **Actions → CI → Run workflow**. The last *signed tagged* release is
-> [v1.3.0](https://github.com/shavei/Pdf-app/releases/tag/v1.3.0), which predates
-> everything under `[Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md).
+> newest **signed tagged release**, which is what you want unless you have a
+> reason to want otherwise.
+>
+> If you would rather have the newest code than the newest release, the rolling
+> **[Latest build](https://github.com/shavei/Pdf-app/releases/tag/latest)** is
+> refreshed on every push to `main` that passes all checks. It is debug-signed,
+> so it installs over another debug build without an uninstall but *not* over a
+> signed release — the two carry different signing identities and Android
+> refuses the swap. You can also rebuild it on demand from your phone:
+> **Actions → CI → Run workflow**.
 
 A native Android app for reading PDFs — a Google-Drive-style viewer with
 continuous vertical scroll, document-level pinch-zoom, immersive tap-to-hide
@@ -131,21 +136,19 @@ page content (the ink is flattened as vector strokes). Run it with:
 
 ## Download
 
-- **Latest build (recommended)** — the rolling
-  [`Latest build` release](../../releases/latest) is refreshed automatically on
-  every push to `main` that passes all checks, so it is the newest working
-  Signet there is; the **Download Signet** button above installs its
-  [`Signet.apk`](https://github.com/shavei/Pdf-app/releases/latest/download/Signet.apk)
-  and that permalink is unversioned, so it always points at the newest one (a
-  debug build — one tap, no login). It installs as
-  `<version> (build <commit count>)` — shown on Signet's home screen, so you can
-  always tell which build you are on.
-- **Last signed tagged release** — [v1.3.0](https://github.com/shavei/Pdf-app/releases/tag/v1.3.0)
-  (2026-07-22), carrying `app-release.apk` and the matching `app-release.aab`
-  for the Play Store. It predates everything under `[Unreleased]` in
-  [`CHANGELOG.md`](CHANGELOG.md) — including the AcroForm fill & sign work and
-  the reader zoom-anchoring fixes — so prefer the `Latest build` above until a
-  newer tag is cut.
+- **Signed release (recommended)** — the newest `vX.Y.Z` on the
+  [Releases page](../../releases). The **Download Signet** button above installs
+  its [`Signet.apk`](https://github.com/shavei/Pdf-app/releases/latest/download/Signet.apk):
+  releases from v1.4.1 on ship that unversioned copy alongside the versioned
+  one, so the link is a permalink and always resolves to the newest signed
+  build. One tap, no login.
+- **Rolling `Latest build`** — [refreshed](../../releases/tag/latest) on every
+  push to `main` that passes all checks, so it carries fixes a release has not
+  reached yet. It installs as `<version> (build <commit count>)`, shown on
+  Signet's home screen so you can always tell which build you are on. It is
+  **debug-signed**: it installs over another debug build without an uninstall,
+  but not over a signed release, because Android refuses a swap between two
+  signing identities. Pick one and stay on it.
 - **Tagged releases** — every versioned build is published on the
   [Releases page](../../releases) when a `vX.Y.Z` tag is pushed, as a signed
   `Signet-<version>.apk` plus the matching `.aab`. See

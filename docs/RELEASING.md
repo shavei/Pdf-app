@@ -4,12 +4,12 @@ This guide takes you from zero to a published GitHub Release with a **signed**
 APK + AAB attached. It ships through **GitHub Releases** (no Play Console
 required for sideloading).
 
-> **Just want to install the app?** You don't need any of this. Every push to
-> `main` that passes all checks auto-publishes a debug-signed APK to the rolling
-> [`Latest build`](../../releases/latest) release — grab it via the **Download
-> APK** button in the README (a one-tap permalink, no login). This guide is only
-> for cutting **signed, versioned** releases via the `release` job in
-> [`ci.yml`](../.github/workflows/ci.yml).
+> **Just want to install the app?** You don't need any of this. The README's
+> **Download Signet** button is a one-tap permalink to the newest signed
+> release, and every push to `main` that passes all checks also auto-publishes a
+> debug-signed APK to the rolling [`Latest build`](../../releases/tag/latest).
+> This guide is only for cutting **signed, versioned** releases via the
+> `release` job in [`ci.yml`](../.github/workflows/ci.yml).
 
 There are two parts:
 
@@ -166,11 +166,16 @@ Watch progress under the **`Actions`** tab (the **CI** run for your tag, whose
 - **On an Android phone:** tap the downloaded `.apk`; the first time, allow
   "install unknown apps" for your browser/files app when prompted.
 - **Latest build (no release needed):** the rolling
-  [`Latest build`](../../releases/latest) release always has the newest
-  `Signet.apk` — one tap from the README's **Download APK** button, no login.
-  The filename is deliberately unversioned so the link stays a permalink; the
-  version it installs is in the release title, on Signet's home screen and in
+  [`Latest build`](../../releases/tag/latest) release always carries the newest
+  `Signet.apk` built from `main`. It is reached by its own tag, not by
+  `/releases/latest`: that permalink — and the README's **Download Signet**
+  button — belongs to the newest signed release, which ships its own
+  unversioned `Signet.apk` for exactly that purpose. The version a rolling
+  build installs is in the release title, on Signet's home screen and in
   Android's App info.
+  Note the two are **differently signed**: a debug-signed rolling build and a
+  signed release cannot replace one another in place, so moving between them
+  means uninstalling first.
   (CI no longer archives a per-run copy of this APK. It was 26 MB on every run
   and the rolling release already carries the same build; to get an APK from a
   branch that has not merged, run the workflow manually or build it locally.)
@@ -219,7 +224,8 @@ release after it is `v1.4.2` — the number keeps climbing by one on its own.
 | Where | Name |
 | --- | --- |
 | Tagged release assets | `Signet-<version>.apk`, `Signet-<version>.aab` |
-| Rolling `Latest build` asset | `Signet.apk` (unversioned, keeps the permalink stable) |
+| Rolling `Latest build` asset | `Signet.apk` (unversioned; reached via the `latest` *tag*) |
+| Signed release, unversioned copy | `Signet.apk` (what `/releases/latest/download/` serves) |
 
 CI uploads no APK artifact. Test reports are archived only when a run fails, and
 expire after 7 days.

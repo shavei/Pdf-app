@@ -175,19 +175,16 @@ double-tap race fix: the anchor's undrained travel is held on the live layer
 anchored result. It needed no Compose 1.9 `requestScrollToItem` and so no BOM
 upgrade; S8 moves on its own.)*
 
-### M12 · The reader's viewport height disagrees with the list's
-
-**Flagged:** the zoomed-placement fix · **Where:** `ui/reader/ReaderView.kt`,
-`BoxWithConstraints` against `listState.layoutInfo.viewportSize`.
-
-Measured on a 1440x3200 device: with the chrome visible both report 2439px and
-agree; with it hidden the list re-measures to 3200 while the incoming constraint
-stays 2439. So `viewportHeightPx` is stale in immersive mode. Nothing in the zoom
-depends on it any more — the anchor works in the coordinate space the tap arrives
-in, and the horizontal axis uses the width, which is correct — but
-`ZoomPreset.FIT_PAGE` divides by it, so fit-page is wrong by that ratio while the
-chrome is hidden. Not yet explained; the Scaffold padding is applied, so a stale
-constraint should not be possible.
+*(M12 — the reader's viewport height appearing to disagree with the list's —
+was not a bug. The `constraint 1440x2439` against `list 1440x3200` came from
+the temporary zoom instrumentation reading `viewportHeightPx` out of a captured
+closure — `setZoomAnchored` belongs to the composition the animation coroutine
+launched from — while reading `listState.layoutInfo` live: one line of text,
+two different moments. The overlay's own crosshair, drawn at
+`viewportHeightPx / 2`, landed at y≈1593 in two independent screenshots, which
+is half of 3200 and not of 2439. So the reader's viewport agreed with the list
+all along and `ZoomPreset.FIT_PAGE` divides by the right number. Recorded
+because the wrong conclusion was already written down once.)*
 
 ---
 

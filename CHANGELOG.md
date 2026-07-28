@@ -7,10 +7,14 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Releases are cut by pushing a `vX.Y.Z` tag; see
 [`docs/RELEASING.md`](docs/RELEASING.md). Each tagged release attaches a signed
 APK + AAB to its [GitHub Release](../../releases). The rolling
-[`Latest build`](../../releases/latest) is refreshed on every green push to
+[`Latest build`](../../releases/tag/latest) is refreshed on every green push to
 `main` and is not versioned here.
 
 ## [Unreleased]
+
+Nothing yet.
+
+## [1.4.1] — 2026-07-28
 
 ### Added
 
@@ -58,8 +62,8 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 - **Build naming** — builds install as a version plus a build number,
   `1.4.1 (build 102)`, instead of `0.1.0+9caa14e`; the commit SHA stays in the
   release notes. Published files are named after the app: `Signet-<version>.apk`
-  / `.aab` on tagged releases, `Signet.apk` on the rolling `Latest build`
-  (unversioned, so the download permalink is stable).
+  / `.aab` on tagged releases, plus an unversioned `Signet.apk` on both a signed
+  release and the rolling `Latest build`, so the download permalink is stable.
 - **One source of truth for the version** — `appVersionName` in
   `gradle.properties`. Builds and all three CI jobs read that one line (via the
   new `.github/actions/app-version`), and a `vX.Y.Z` tag that disagrees with it
@@ -68,6 +72,19 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
   to `main`, so it climbs by one every time and cutting a release is just
   "tag the version `main` is on". `./gradlew -q :app:appVersion` prints what a
   build would stamp. See [`docs/RELEASING.md`](docs/RELEASING.md#versioning).
+
+- **The download button installs the signed release.** GitHub's "latest
+  release" was claimed by the rolling debug build, which republishes on every
+  green push, so a signed release was buried the moment it was cut and the
+  README's one-tap link kept serving a debug build. The newest `vX.Y.Z` now
+  holds that spot and ships an unversioned `Signet.apk` so the link stays a
+  permalink; the rolling build keeps its own tag for anyone who wants newer
+  code than the newest release. The two are differently signed and cannot
+  replace one another in place, which the README and
+  [`docs/RELEASING.md`](docs/RELEASING.md) now say plainly.
+- **The home screen no longer offers to annotate.** It had advertised "View,
+  sign and annotate PDFs" since the annotation suite was removed in v1.3.0; it
+  now reads "View, fill and sign PDFs", which is what the app does.
 
 ### Fixed
 
@@ -177,6 +194,7 @@ scope is refocused to **viewer + signer** (the annotation suite is removed).
 - Initial release: PDF viewer with text overlays and a flattened ink signature,
   saved via SAF; "Open with" / share-target integration.
 
+[1.4.1]: ../../releases/tag/v1.4.1
 [1.3.0]: ../../releases/tag/v1.3.0
 [1.2.0]: ../../releases/tag/v1.2.0
 [1.1.1]: ../../releases/tag/v1.1.1
