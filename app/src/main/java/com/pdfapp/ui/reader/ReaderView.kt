@@ -206,21 +206,6 @@ fun ReaderView(
         val bucket = ceil(settledZoom.toDouble()).toInt().coerceIn(1, maxBucket)
 
         /**
-         * Height of the area the list actually scrolls in.
-         *
-         * Not [viewportHeightPx]: on a device those two disagree — the reader's
-         * incoming constraint measured 2439px against the list's 3200px on a
-         * 1440x3200 screen, with the chrome hidden and settled. Why is not yet
-         * understood and is tracked separately; what is certain is that the list
-         * is the thing being scrolled, so its own viewport is the one whose
-         * middle a zoom should land on. Falls back before the first measure.
-         */
-        fun scrollViewportHeightPx(): Float =
-            listState.layoutInfo.viewportSize.height
-                .takeIf { it > 0 }
-                ?.toFloat() ?: viewportHeightPx
-
-        /**
          * Commit a settled zoom into the layout, keeping the content under
          * [centroid] fixed and applying any live-gesture [gesturePan]: the
          * anchor page keeps the line under the fingers and the horizontal offset
@@ -324,7 +309,7 @@ fun ReaderView(
                         itemAfter = -1,
                         offsetAfter = -1,
                         itemSize = -1,
-                        target = Offset(viewportWidthPx / 2f, scrollViewportHeightPx() / 2f),
+                        target = Offset(viewportWidthPx / 2f, centroid.y),
                         actual = null,
                     )
             }
@@ -357,19 +342,28 @@ fun ReaderView(
             // here on. Zero at rest, where scale is 1 and no pivot is in force.
             liveTranslation += (livePivot - centroid) * (1f - from)
             livePivot = centroid
-            // A double-tap brings what you tapped to the middle of the screen
-            // rather than pinning it under your finger. Pinning is right for a
-            // pinch, where the fingers say where the content should stay, but
-            // for a tap it means tapping near an edge holds that point *at* the
-            // edge: at 2.5x, tapping 90% across pans the document to 99% of its
-            // travel and leaves you looking at the margin. Centring is what
-            // Drive and Chrome do, and it is why the anchor could be exact —
-            // measured sub-pixel on a device — and still feel wrong.
+            // Where the tapped point should end up, and the two axes do not
+            // want the same thing.
             //
-            // No new anchor maths: landing the focal point at [landing] is the
-            // existing formula with a gesture pan of (landing - focus), so the
-            // commit below stays the path a pinch uses.
-            val landing = Offset(viewportWidthPx / 2f, scrollViewportHeightPx() / 2f)
+            // Horizontally it comes to the middle. A zoomed page is wider than
+            // the screen — two and a half times at the reading zoom — so holding
+            // the tapped point under the finger strands a tap near either edge
+            // against the margin: measured on a device, a tap 88% across asked
+            // to pan 3159px of a possible 2160. Centring puts the column you
+            // aimed at where you can read it, whatever part of the page it was.
+            //
+            // Vertically it stays exactly where you tapped. Nothing forces it
+            // away — the document scrolls, so any line can sit at any height —
+            // and holding it still means the line you were reading is at the
+            // same height afterwards, instead of jumping to the middle and
+            // making you find it again.
+            //
+            // No new anchor maths either way: landing the focal point at
+            // [landing] is the existing formula with a gesture pan of
+            // (landing - focus), so the commit below stays the path a pinch
+            // uses — and a pinch keeps pinning both axes, which is right when
+            // the fingers themselves say where the content should stay.
+            val landing = Offset(viewportWidthPx / 2f, centroid.y)
             val panFrom = liveTranslation
             val panTo = landing - centroid
             // Frame-driven, not a delay() loop: `animate` resumes on the frame

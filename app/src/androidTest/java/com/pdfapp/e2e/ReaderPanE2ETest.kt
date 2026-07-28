@@ -34,8 +34,12 @@ import java.io.File
 /**
  * The reader's viewport gestures, on a device.
  *
- * A double-tap brings what you tapped to the middle of the screen; a pinch
- * pins its centroid, since there the fingers say where the content should stay.
+ * A double-tap brings what you tapped to the middle of the screen *horizontally*
+ * and holds it at its own height vertically: a zoomed page is wider than the
+ * screen, so pinning the x would strand a tap near either edge against the
+ * margin, while nothing forces the y away and holding it keeps the line you
+ * were reading where your eye already is. A pinch pins both axes, since there
+ * the fingers themselves say where the content should stay.
  * The cases here guard both, plus a single drag that pans horizontally *and*
  * scrolls vertically, which nested scroll containers cannot do because they
  * lock a drag to one axis.
@@ -240,42 +244,43 @@ class ReaderPanE2ETest {
     }
 
     @Test
-    fun doubleTapLandsOnTheSameLine_whereverOnThePageYouTap() {
-        // Centring, asserted without knowing where the reader sits in the
-        // window — which this test cannot know, since the reader is inset by
-        // chrome by an amount that varies with the device.
+    fun doubleTapHoldsTheTappedLineAtItsHeight() {
+        // The vertical half of the double-tap contract: the line you tapped is
+        // at the same height afterwards, so your eye does not have to find it
+        // again. Only the horizontal axis re-centres.
         //
-        // Work in root coordinates and let R be the reader's unknown top, L its
-        // unknown landing point. A tap at root y=Y has reader-local focus Y-R,
-        // so a page top maps to R + L + (topBefore - Y) x zoom: the two unknowns
-        // only ever appear as the sum R+L. That sum is computable from measured
-        // numbers, and centring means it does not depend on Y. Pinning would
-        // make it exactly Y — so tapping at two heights and comparing tells the
-        // two behaviours apart without either being modelled.
+        // Asserted without knowing where the reader sits in the window, which
+        // this test cannot know — the reader is inset by chrome by an amount
+        // that varies with the device. Work in root coordinates and let R be
+        // that unknown inset: a tap at root y=Y has reader-local focus Y-R, and
+        // pinning maps a page top to R + (Y-R) + (topBefore - Y) x zoom, which
+        // is Y + (topBefore - Y) x zoom. R cancels, so the expected position is
+        // arithmetic this test can state outright. Centring would instead put
+        // it at the viewport's middle, hundreds of pixels away at either tap
+        // height used here.
         withReader(pageCount = 3, pageSize = SHORT_PAGE) {
             val (width, height) = viewportSize()
 
-            fun landingAfterTapAt(yFraction: Float): Float {
+            fun assertHoldsAt(yFraction: Float) {
                 val topBefore = pageTop()
                 val fitWidth = pageWidth()
+                val focusY = height * yFraction
                 val zoom = doubleTapAt(x = 0.5f, y = yFraction)
-                val landing = pageTop() - (topBefore - height * yFraction) * zoom
+                assertWithMessage(
+                    "root ${width}x$height, tapped y=$focusY, zoom $zoom, " +
+                        "page 1 top $topBefore -> ${pageTop()}",
+                ).that(pageTop())
+                    .isWithin(height * TOP_TOLERANCE_FRACTION)
+                    .of(focusY + (topBefore - focusY) * zoom)
                 // Back to fit-width, so the next measurement starts where this
                 // one did rather than compounding.
                 doubleTapAndSettle(0.5f, yFraction) { pageWidth() <= fitWidth + TOLERANCE_PX }
-                return landing
             }
 
-            val high = landingAfterTapAt(ZOOM_IN_Y)
-            val low = landingAfterTapAt(ZOOM_OUT_Y)
-
-            assertWithMessage(
-                "root ${width}x$height; landing from y=$ZOOM_IN_Y was $high, " +
-                    "from y=$ZOOM_OUT_Y was $low; pinning would give " +
-                    "${height * ZOOM_IN_Y} and ${height * ZOOM_OUT_Y}",
-            ).that(low)
-                .isWithin(height * TOP_TOLERANCE_FRACTION)
-                .of(high)
+            // Two heights well apart: pinning gives a different answer at each,
+            // and centring would give the same one at both.
+            assertHoldsAt(ZOOM_IN_Y)
+            assertHoldsAt(ZOOM_OUT_Y)
         }
     }
 
