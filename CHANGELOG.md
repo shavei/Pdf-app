@@ -14,6 +14,14 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 
 ### Fixed
 
+- **Hebrew (and any right-to-left) text is now searchable at all.** A producer
+  lays an RTL line out visually — left to right across the page — and extraction
+  was replaying that draw order, so every word was stored backwards: "בחולה"
+  became "הלוחב". No typed query could ever match, on any document in a
+  right-to-left script. Extraction now resolves the direction, so page text
+  comes out in reading order while each highlight box stays with its own
+  character. Verified against a real 43-page Hebrew document: every page now
+  extracts character-for-character identically to PdfBox's own text output.
 - **Search now finds phrases that wrap across a line.** Extracted PDF text
   carries the layout's own breaks, so a page that plainly reads "over the lazy
   dog" was stored as `"over the\nlazy dog"` and a search for "the lazy" found
