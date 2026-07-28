@@ -149,6 +149,7 @@ fun ZoomDiagnosticOverlay(
     history: List<ZoomReading>,
     worstPx: Float,
     constraintCentreY: Float,
+    extra: String = "",
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = Modifier.fillMaxSize()) {
@@ -205,6 +206,15 @@ fun ZoomDiagnosticOverlay(
             lineHeight = 13.sp,
             fontFamily = FontFamily.Monospace,
         )
+        if (extra.isNotEmpty()) {
+            Text(
+                text = "\n$extra",
+                color = Color(0xFF9FD8FF),
+                fontSize = 10.sp,
+                lineHeight = 13.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+        }
         if (history.isNotEmpty()) {
             Text(
                 text =

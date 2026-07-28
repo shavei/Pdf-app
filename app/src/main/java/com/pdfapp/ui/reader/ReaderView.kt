@@ -59,6 +59,8 @@ import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -171,6 +173,10 @@ fun ReaderView(
         var reading by remember(session) { mutableStateOf<ZoomReading?>(null) }
         var readings by remember(session) { mutableStateOf(listOf<ZoomReading>()) }
         var worstPx by remember(session) { mutableFloatStateOf(0f) }
+        // TEMPORARY: what the page was actually measured and placed at, versus
+        // what it was asked for. The arithmetic says a zoomed page cannot leave
+        // background showing to its right, and on a device it does.
+        var pageGeom by remember(session) { mutableStateOf("") }
 
         // Live pinch transform. During a gesture we do NOT touch `zoom` (which
         // drives the list's measured width/height); instead we scale the
@@ -309,7 +315,7 @@ fun ReaderView(
                         itemAfter = -1,
                         offsetAfter = -1,
                         itemSize = -1,
-                        target = Offset(viewportWidthPx / 2f, centroid.y),
+                        target = centroid,
                         actual = null,
                     )
             }
@@ -363,26 +369,29 @@ fun ReaderView(
             // (landing - focus), so the commit below stays the path a pinch
             // uses — and a pinch keeps pinning both axes, which is right when
             // the fingers themselves say where the content should stay.
-            val landing = Offset(viewportWidthPx / 2f, centroid.y)
-            val panFrom = liveTranslation
-            val panTo = landing - centroid
+            // The tapped point stays exactly where you tapped it, both axes.
+            // Not the middle: an earlier build brought it there horizontally to
+            // stop a tap near an edge landing on the margin, and moving content
+            // away from the finger read as the zoom jumping around — which is
+            // worse than the margin it avoided. Pinning is what a pinch does
+            // too, so both gestures now behave the same way.
+            //
+            // The cost is real and accepted: tapping close to the left or right
+            // edge of a zoomed page holds that point at the edge, so there is
+            // little of the page beside it.
+            //
             // Frame-driven, not a delay() loop: `animate` resumes on the frame
             // callback, so each step lands on a vsync instead of drifting
-            // against it, and the easing takes the lurch out of both ends. The
-            // slide to centre rides the same eased progress as the scale, so
-            // the content glides there instead of jumping at the commit.
+            // against it, and the easing takes the lurch out of both ends.
             animate(
                 initialValue = from,
                 targetValue = to,
                 animationSpec = tween(DOUBLE_TAP_ZOOM_MS, easing = FastOutSlowInEasing),
-            ) { value, _ ->
-                liveScale = value
-                val progress = ((value - from) / (to - from)).coerceIn(0f, 1f)
-                liveTranslation = panFrom + (panTo - panFrom) * progress
-            }
-            // Commit through the same path a pinch uses: the live translation is
-            // a real part of what the screen shows by now, so it has to be baked
-            // into the offsets or committing would jump by exactly that much.
+            ) { value, _ -> liveScale = value }
+            // Commit through the same path a pinch uses: any live translation —
+            // the compensation a mid-flight pivot swap left behind — is a real
+            // part of what the screen shows by now, so it has to be baked into
+            // the offsets or committing would jump by exactly that much.
             setZoomAnchored(clampedTarget, livePivot, liveTranslation)
         }
 
@@ -671,6 +680,14 @@ fun ReaderView(
                             describeText = touchExploration,
                             chromeVisible = chromeVisible,
                             onToggleChrome = onToggleChrome,
+                            onMeasured = { measuredWidth, rootX ->
+                                if (BuildConfig.DEBUG && index == listState.firstVisibleItemIndex) {
+                                    pageGeom =
+                                        "page $index  measured w=$measuredWidth rootX=${rootX.toInt()}\n" +
+                                        "asked pageW=${pageWidthPx.toInt()} lazyW=${lazyWidthPx.toInt()} " +
+                                        "panX=${panX.toInt()} bucket=$bucket zoom=${"%.2f".format(zoom)}"
+                                }
+                            },
                         )
                     }
                 }
@@ -687,6 +704,7 @@ fun ReaderView(
                     history = readings,
                     worstPx = worstPx,
                     constraintCentreY = viewportHeightPx / 2f,
+                    extra = pageGeom,
                     modifier = Modifier.align(Alignment.TopStart),
                 )
             }
@@ -713,6 +731,7 @@ private fun ReaderPage(
     describeText: Boolean,
     chromeVisible: Boolean,
     onToggleChrome: () -> Unit,
+    onMeasured: (width: Int, rootX: Float) -> Unit = { _, _ -> },
 ) {
     val session = viewModel.session ?: return
     val density = LocalDensity.current
@@ -763,6 +782,12 @@ private fun ReaderPage(
                 Modifier
                     .width(with(density) { pageWidthPx.toDp() })
                     .fillMaxHeight()
+                    // TEMPORARY: what the page was *actually* measured and
+                    // placed at, as opposed to what it was asked for. The
+                    // arithmetic says a zoomed page cannot leave background
+                    // showing to its right, and on a device it does — so the
+                    // asking and the getting have to be compared directly.
+                    .onGloballyPositioned { onMeasured(it.size.width, it.positionInRoot().x) }
                     .background(if (viewModel.nightMode) Color.Black else Color.White)
                     .semantics(mergeDescendants = true) {
                         contentDescription = pageLabel

@@ -34,12 +34,11 @@ import java.io.File
 /**
  * The reader's viewport gestures, on a device.
  *
- * A double-tap brings what you tapped to the middle of the screen *horizontally*
- * and holds it at its own height vertically: a zoomed page is wider than the
- * screen, so pinning the x would strand a tap near either edge against the
- * margin, while nothing forces the y away and holding it keeps the line you
- * were reading where your eye already is. A pinch pins both axes, since there
- * the fingers themselves say where the content should stay.
+ * A double-tap holds the point you tapped exactly where you tapped it, on both
+ * axes, and so does a pinch about its centroid. Bringing it to the middle
+ * instead was tried and rejected: it stops a tap near an edge landing on the
+ * margin, but moving content away from the finger reads as the zoom jumping
+ * around, which is the worse of the two.
  * The cases here guard both, plus a single drag that pans horizontally *and*
  * scrolls vertically, which nested scroll containers cannot do because they
  * lock a drag to one axis.
@@ -215,26 +214,23 @@ class ReaderPanE2ETest {
     }
 
     @Test
-    fun doubleTap_bringsTheTappedPointToTheMiddle() {
+    fun doubleTap_holdsTheTappedPointUnderYourFinger() {
         withReader(pageCount = 1) {
             val (width, _) = viewportSize()
             assertThat(pageLeft()).isWithin(TOLERANCE_PX).of(0f)
 
-            // Horizontally the reader spans the whole window, so the landing
-            // point is a number this test knows exactly — unlike the vertical
-            // axis, where the reader is inset by chrome. That makes this the one
-            // place the centring can be asserted against arithmetic rather than
-            // against itself.
+            // Horizontally the reader spans the whole window, so this is
+            // arithmetic the test knows exactly — unlike the vertical axis,
+            // where the reader is inset by chrome by an unknown amount.
             //
-            // Tapping TAP_X across at 2.5x: the tapped content point sits at
-            // TAP_X x width x 2.5, and bringing it to the middle leaves the
-            // viewport's left edge that far along, less half a screen. Pinning
-            // it under the finger instead — the old behaviour — would subtract a
-            // whole TAP_X x width, landing the page a good fraction of a
-            // screen further left. The two are far enough apart that no
-            // tolerance hides the difference.
+            // Holding the tapped point still at 2.5x means the viewport's left
+            // edge moves to TAP_X x width x (zoom - 1). Bringing it to the
+            // middle instead — which an earlier build did, to stop a tap near
+            // an edge landing on the margin — would leave it half a screen
+            // short of that. The two are a fifth of a viewport apart, so no
+            // tolerance hides which one is in force.
             val zoom = doubleTapAt(x = TAP_X)
-            val expectedPan = TAP_X * width * zoom - width / 2f
+            val expectedPan = TAP_X * width * (zoom - 1f)
 
             assertWithMessage("width $width, zoom $zoom")
                 .that(pageLeft())
