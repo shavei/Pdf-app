@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -66,6 +67,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.pdfapp.BuildConfig
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.core.renderer.model.PdfRect
 import com.pdfapp.core.renderer.text.PdfLink
@@ -164,6 +166,11 @@ fun ReaderView(
         // the fit-width epsilon within a frame of starting, so a toggle made
         // against it would flip direction depending on when the tap landed.
         var targetZoom by remember(session) { mutableFloatStateOf(1f) }
+        // TEMPORARY instrumentation — see [ZoomDiagnostics]. Debug builds only.
+        var probe by remember(session) { mutableStateOf<ZoomProbe?>(null) }
+        var reading by remember(session) { mutableStateOf<ZoomReading?>(null) }
+        var readings by remember(session) { mutableStateOf(listOf<ZoomReading>()) }
+        var worstPx by remember(session) { mutableFloatStateOf(0f) }
 
         // Live pinch transform. During a gesture we do NOT touch `zoom` (which
         // drives the list's measured width/height); instead we scale the
@@ -234,6 +241,11 @@ fun ReaderView(
         ) {
             val clamped = target.coerceIn(MIN_ZOOM, MAX_ZOOM)
             val k = clamped / zoom
+            // Captured before the writes below overwrite them; diagnostics only.
+            val zoomBefore = zoom
+            val panBefore = panX
+            val itemBefore = listState.firstVisibleItemIndex
+            val offsetBefore = listState.firstVisibleItemScrollOffset
             if (k == 1f && gesturePan == Offset.Zero) {
                 // Nothing to bake in, but always drop back to the identity
                 // transform so a released gesture cannot leave the layer scaled.
@@ -262,15 +274,16 @@ fun ReaderView(
             // The pan is our own state, so it clamps against the width the
             // document is zooming *to* — no relayout has to land first for the
             // horizontal anchor to be right.
+            val rawPan =
+                ReaderPan.anchored(
+                    pan = panX,
+                    focus = centroid.x,
+                    scaleFactor = k,
+                    gesturePan = gesturePan.x,
+                )
             val newPanX =
                 ReaderPan.clamp(
-                    pan =
-                        ReaderPan.anchored(
-                            pan = panX,
-                            focus = centroid.x,
-                            scaleFactor = k,
-                            gesturePan = gesturePan.x,
-                        ),
+                    pan = rawPan,
                     contentWidthPx = viewportWidthPx * max(1f, clamped),
                     viewportWidthPx = viewportWidthPx,
                 )
@@ -285,6 +298,36 @@ fun ReaderView(
             liveTranslation = Offset.Zero
             pendingScroll += scrollDelta
             anchorSeq++
+            if (BuildConfig.DEBUG && probe != null) {
+                reading =
+                    ZoomReading(
+                        seq = anchorSeq,
+                        tap = probe?.tap ?: Offset.Zero,
+                        constraintViewport = Size(viewportWidthPx, viewportHeightPx),
+                        listViewport =
+                            Size(
+                                listState.layoutInfo.viewportSize.width.toFloat(),
+                                listState.layoutInfo.viewportSize.height.toFloat(),
+                            ),
+                        density = density.density,
+                        zoomBefore = zoomBefore,
+                        zoomAfter = clamped,
+                        k = k,
+                        panBefore = panBefore,
+                        panRaw = rawPan,
+                        panAfter = newPanX,
+                        panMax = ReaderPan.maxPan(viewportWidthPx * max(1f, clamped), viewportWidthPx),
+                        scrollAsked = scrollDelta,
+                        scrollConsumed = Float.NaN,
+                        itemBefore = itemBefore,
+                        offsetBefore = offsetBefore,
+                        itemAfter = -1,
+                        offsetAfter = -1,
+                        itemSize = -1,
+                        target = Offset(viewportWidthPx / 2f, scrollViewportHeightPx() / 2f),
+                        actual = null,
+                    )
+            }
             // The list has not scrolled yet, so the content sits `pendingScroll`
             // px below where the anchor puts it. Holding it up by exactly that
             // much means this frame already shows the anchored result; the drain
@@ -376,7 +419,8 @@ fun ReaderView(
         LaunchedEffect(anchorSeq) {
             val owed = pendingScroll
             if (owed == 0f) return@LaunchedEffect
-            listState.scrollBy(owed)
+            val consumed = listState.scrollBy(owed)
+            if (BuildConfig.DEBUG) reading = reading?.copy(scrollConsumed = consumed)
             // Reached only if the scroll ran to completion — being cancelled
             // skips it and leaves the whole debt for the effect that replaced
             // us. Subtracting `owed` rather than zeroing keeps any debt a commit
@@ -385,6 +429,40 @@ fun ReaderView(
             // carrying it would bend the next zoom's anchor.
             pendingScroll -= owed
             anchorOffsetY = -pendingScroll
+        }
+        // TEMPORARY: measure where the probed point actually ended up, once the
+        // anchor scroll has drained and the layout has settled. Two frames,
+        // because the scroll above lands on the next measure and the numbers
+        // describing it are only true after that.
+        LaunchedEffect(anchorSeq) {
+            if (!BuildConfig.DEBUG) return@LaunchedEffect
+            val p = probe ?: return@LaunchedEffect
+            withFrameNanos { }
+            withFrameNanos { }
+            val item = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == p.itemIndex }
+            // The same physical point, relocated at the new zoom: its document x
+            // scaled back up and the pan taken off, and its distance down its
+            // page scaled by however much the zoom changed, from wherever that
+            // page now sits.
+            val scale = zoom / p.zoomBefore
+            val actual =
+                item?.let {
+                    Offset(p.docX * zoom - panX, it.offset + p.offsetInItem * scale)
+                }
+            reading =
+                reading?.copy(
+                    itemAfter = listState.firstVisibleItemIndex,
+                    offsetAfter = listState.firstVisibleItemScrollOffset,
+                    itemSize = item?.size ?: -1,
+                    actual = actual,
+                )
+            reading?.let { settled ->
+                readings = readings + settled
+                if (settled.verdict == "FAIL" && settled.errorMagnitude > worstPx) {
+                    worstPx = settled.errorMagnitude
+                }
+            }
+            probe = null
         }
         // One-shot navigation requests from search / outline / go-to-page.
         LaunchedEffect(viewModel.pendingReadTarget) {
@@ -503,6 +581,16 @@ fun ReaderView(
                         detectTapGestures(
                             onTap = { handleTap(it) },
                             onDoubleTap = { tap ->
+                                if (BuildConfig.DEBUG) {
+                                    probe =
+                                        ZoomProbe(
+                                            tap = tap,
+                                            zoomBefore = zoom,
+                                            docX = (panX + tap.x) / zoom,
+                                            itemIndex = listState.firstVisibleItemIndex,
+                                            offsetInItem = listState.firstVisibleItemScrollOffset + tap.y,
+                                        )
+                                }
                                 val inFlight = zoomJob
                                 zoomJob =
                                     scope.launch {
@@ -583,6 +671,15 @@ fun ReaderView(
                 currentPage = viewModel.currentPageIndex,
                 modifier = Modifier.align(Alignment.CenterEnd),
             )
+            if (BuildConfig.DEBUG) {
+                ZoomDiagnosticOverlay(
+                    current = reading,
+                    history = readings,
+                    worstPx = worstPx,
+                    constraintCentreY = viewportHeightPx / 2f,
+                    modifier = Modifier.align(Alignment.TopStart),
+                )
+            }
         }
     }
 }
