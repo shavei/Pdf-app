@@ -70,6 +70,27 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
   "tag the version `main` is on". `./gradlew -q :app:appVersion` prints what a
   build would stamp. See [`docs/RELEASING.md`](docs/RELEASING.md#versioning).
 
+### Fixed
+
+- **Zooming lands where you asked for it.** Two ways it didn't: a pinch turned
+  the document about whichever finger touched down first rather than the point
+  between the fingers, and any zoom whose anchor sat above the top of the page
+  the reader was on — most double-taps back to fit-width, and any pinch that
+  drew the fingers down the screen — was pinned to that page's top instead of
+  travelling back to the line it was asked to hold. A zoom's vertical anchor is
+  now applied once the pages exist at the new zoom, so a distance measured in
+  post-zoom pixels is spent against post-zoom pages instead of landing short,
+  and a zoom-out travels back up through the pages above rather than stopping at
+  the current page's top.
+- **Pan a zoomed page in both axes** — dragging moves the document vertically as
+  well as horizontally, and the pan clamps against the zoomed width so no
+  gesture exposes content past the page edge.
+- **Double-tap zoom animates on frame callbacks** — the toggle drives the live
+  GPU transform and bakes the result in once, instead of relayouts per step, and
+  a zoomed scroll no longer runs through recomposition.
+- **The gap between pages scales with the zoom**, and pages the lazy list is
+  holding for reuse are skipped when that gap is measured.
+
 ## [1.3.0] — 2026-07-22
 
 The reading experience is reworked into a **Google-Drive-style viewer**, and the
@@ -107,12 +128,6 @@ scope is refocused to **viewer + signer** (the annotation suite is removed).
 
 ### Fixed
 
-- **Zooming lands where you asked for it.** Two ways it didn't: a pinch turned
-  the document about whichever finger touched down first rather than the point
-  between the fingers, and any zoom whose anchor sat above the top of the page
-  the reader was on — most double-taps back to fit-width, and any pinch that
-  drew the fingers down the screen — was pinned to that page's top instead of
-  travelling back to the line it was asked to hold.
 - Edit bottom bar no longer overflows on small phones.
 - Stepper touch targets sized to 48 dp.
 - `OpenWithIntentTest` updated for the chip-less continuous reader.

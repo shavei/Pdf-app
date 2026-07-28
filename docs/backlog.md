@@ -60,9 +60,11 @@ only distribution path.
 `v1.4.x` tag.
 
 The whole of `CHANGELOG.md`'s `[Unreleased]` — AcroForm fill & sign, Phase F
-accessibility, the version system, the source reorganisation — is unreleased.
-The newest thing a user can install is four weeks old. Cutting the tag also
-clears S2 (the README still advertises v1.3.0).
+accessibility, the version system, the source reorganisation, the reader
+zoom-anchoring fixes — is unreleased. The newest *signed* thing a user can
+install is four weeks old; the README now sends people to the rolling
+`Latest build` instead (S2), which is a debug-signed stopgap, not a substitute
+for a tag.
 
 ### L5 · Cross-cutting platform polish
 
@@ -190,13 +192,10 @@ annotate PDFs — entirely on this device."
 
 The annotation suite was removed by product decision in v1.3.0. One string.
 
-### S2 · README still advertises v1.3.0
-
-**Where:** `README.md:5`, `:14`, `:130`–`:134`.
-
-The download button, the badge and the install section all point at
-`v1.3.0/app-release.apk`. Moves with L4; the pinned-link bump rule is already
-documented in the README's own comment.
+*(S2 — README advertising v1.3.0 — shipped: the heading, badge and Download
+section now point at the rolling `Latest build`'s unversioned `Signet.apk`, and
+v1.3.0 is described as the last signed tag rather than the recommended install.
+Its number is not reused, so PRs citing S3–S8 still resolve.)*
 
 ### S3 · `mobile-ui-plan.md` still names the Shape tool
 
