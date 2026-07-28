@@ -166,18 +166,11 @@ A PDF opened from another app carries a temporary grant, so its Recents entry
 stops resolving once the task dies. Fixing it means copying into app-private
 storage on open — a real design decision, not a bug, but users see a dead entry.
 
-### M11 · A committed zoom shows one un-anchored frame
-
-**Flagged:** the zoom-anchor fix · **Where:** the `pendingAnchor` effect in
-`ui/reader/ReaderView.kt`.
-
-The vertical half of a zoom anchor can only be applied once the pages have
-re-composed at the new zoom, so the frame in between presents the new zoom at the
-old scroll position, before the anchor lands. It reads as a flicker on the way to
-the right place rather than a wrong resting position. Compose 1.9's
-`LazyListState.requestScrollToItem` sets a position for the *next* measure
-instead of forcing one, which would close the gap; the project is on Compose 1.7
-(BOM 2024.10.01), so it moves with the next BOM upgrade — alongside S8.
+*(M11 — a committed zoom showing one un-anchored frame — shipped in the
+double-tap race fix: the anchor's undrained travel is held on the live layer
+(`anchorOffsetY`) until the scroll lands, so the gap frame already shows the
+anchored result. It needed no Compose 1.9 `requestScrollToItem` and so no BOM
+upgrade; S8 moves on its own.)*
 
 ---
 
