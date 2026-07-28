@@ -665,7 +665,30 @@ fun ReaderView(
                             // list without recomposing a single page.
                             .offset {
                                 val x = ReaderPan.clamp(panX, lazyWidthPx, viewportWidthPx)
-                                IntOffset(-x.roundToInt(), 0)
+                                // `requiredWidth` above makes the list wider
+                                // than the space it is given, and a child that
+                                // overflows its parent is *centred* in that
+                                // space — a silent shift of half the overflow,
+                                // which the pan knows nothing about. Measured on
+                                // a device: pan 2096 placed the page at root x
+                                // -3177 rather than -2096, out by exactly
+                                // (3600 - 1440) / 2.
+                                //
+                                // It is zero at fit-width and grows with the
+                                // zoom, so the reader was displaced by 1080px at
+                                // the 2.5x reading zoom and more above it. That
+                                // is what made a double-tap look like it jumped
+                                // away from the point it was aimed at, and why
+                                // the anchor could measure exact and still be
+                                // wrong on screen: every anchor calculation and
+                                // every test shared the same blind spot, and
+                                // fit-width — where the shift vanishes — is
+                                // where the tests did their measuring.
+                                //
+                                // Cancelling it here keeps the offset the one
+                                // place horizontal position is decided.
+                                val overflow = (lazyWidthPx - viewportWidthPx) / 2f
+                                IntOffset((overflow - x).roundToInt(), 0)
                             },
                 ) {
                     items(count = session.pageCount, key = { it }) { index ->
