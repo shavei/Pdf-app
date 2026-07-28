@@ -1,18 +1,21 @@
 package com.pdfapp.core.renderer.text
 
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
+import com.tom_roush.pdfbox.pdmodel.font.PDType0Font
 import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
 import com.tom_roush.pdfbox.pdmodel.interactive.action.PDActionURI
 import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink
 import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageXYZDestination
 import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline
 import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem
+import com.tom_roush.pdfbox.text.PDFTextStripper
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,6 +24,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 /**
  * Integration tests for the read-only PdfBox facade: generate real PDFs in
@@ -101,6 +105,66 @@ class PdfTextDocumentTest {
             assertThat(it.searchPage(0, "over the lazy dog").single().boxes).hasSize(2)
             assertThat(it.searchPage(0, "uninterrupted")).hasSize(1)
             assertThat(it.searchPage(0, "quick brown")).hasSize(1)
+        }
+    }
+
+    /**
+     * A producer draws Hebrew *visually* — the line laid out left to right on
+     * the page — while a reader types it logically. Replaying the draw order
+     * would store every word backwards ("בחולה" as "הלוחב"), which no typed
+     * query can match; extraction has to resolve the direction.
+     */
+    @Test
+    fun `right-to-left text is extracted in reading order, not draw order`() {
+        val logical = "שלום עולם"
+
+        loadRtl(logical.reversed()).use { document ->
+            val page = document.pageText(0)
+
+            assertThat(page.text).contains(logical)
+            val match = document.searchPage(0, "שלום").single()
+            assertThat(page.textIn(match.range)).isEqualTo("שלום")
+            assertThat(match.boxes).hasSize(1)
+        }
+    }
+
+    /**
+     * Pins the extraction to PdfBox's own bidi result. Hebrew mixed with digits
+     * splits a line into several runs whose *order* changes, not merely their
+     * direction — reordering the characters without also reordering the runs
+     * silently drops those lines back to draw order.
+     */
+    @Test
+    fun `extraction agrees character-for-character with PdfBox's own bidi`() {
+        val bytes = rtlPdfBytes("םולש 30 תוינש םולש")
+
+        val ours = PdfTextDocument.load(ByteArrayInputStream(bytes)).use { it.pageText(0).text }
+        val stock =
+            PDDocument.load(bytes).use { document ->
+                PDFTextStripper().apply { sortByPosition = true }.getText(document)
+            }
+
+        assertThat(ours.replace(WHITESPACE, " ").trim())
+            .isEqualTo(stock.replace(WHITESPACE, " ").trim())
+    }
+
+    private fun loadRtl(drawn: String) = PdfTextDocument.load(ByteArrayInputStream(rtlPdfBytes(drawn)))
+
+    /** One page showing [drawn] in the bundled Unicode font, as laid out. */
+    private fun rtlPdfBytes(drawn: String): ByteArray {
+        val font = File(UNICODE_FONT)
+        assertWithMessage("Unicode test font missing at $UNICODE_FONT").that(font.exists()).isTrue()
+        return PDDocument().use { document ->
+            val page = PDPage(PDRectangle.LETTER)
+            document.addPage(page)
+            PDPageContentStream(document, page).use { content ->
+                content.beginText()
+                content.setFont(PDType0Font.load(document, font.inputStream(), true), FONT_SIZE)
+                content.newLineAtOffset(TEXT_X, TEXT_Y)
+                content.showText(drawn)
+                content.endText()
+            }
+            ByteArrayOutputStream().also(document::save).toByteArray()
         }
     }
 
@@ -227,5 +291,7 @@ class PdfTextDocumentTest {
         const val LINK_X = 100f
         const val LINK_Y = 500f
         const val LINK_SIZE = 40f
+        const val UNICODE_FONT = "../file-persistence/src/main/assets/fonts/Arimo-Regular.ttf"
+        val WHITESPACE = Regex("\\s+")
     }
 }
