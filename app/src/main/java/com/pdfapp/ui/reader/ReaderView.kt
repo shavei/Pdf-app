@@ -22,13 +22,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -66,11 +64,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.pdfapp.BuildConfig
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.core.renderer.model.PdfRect
 import com.pdfapp.core.renderer.text.PdfLink
@@ -169,10 +164,6 @@ fun ReaderView(
         // the fit-width epsilon within a frame of starting, so a toggle made
         // against it would flip direction depending on when the tap landed.
         var targetZoom by remember(session) { mutableFloatStateOf(1f) }
-        // TEMPORARY: on-screen readout of the last zoom commit, debug builds
-        // only. Exists to diagnose a device-only anchoring fault that three
-        // green emulator runs do not reproduce. Remove once that is understood.
-        var zoomDebug by remember(session) { mutableStateOf("") }
 
         // Live pinch transform. During a gesture we do NOT touch `zoom` (which
         // drives the list's measured width/height); instead we scale the
@@ -228,11 +219,6 @@ fun ReaderView(
         ) {
             val clamped = target.coerceIn(MIN_ZOOM, MAX_ZOOM)
             val k = clamped / zoom
-            // Captured before the writes below overwrite them; debug overlay only.
-            val zoomBefore = zoom
-            val panXBefore = panX
-            val idxBefore = listState.firstVisibleItemIndex
-            val offBefore = listState.firstVisibleItemScrollOffset
             if (k == 1f && gesturePan == Offset.Zero) {
                 // Nothing to bake in, but always drop back to the identity
                 // transform so a released gesture cannot leave the layer scaled.
@@ -261,17 +247,15 @@ fun ReaderView(
             // The pan is our own state, so it clamps against the width the
             // document is zooming *to* — no relayout has to land first for the
             // horizontal anchor to be right.
-            val rawPan =
-                ReaderPan.anchored(
-                    pan = panX,
-                    focus = centroid.x,
-                    scaleFactor = k,
-                    gesturePan = gesturePan.x,
-                )
-            val maxPanNow = ReaderPan.maxPan(viewportWidthPx * max(1f, clamped), viewportWidthPx)
             val newPanX =
                 ReaderPan.clamp(
-                    pan = rawPan,
+                    pan =
+                        ReaderPan.anchored(
+                            pan = panX,
+                            focus = centroid.x,
+                            scaleFactor = k,
+                            gesturePan = gesturePan.x,
+                        ),
                     contentWidthPx = viewportWidthPx * max(1f, clamped),
                     viewportWidthPx = viewportWidthPx,
                 )
@@ -286,22 +270,6 @@ fun ReaderView(
             liveTranslation = Offset.Zero
             pendingScroll += scrollDelta
             anchorSeq++
-            if (BuildConfig.DEBUG) {
-                zoomDebug =
-                    buildString {
-                        append("viewport ${viewportWidthPx.toInt()}x${viewportHeightPx.toInt()}")
-                        append("  density ${density.density}\n")
-                        append("tap ${centroid.x.toInt()},${centroid.y.toInt()}")
-                        append("  gesturePan ${gesturePan.x.toInt()},${gesturePan.y.toInt()}\n")
-                        append("zoom ${"%.3f".format(zoomBefore)} -> ${"%.3f".format(clamped)}")
-                        append("  k ${"%.3f".format(k)}\n")
-                        append("panX ${panXBefore.toInt()} -> ${newPanX.toInt()}")
-                        append("  (raw ${rawPan.toInt()}, max ${maxPanNow.toInt()})\n")
-                        append("firstItem $idxBefore @ $offBefore\n")
-                        append("scrollDelta ${scrollDelta.toInt()}  owed ${pendingScroll.toInt()}\n")
-                        append("awaiting scroll...")
-                    }
-            }
             // The list has not scrolled yet, so the content sits `pendingScroll`
             // px below where the anchor puts it. Holding it up by exactly that
             // much means this frame already shows the anchored result; the drain
@@ -372,20 +340,7 @@ fun ReaderView(
         LaunchedEffect(anchorSeq) {
             val owed = pendingScroll
             if (owed == 0f) return@LaunchedEffect
-            val consumed = listState.scrollBy(owed)
-            if (BuildConfig.DEBUG) {
-                // The decisive numbers: what the list actually did with the
-                // distance, and where it ended up. `consumed` short of `owed`
-                // means the list clamped; the index/offset pair says against
-                // what. Item size tells us whether it had re-measured yet.
-                zoomDebug =
-                    zoomDebug.substringBefore("awaiting scroll...") +
-                    "asked ${owed.toInt()}  consumed ${consumed.toInt()}\n" +
-                    "after: item ${listState.firstVisibleItemIndex} @ " +
-                    "${listState.firstVisibleItemScrollOffset}\n" +
-                    "itemSize ${listState.layoutInfo.visibleItemsInfo.firstOrNull()?.size ?: -1}" +
-                    "  vpH ${listState.layoutInfo.viewportSize.height}"
-            }
+            listState.scrollBy(owed)
             // Reached only if the scroll ran to completion — being cancelled
             // skips it and leaves the whole debt for the effect that replaced
             // us. Subtracting `owed` rather than zeroing keeps any debt a commit
@@ -592,23 +547,6 @@ fun ReaderView(
                 currentPage = viewModel.currentPageIndex,
                 modifier = Modifier.align(Alignment.CenterEnd),
             )
-            // TEMPORARY diagnostic readout — debug builds only, and a sibling of
-            // the list rather than a child, so the transform under investigation
-            // cannot move or scale the numbers describing it.
-            if (BuildConfig.DEBUG && zoomDebug.isNotEmpty()) {
-                Text(
-                    text = zoomDebug,
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
-                    lineHeight = 14.sp,
-                    modifier =
-                        Modifier
-                            .align(Alignment.TopStart)
-                            .background(Color(0xCC000000))
-                            .padding(6.dp),
-                )
-            }
         }
     }
 }
