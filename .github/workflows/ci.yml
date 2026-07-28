@@ -9,8 +9,16 @@ name: CI
 #     Actions → CI → "Run workflow") refresh the rolling build (main only)
 #     and build the release artifacts without creating a Release.
 on:
+  # Feature branches are covered by `pull_request`, not here. Matching "**" as
+  # well meant a push to a branch with an open PR fired both events, and the
+  # concurrency group below cannot collapse them: `github.ref` is
+  # `refs/heads/<branch>` for the push and `refs/pull/<n>/merge` for the PR, so
+  # the two runs land in different groups and neither supersedes the other.
+  # Every commit therefore ran the whole pipeline — emulator included — twice.
+  # The trade is that a branch pushed without a PR now gets no CI until one is
+  # opened, which matches how work reaches this repository.
   push:
-    branches: [ "**" ]
+    branches: [ main ]
     tags: [ "v*" ]
   pull_request:
     branches: [ main ]
