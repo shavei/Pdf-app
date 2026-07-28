@@ -71,6 +71,19 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 
 ### Fixed
 
+- **A zoomed page is no longer drawn a thousand pixels off to the left.** The
+  reader makes its page list wider than the screen so a zoomed document has
+  somewhere to go, and a child wider than its parent is centred in the space it
+  is given — so the whole document sat half its overflow to the left, with
+  nothing in the panning arithmetic aware of it. The shift was zero at
+  fit-width and grew with the zoom: over a thousand pixels at the 2.5x reading
+  zoom on a 1440px screen. That is what made a double-tap look like it jumped
+  away from the point it was aimed at however carefully the zoom was anchored,
+  and why a zoomed page appeared to stop short of the right edge with
+  background beside it.
+- **A double-tap sharpens as soon as it lands** rather than a tenth of a second
+  later, so the page no longer resolves out of a blur after the zoom has
+  finished — which read as the content shifting even though it had not moved.
 - **Double-tapping twice in a row no longer leaves the page somewhere you did
   not ask for.** The reader worked out the right distance to travel and then
   lost it: a second zoom arriving before the first had finished scrolling

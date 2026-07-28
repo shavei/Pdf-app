@@ -40,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -59,8 +58,6 @@ import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -69,7 +66,6 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.pdfapp.BuildConfig
 import com.pdfapp.core.renderer.model.PdfPoint
 import com.pdfapp.core.renderer.model.PdfRect
 import com.pdfapp.core.renderer.text.PdfLink
@@ -168,15 +164,6 @@ fun ReaderView(
         // the fit-width epsilon within a frame of starting, so a toggle made
         // against it would flip direction depending on when the tap landed.
         var targetZoom by remember(session) { mutableFloatStateOf(1f) }
-        // TEMPORARY instrumentation — see [ZoomDiagnostics]. Debug builds only.
-        var probe by remember(session) { mutableStateOf<ZoomProbe?>(null) }
-        var reading by remember(session) { mutableStateOf<ZoomReading?>(null) }
-        var readings by remember(session) { mutableStateOf(listOf<ZoomReading>()) }
-        var worstPx by remember(session) { mutableFloatStateOf(0f) }
-        // TEMPORARY: what the page was actually measured and placed at, versus
-        // what it was asked for. The arithmetic says a zoomed page cannot leave
-        // background showing to its right, and on a device it does.
-        var pageGeom by remember(session) { mutableStateOf("") }
 
         // Live pinch transform. During a gesture we do NOT touch `zoom` (which
         // drives the list's measured width/height); instead we scale the
@@ -239,11 +226,6 @@ fun ReaderView(
         ) {
             val clamped = target.coerceIn(MIN_ZOOM, MAX_ZOOM)
             val k = clamped / zoom
-            // Captured before the writes below overwrite them; diagnostics only.
-            val zoomBefore = zoom
-            val panBefore = panX
-            val itemBefore = listState.firstVisibleItemIndex
-            val offsetBefore = listState.firstVisibleItemScrollOffset
             if (k == 1f && gesturePan == Offset.Zero) {
                 // Nothing to bake in, but always drop back to the identity
                 // transform so a released gesture cannot leave the layer scaled.
@@ -296,36 +278,7 @@ fun ReaderView(
             liveTranslation = Offset.Zero
             pendingScroll += scrollDelta
             anchorSeq++
-            if (BuildConfig.DEBUG && probe != null) {
-                reading =
-                    ZoomReading(
-                        seq = anchorSeq,
-                        tap = probe?.tap ?: Offset.Zero,
-                        constraintViewport = Size(viewportWidthPx, viewportHeightPx),
-                        listViewport =
-                            Size(
-                                listState.layoutInfo.viewportSize.width.toFloat(),
-                                listState.layoutInfo.viewportSize.height.toFloat(),
-                            ),
-                        density = density.density,
-                        zoomBefore = zoomBefore,
-                        zoomAfter = clamped,
-                        k = k,
-                        panBefore = panBefore,
-                        panRaw = rawPan,
-                        panAfter = newPanX,
-                        panMax = ReaderPan.maxPan(viewportWidthPx * max(1f, clamped), viewportWidthPx),
-                        scrollAsked = scrollDelta,
-                        scrollConsumed = Float.NaN,
-                        itemBefore = itemBefore,
-                        offsetBefore = offsetBefore,
-                        itemAfter = -1,
-                        offsetAfter = -1,
-                        itemSize = -1,
-                        target = centroid,
-                        actual = null,
-                    )
-            }
+
             // The list has not scrolled yet, so the content sits `pendingScroll`
             // px below where the anchor puts it. Holding it up by exactly that
             // much means this frame already shows the anchored result; the drain
@@ -429,8 +382,7 @@ fun ReaderView(
         LaunchedEffect(anchorSeq) {
             val owed = pendingScroll
             if (owed == 0f) return@LaunchedEffect
-            val consumed = listState.scrollBy(owed)
-            if (BuildConfig.DEBUG) reading = reading?.copy(scrollConsumed = consumed)
+            listState.scrollBy(owed)
             // Reached only if the scroll ran to completion — being cancelled
             // skips it and leaves the whole debt for the effect that replaced
             // us. Subtracting `owed` rather than zeroing keeps any debt a commit
@@ -439,40 +391,6 @@ fun ReaderView(
             // carrying it would bend the next zoom's anchor.
             pendingScroll -= owed
             anchorOffsetY = -pendingScroll
-        }
-        // TEMPORARY: measure where the probed point actually ended up, once the
-        // anchor scroll has drained and the layout has settled. Two frames,
-        // because the scroll above lands on the next measure and the numbers
-        // describing it are only true after that.
-        LaunchedEffect(anchorSeq) {
-            if (!BuildConfig.DEBUG) return@LaunchedEffect
-            val p = probe ?: return@LaunchedEffect
-            withFrameNanos { }
-            withFrameNanos { }
-            val item = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == p.itemIndex }
-            // The same physical point, relocated at the new zoom: its document x
-            // scaled back up and the pan taken off, and its distance down its
-            // page scaled by however much the zoom changed, from wherever that
-            // page now sits.
-            val scale = zoom / p.zoomBefore
-            val actual =
-                item?.let {
-                    Offset(p.docX * zoom - panX, it.offset + p.offsetInItem * scale)
-                }
-            reading =
-                reading?.copy(
-                    itemAfter = listState.firstVisibleItemIndex,
-                    offsetAfter = listState.firstVisibleItemScrollOffset,
-                    itemSize = item?.size ?: -1,
-                    actual = actual,
-                )
-            reading?.let { settled ->
-                readings = readings + settled
-                if (settled.verdict == "FAIL" && settled.errorMagnitude > worstPx) {
-                    worstPx = settled.errorMagnitude
-                }
-            }
-            probe = null
         }
         // One-shot navigation requests from search / outline / go-to-page.
         LaunchedEffect(viewModel.pendingReadTarget) {
@@ -591,32 +509,6 @@ fun ReaderView(
                         detectTapGestures(
                             onTap = { handleTap(it) },
                             onDoubleTap = { tap ->
-                                if (BuildConfig.DEBUG) {
-                                    // Anchor the probe to the page the tap is
-                                    // actually on, not to whichever page
-                                    // happens to be first visible. A tap low on
-                                    // the screen usually belongs to a later
-                                    // page, and that first page then scrolls out
-                                    // of view and takes the reading with it —
-                                    // which is every NO READING in the logs so
-                                    // far. The page under the tap stays put by
-                                    // definition, since the tapped line holds
-                                    // its height.
-                                    val hit =
-                                        listState.layoutInfo.visibleItemsInfo.firstOrNull {
-                                            tap.y >= it.offset && tap.y < it.offset + it.size
-                                        }
-                                    probe =
-                                        ZoomProbe(
-                                            tap = tap,
-                                            zoomBefore = zoom,
-                                            docX = (panX + tap.x) / zoom,
-                                            itemIndex = hit?.index ?: listState.firstVisibleItemIndex,
-                                            offsetInItem =
-                                                hit?.let { tap.y - it.offset }
-                                                    ?: (listState.firstVisibleItemScrollOffset + tap.y),
-                                        )
-                                }
                                 val inFlight = zoomJob
                                 zoomJob =
                                     scope.launch {
@@ -710,14 +602,6 @@ fun ReaderView(
                             describeText = touchExploration,
                             chromeVisible = chromeVisible,
                             onToggleChrome = onToggleChrome,
-                            onMeasured = { measuredWidth, rootX ->
-                                if (BuildConfig.DEBUG && index == listState.firstVisibleItemIndex) {
-                                    pageGeom =
-                                        "page $index  measured w=$measuredWidth rootX=${rootX.toInt()}\n" +
-                                        "asked pageW=${pageWidthPx.toInt()} lazyW=${lazyWidthPx.toInt()} " +
-                                        "panX=${panX.toInt()} bucket=$bucket zoom=${"%.2f".format(zoom)}"
-                                }
-                            },
                         )
                     }
                 }
@@ -728,16 +612,6 @@ fun ReaderView(
                 currentPage = viewModel.currentPageIndex,
                 modifier = Modifier.align(Alignment.CenterEnd),
             )
-            if (BuildConfig.DEBUG) {
-                ZoomDiagnosticOverlay(
-                    current = reading,
-                    history = readings,
-                    worstPx = worstPx,
-                    constraintCentreY = viewportHeightPx / 2f,
-                    extra = pageGeom,
-                    modifier = Modifier.align(Alignment.TopStart),
-                )
-            }
         }
     }
 }
@@ -761,7 +635,6 @@ private fun ReaderPage(
     describeText: Boolean,
     chromeVisible: Boolean,
     onToggleChrome: () -> Unit,
-    onMeasured: (width: Int, rootX: Float) -> Unit = { _, _ -> },
 ) {
     val session = viewModel.session ?: return
     val density = LocalDensity.current
@@ -812,12 +685,6 @@ private fun ReaderPage(
                 Modifier
                     .width(with(density) { pageWidthPx.toDp() })
                     .fillMaxHeight()
-                    // TEMPORARY: what the page was *actually* measured and
-                    // placed at, as opposed to what it was asked for. The
-                    // arithmetic says a zoomed page cannot leave background
-                    // showing to its right, and on a device it does — so the
-                    // asking and the getting have to be compared directly.
-                    .onGloballyPositioned { onMeasured(it.size.width, it.positionInRoot().x) }
                     .background(if (viewModel.nightMode) Color.Black else Color.White)
                     .semantics(mergeDescendants = true) {
                         contentDescription = pageLabel
