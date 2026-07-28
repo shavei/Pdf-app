@@ -191,9 +191,16 @@ fun ReaderView(
         var liveTranslation by remember(session) { mutableStateOf(Offset.Zero) }
         var livePivot by remember(session) { mutableStateOf(Offset.Zero) }
 
-        // Crisp tiles follow a *settled* zoom: re-rendering on every pinch frame
-        // would stutter, so the stretched base bitmap covers the gap until the
-        // gesture pauses and the debounced value commits sharp strips.
+        // Crisp tiles follow a *settled* zoom. The debounce is not protecting
+        // against per-frame thrash, whatever its original intent: a live pinch
+        // only moves `liveScale`, and `zoom` is written once per gesture — at
+        // pinch-end, at a double-tap's commit, or from a preset. All it can
+        // coalesce is a burst of double-taps, and two frames does that.
+        //
+        // The delay is not free. Until it elapses the page is the fit-width
+        // bitmap stretched to the new zoom, so a double-tap landed soft and
+        // then resolved, and text edges settling reads as the content shifting
+        // even though nothing moved.
         var settledZoom by remember(session) { mutableFloatStateOf(1f) }
         LaunchedEffect(zoom) {
             delay(TILE_SETTLE_MS)
@@ -1104,8 +1111,9 @@ private const val MAX_ZOOM = 8f
 // hold up the tap; the easing does the rest.
 private const val DOUBLE_TAP_ZOOM_MS = 200
 
-// Debounce after the last pinch step before committing crisper strips.
-private const val TILE_SETTLE_MS = 180L
+// Just enough to coalesce a burst of commits; see the settle effect for why
+// this is two frames rather than the tenth of a second it used to be.
+private const val TILE_SETTLE_MS = 32L
 
 // Wait for the scroll to settle briefly before warming off-screen pages, so a
 // fast fling doesn't spend the single renderer on pages it's about to pass.
