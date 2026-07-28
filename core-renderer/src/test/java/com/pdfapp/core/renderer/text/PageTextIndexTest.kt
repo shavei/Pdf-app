@@ -101,6 +101,43 @@ class PageTextIndexTest {
     }
 
     @Test
+    fun `a phrase is found across the line break it wraps at`() {
+        // The page reads "cat dog fish"; the producer emitted "dog\nfish".
+        val matches = index.search("dog fish")
+
+        assertThat(matches).hasSize(1)
+        assertThat(index.textIn(matches.single().range)).isEqualTo("dog\nfish")
+        // Still two highlight quads — one per line.
+        assertThat(matches.single().boxes).hasSize(2)
+    }
+
+    @Test
+    fun `a word split by an end-of-line hyphen is found whole`() {
+        val hyphenated = buildIndex("hyphen-\nated word")
+
+        val matches = hyphenated.search("hyphenated")
+
+        assertThat(matches).hasSize(1)
+        assertThat(hyphenated.textIn(matches.single().range)).isEqualTo("hyphen-\nated")
+        assertThat(hyphenated.search("hyphen-")).isEmpty()
+    }
+
+    @Test
+    fun `non-breaking and repeated spaces match a single typed space`() {
+        val padded = buildIndex("cat\u00A0dog")
+
+        assertThat(padded.search("cat dog")).hasSize(1)
+        assertThat(index.search("  cat   dog  ")).hasSize(1)
+    }
+
+    @Test
+    fun `matches do not overlap`() {
+        val repeated = buildIndex("aaaa")
+
+        assertThat(repeated.search("aa")).hasSize(2)
+    }
+
+    @Test
     fun `charIndexNear tolerates points just outside a glyph`() {
         // 5pt above the "c" of "cat" — outside the box but within tolerance.
         val near = index.charIndexNear(PdfPoint(0.5f * GLYPH_WIDTH, 115f))

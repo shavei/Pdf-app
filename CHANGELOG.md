@@ -12,7 +12,23 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **Search now finds phrases that wrap across a line.** Extracted PDF text
+  carries the layout's own breaks, so a page that plainly reads "over the lazy
+  dog" was stored as `"over the\nlazy dog"` and a search for "the lazy" found
+  nothing. Matching runs against a normalised view of the page — whitespace runs
+  (including non-breaking spaces) collapsed, words rejoined across an
+  end-of-line hyphen, so "uninterrupted" is found in "unin-/terrupted" — while
+  highlights still land on the real glyphs and still split per line.
+- **Repeated occurrences are no longer double-counted** — searching "aa" in
+  "aaaa" reports two matches, not three.
+- **The search bar no longer says "No matches" while it is still searching.**
+  Each keystroke's scan cancelled the previous one, whose cleanup then cleared
+  the progress flag belonging to the scan that replaced it; on a document whose
+  first hit is deep in, the counter read "0/0" (TalkBack: "No matches") for the
+  whole scan. Progress is also shown from the keystroke rather than from
+  whenever the search coroutine is dispatched.
 
 ## [1.4.1] — 2026-07-28
 
