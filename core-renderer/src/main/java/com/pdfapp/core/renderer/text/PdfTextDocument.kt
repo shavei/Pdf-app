@@ -45,7 +45,24 @@ class PdfTextDocument private constructor(
 ) : Closeable {
     private val extractor = PdfTextExtractor()
     private val formReader = PdfFormReader()
-    private val pageCache = HashMap<Int, PageTextIndex>()
+
+    /**
+     * Extracted pages, least-recently-used first and bounded (backlog M14).
+     *
+     * A [PageTextIndex] holds the page's text plus a box per character — order
+     * 40 bytes per character — and a full-document search touches every page
+     * exactly once. Cached without a bound, one search over a long book pinned
+     * every page of it for the life of the session, on top of the bitmap cache,
+     * to serve a scan that never looks back. The bound keeps what a reader
+     * actually revisits (the visible page and its neighbours, for selection and
+     * TalkBack) and re-extracts anything older, which costs one page parse on
+     * the IO thread that asked for it.
+     */
+    private val pageCache =
+        object : LinkedHashMap<Int, PageTextIndex>(CACHE_CAPACITY, CACHE_LOAD_FACTOR, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, PageTextIndex>): Boolean =
+                size > MAX_CACHED_PAGES
+        }
     private var formFieldCache: List<PdfFormField>? = null
     private val lock = Any()
 
@@ -155,6 +172,15 @@ class PdfTextDocument private constructor(
 
     companion object {
         private const val MAX_OUTLINE_DEPTH = 8
+
+        /**
+         * How many extracted pages are kept. Comfortably more than the reader
+         * has on screen at any zoom, and small enough that the worst case — a
+         * dense page of a large-format document — stays a couple of megabytes.
+         */
+        private const val MAX_CACHED_PAGES = 12
+        private const val CACHE_CAPACITY = 16
+        private const val CACHE_LOAD_FACTOR = 0.75f
 
         /**
          * Parse a PDF from [input]; [password] unlocks encrypted documents.

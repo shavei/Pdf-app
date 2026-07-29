@@ -2,6 +2,8 @@ package com.pdfapp.ui.reader
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
@@ -26,6 +28,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import com.pdfapp.ui.common.ReaderSemantics
 import com.pdfapp.ui.common.iconTouchTarget
@@ -97,6 +100,13 @@ private fun SearchTopBar(search: SearchController) {
                 onValueChange = { text = it },
                 singleLine = true,
                 placeholder = { Text("Search document") },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                // Enter still owed a debounce runs that query; otherwise it steps
+                // to the next hit, the way a browser's find bar does.
+                keyboardActions =
+                    KeyboardActions(
+                        onSearch = { if (text != search.query) search.submit(text) else search.next() },
+                    ),
                 colors =
                     TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -114,6 +124,7 @@ private fun SearchTopBar(search: SearchController) {
                     matchCount = search.matches.size,
                     searching = search.searching,
                     hasQuery = search.query.isNotBlank(),
+                    truncated = search.truncated,
                 )
             val counterLabel =
                 ReaderSemantics.searchCounterLabel(
@@ -121,6 +132,7 @@ private fun SearchTopBar(search: SearchController) {
                     matchCount = search.matches.size,
                     searching = search.searching,
                     hasQuery = search.query.isNotBlank(),
+                    truncated = search.truncated,
                 )
             if (counter.isNotEmpty()) {
                 Text(

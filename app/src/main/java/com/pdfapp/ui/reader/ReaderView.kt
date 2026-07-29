@@ -393,11 +393,31 @@ fun ReaderView(
             anchorOffsetY = -pendingScroll
         }
         // One-shot navigation requests from search / outline / go-to-page.
+        // A target that names a box on the page — a search hit — is scrolled to
+        // so the box itself is on screen, not just the page carrying it; see
+        // [ReaderFocus]. Everything else lands at the page top as before.
         LaunchedEffect(viewModel.pendingReadTarget) {
-            viewModel.pendingReadTarget?.let { target ->
-                listState.scrollToItem(target)
-                viewModel.readTargetConsumed()
+            val target = viewModel.pendingReadTarget ?: return@LaunchedEffect
+            val focus = target.focus
+            val pageSize = runCatching { session.cache.pageSize(target.pageIndex) }.getOrNull()
+            if (focus != null && pageSize != null) {
+                // PDF points are bottom-up; the list's offset is top-down.
+                val pointScale = pageWidthPx / pageSize.widthPt
+                listState.scrollToItem(
+                    target.pageIndex,
+                    ReaderFocus.scrollOffsetPx((pageSize.heightPt - focus.top) * pointScale, viewportHeightPx),
+                )
+                val centering = max(0f, (lazyWidthPx - pageWidthPx) / 2f)
+                ReaderFocus.panFor(
+                    pan = panX,
+                    focusLeftPx = focus.left * pointScale + centering,
+                    focusRightPx = focus.right * pointScale + centering,
+                    viewportWidthPx = viewportWidthPx,
+                )?.let { panX = ReaderPan.clamp(it, lazyWidthPx, viewportWidthPx) }
+            } else {
+                listState.scrollToItem(target.pageIndex)
             }
+            viewModel.readTargetConsumed()
         }
         // Track the visible page for the scrollbar and last-read persistence.
         LaunchedEffect(listState) {

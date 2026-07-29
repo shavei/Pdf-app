@@ -80,6 +80,28 @@ class PdfTextDocumentTest {
         }
     }
 
+    /**
+     * A full-document search touches every page once, so an unbounded cache
+     * retained the whole book for a scan that never looks back (backlog M14).
+     * Pages a reader is still on stay cached; the ones a scan walked past do
+     * not.
+     */
+    @Test
+    fun `extracted pages are cached, but only a bounded window of them`() {
+        buildPdf(*Array(30) { "page $it" }).use { document ->
+            val first = document.pageText(0)
+            assertThat(document.pageText(0)).isSameInstanceAs(first)
+
+            // Walk the rest of the document, the way a search does.
+            for (page in 1 until 30) document.pageText(page)
+
+            assertThat(document.pageText(0)).isNotSameInstanceAs(first)
+            // The tail of that walk is still there — that is the window a
+            // reader's selection and TalkBack read from.
+            assertThat(document.pageText(29)).isSameInstanceAs(document.pageText(29))
+        }
+    }
+
     @Test
     fun `search is case-insensitive and per page`() {
         buildPdf("nothing here", "the NEEDLE is on page two").use { document ->

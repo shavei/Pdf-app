@@ -7,8 +7,11 @@ import com.pdfapp.core.renderer.PdfDocumentSource
 import com.pdfapp.core.renderer.RenderedPageCache
 import com.pdfapp.core.renderer.text.PdfLink
 import com.pdfapp.core.renderer.text.PdfTextDocument
+import com.pdfapp.core.renderer.text.TextMatch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.Closeable
 import java.io.File
 import java.io.InputStream
@@ -32,6 +35,24 @@ class DocumentSession(
     private val textMutex = Mutex()
     private var textDocument: PdfTextDocument? = null
     private val linksByPage = HashMap<Int, List<PdfLink>>()
+
+    /**
+     * The document as in-document search sees it — the seam
+     * [com.pdfapp.ui.document.SearchController] is written against. Parsing
+     * happens here, on IO, so the controller stays a plain state machine.
+     */
+    val searchSource: SearchSource =
+        object : SearchSource {
+            override val pageCount: Int get() = this@DocumentSession.pageCount
+
+            override suspend fun searchPage(
+                pageIndex: Int,
+                query: String,
+            ): List<TextMatch> =
+                withContext(Dispatchers.IO) {
+                    textDocument().searchPage(pageIndex, query)
+                }
+        }
 
     /** The PdfBox view of the document, parsed on first use. Call on IO. */
     suspend fun textDocument(): PdfTextDocument =

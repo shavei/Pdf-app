@@ -12,7 +12,32 @@ APK + AAB to its [GitHub Release](../../releases). The rolling
 
 ## [Unreleased]
 
+### Changed
+
+- **Search starts where you are reading.** The scan began at page 1 whatever
+  page was on screen, so searching from page 250 of 300 threw you back to the
+  top of the document; it now starts at the page you are on and wraps around
+  the end, the way every mainstream viewer does. Results are still listed and
+  counted in document order, so "2 of 5" means the second hit in the file, not
+  the second one the scan happened to reach.
+- **A hit is scrolled to, not just its page.** Jumping to a match put the top
+  of its page at the top of the screen, which leaves a hit in the last line of
+  a page — or off to the side of a zoomed one — off screen. The matched text
+  now lands about a third of the way down the viewport, and a zoomed reader
+  pans sideways to it only when it would otherwise be out of view.
+- **Enter searches, then steps.** The search field now offers a Search key: it
+  runs a query still waiting on its debounce, and otherwise moves to the next
+  hit, like a browser's find bar.
+
 ### Fixed
+
+- **A long search no longer grows without bound.** Extracted page text is kept
+  for a bounded window of recently used pages instead of every page a scan
+  touches — one search over a 500-page book was retaining tens of megabytes of
+  per-character geometry for the rest of the session, on top of the bitmap
+  cache. A search also stops at 2,000 hits rather than materialising one per
+  occurrence of a single letter; the counter shows "+" when it did, so a capped
+  count is never passed off as the document's.
 
 - **Hebrew (and any right-to-left) text is now searchable at all.** A producer
   lays an RTL line out visually — left to right across the page — and extraction

@@ -182,7 +182,10 @@ marked inline below.
 - Engine: PdfBox-Android's `PDFTextStripper` subclassed to capture glyph positions
   (`TextPosition`) per page → rectangles in PDF points → reuse `CoordinateMapper`
   to draw highlight quads over the rendered bitmap. Index lazily per page on
-  `Dispatchers.IO`; cache per document.
+  `Dispatchers.IO`; cache a bounded window of pages per document (a whole-book
+  index is what a scan would otherwise retain for the session).
+- Scan from the page being read and wrap, and navigate to the matched text
+  itself rather than to the top of the page holding it.
 
 ### 2.3 Text selection & copy ✅
 - Long-press to select rendered text, drag handles, copy to clipboard.

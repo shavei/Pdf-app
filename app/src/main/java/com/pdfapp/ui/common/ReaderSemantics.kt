@@ -58,28 +58,39 @@ object ReaderSemantics {
     fun chromeToggleLabel(chromeVisible: Boolean): String =
         if (chromeVisible) "Hide reader controls" else "Show reader controls"
 
-    /** The visible search counter — deliberately terse, it shares a crowded bar. */
+    /**
+     * The visible search counter — deliberately terse, it shares a crowded bar.
+     * [truncated] marks a count the scan stopped at rather than one the document
+     * ended at, shown as the "300+" convention every search bar uses.
+     */
     fun searchCounterText(
         currentIndex: Int,
         matchCount: Int,
         searching: Boolean,
         hasQuery: Boolean,
+        truncated: Boolean = false,
     ): String =
         when {
-            matchCount > 0 -> "${currentIndex + 1}/$matchCount"
+            matchCount > 0 -> "${currentIndex + 1}/$matchCount" + if (truncated) "+" else ""
             searching -> "…"
             !hasQuery -> ""
             else -> "0/0"
         }
 
-    /** The spoken form of that counter; blank when there is nothing to announce. */
+    /**
+     * The spoken form of that counter; blank when there is nothing to announce.
+     * The "+" is spelled out — TalkBack reads it as "plus", which says nothing
+     * about what it qualifies.
+     */
     fun searchCounterLabel(
         currentIndex: Int,
         matchCount: Int,
         searching: Boolean,
         hasQuery: Boolean,
+        truncated: Boolean = false,
     ): String =
         when {
+            matchCount > 0 && truncated -> "Match ${currentIndex + 1} of the first $matchCount"
             matchCount > 0 -> "Match ${currentIndex + 1} of $matchCount"
             searching -> "Searching"
             !hasQuery -> ""
