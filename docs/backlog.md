@@ -186,33 +186,18 @@ is half of 3200 and not of 2439. So the reader's viewport agreed with the list
 all along and `ZoomPreset.FIT_PAGE` divides by the right number. Recorded
 because the wrong conclusion was already written down once.)*
 
-### M13 · Search always starts at page 1 and lands on the page, not the match
+*(M13 — search starting at page 1 and landing on the page rather than the
+match — shipped in the search polish PR: the scan starts at
+`currentPageIndex` and wraps, results stay in document order so the counter
+still numbers hits the way the document does, and a hit is navigated to
+through `ReadTarget.focus` — `ReaderFocus` lands it a third of the way down
+the viewport and pans a zoomed reader sideways only when the hit is genuinely
+off screen.)*
 
-**Flagged:** the search normalisation PR · **Where:**
-`ui/document/SearchController.kt` (`runSearch`), `ui/reader/ReaderView.kt`
-(the `pendingReadTarget` effect).
-
-`runSearch` scans from page 0 regardless of where the reader is and auto-jumps
-to the first document-order hit, so searching from page 250 of 300 throws you
-back to page 1; every mainstream viewer starts at the current page and wraps.
-Navigation then does `scrollToItem(page)`, which puts the page top at the
-viewport top — a match near the page bottom, or off to the side when zoomed and
-panned, is navigated "to" without being on screen. The match's boxes already
-carry the exact position; nothing consumes it.
-
-### M14 · A full-document search is unbounded in memory
-
-**Flagged:** the search normalisation PR · **Where:**
-`core/renderer/text/PdfTextDocument.kt` (`pageCache`),
-`ui/document/SearchController.kt` (`matches`).
-
-`pageCache` is a plain `HashMap` that never evicts, and a search populates it
-for every page. Each `PageTextIndex` holds the page string plus one `PdfRect`
-per character — roughly 40 bytes/char — so one search over a 500-page book
-retains tens of megabytes for the life of the session, on top of the bitmap
-cache. Nothing caps the match list either: a one-letter query materialises a
-`TextMatch` per occurrence, and `matches = matches + pageMatches` copies the
-whole list per page, re-running the `matchesByPage` grouping each time.
+*(M14 — an unbounded full-document search — shipped in the same PR:
+`PdfTextDocument.pageCache` is an access-ordered `LinkedHashMap` capped at
+twelve pages, and a search stops at 2,000 hits, with the bar showing "+" so a
+capped count is not passed off as the document's.)*
 
 ---
 
@@ -279,16 +264,11 @@ the end state or the two should be consolidated was raised and never answered.
 It disappeared with the Compose BOM revert and will return with any future BOM
 upgrade. Worth handling in the same change that next moves the BOM.
 
-### S9 · `SearchController` cannot be tested against a document
-
-**Flagged:** the search normalisation PR · **Where:**
-`ui/document/SearchController.kt`, `ui/document/SearchControllerTest.kt`.
-
-The controller reaches a document through `session()`, and `DocumentSession`
-needs a real `PdfRenderer`, so a unit test can only drive it with a null
-session — enough for the progress flag, the query and `close()`, but not for
-streaming matches, next/previous wrap-around, or the auto-jump to the first
-hit. An injectable "search one page" seam would cover the rest.
+*(S9 — `SearchController` untestable against a document — shipped in the search
+polish PR: the controller takes a `SearchSource` (page count + search one page)
+instead of a `DocumentSession`, with `DocumentSession.searchSource` as the real
+one, so the streaming scan, document ordering, wrap-around and the match cap
+are all covered on the JVM.)*
 
 ---
 

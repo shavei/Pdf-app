@@ -15,8 +15,10 @@ import com.pdfapp.core.renderer.PdfDocumentSource
 import com.pdfapp.core.renderer.PdfPasswordRequiredException
 import com.pdfapp.core.renderer.RenderedPage
 import com.pdfapp.core.renderer.model.PageSize
+import com.pdfapp.core.renderer.model.PdfRect
 import com.pdfapp.core.renderer.text.OutlineEntry
 import com.pdfapp.core.renderer.text.PdfTextDocument
+import com.pdfapp.core.renderer.text.TextMatch
 import com.pdfapp.data.RecentFile
 import com.pdfapp.data.RecentFilesStore
 import com.pdfapp.data.ViewerPrefsStore
@@ -45,6 +47,18 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.sqrt
 
+/**
+ * A one-shot navigation request for the reader: the [pageIndex] to bring on
+ * screen and, when the caller knows *where* on that page it means, the [focus]
+ * box in PDF points that has to end up visible. A plain page jump leaves it
+ * null and lands at the page top, which is what the outline, the thumbnails and
+ * go-to-page want.
+ */
+data class ReadTarget(
+    val pageIndex: Int,
+    val focus: PdfRect? = null,
+)
+
 /** UI state for viewing (one-page-at-a-time reader) and editing a multi-page PDF. */
 class PdfEditorViewModel(
     application: Application,
@@ -66,8 +80,8 @@ class PdfEditorViewModel(
     var mode: ViewerMode by mutableStateOf(ViewerMode.READ)
         private set
 
-    /** One-shot page the reader should scroll to (search/outline/go-to). */
-    var pendingReadTarget: Int? by mutableStateOf(null)
+    /** One-shot navigation the reader should perform (search/outline/go-to). */
+    var pendingReadTarget: ReadTarget? by mutableStateOf(null)
         private set
 
     /** One-shot zoom preset the reader should apply. */
@@ -85,7 +99,13 @@ class PdfEditorViewModel(
     var outline: List<OutlineEntry>? by mutableStateOf(null)
         private set
 
-    val searchController = SearchController(viewModelScope, { session }, ::goToPage)
+    val searchController =
+        SearchController(
+            scope = viewModelScope,
+            source = { session?.searchSource },
+            startPage = { currentPageIndex },
+            onNavigateToMatch = ::goToMatch,
+        )
     val selectionController = SelectionController(viewModelScope, { session })
     val formController = FormController(viewModelScope, { session }, { userMessage = it })
 
@@ -209,12 +229,24 @@ class PdfEditorViewModel(
         wrongPassword = false
     }
 
-    /** Navigate the reader to [index] (from search, outline, thumbnails, links). */
-    fun goToPage(index: Int) {
+    /** Navigate the reader to [index] (from outline, thumbnails, links, go-to). */
+    fun goToPage(index: Int) = goTo(index, focus = null)
+
+    /**
+     * Navigate to a search hit — the page *and* the matched text, so a match
+     * near the foot of a page (or off to the side of a zoomed one) is actually
+     * on screen when the scroll lands, rather than merely on the page that is.
+     */
+    fun goToMatch(match: TextMatch) = goTo(match.pageIndex, match.boxes.reduceOrNull(PdfRect::union))
+
+    private fun goTo(
+        index: Int,
+        focus: PdfRect?,
+    ) {
         if (pageCount == 0) return
         val target = index.coerceIn(0, pageCount - 1)
         currentPageIndex = target
-        pendingReadTarget = target
+        pendingReadTarget = ReadTarget(target, focus)
         mode = ViewerMode.READ
     }
 

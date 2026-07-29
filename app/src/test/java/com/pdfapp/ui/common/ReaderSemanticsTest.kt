@@ -121,6 +121,30 @@ class ReaderSemanticsTest {
     }
 
     @Test
+    fun searchCounter_marks_a_count_the_scan_stopped_at() {
+        val visible =
+            ReaderSemantics.searchCounterText(
+                currentIndex = 0,
+                matchCount = 2_000,
+                searching = false,
+                hasQuery = true,
+                truncated = true,
+            )
+        val spoken =
+            ReaderSemantics.searchCounterLabel(
+                currentIndex = 0,
+                matchCount = 2_000,
+                searching = false,
+                hasQuery = true,
+                truncated = true,
+            )
+        // The document holds more than this; "+" says so on the bar, and the
+        // spoken form spells it out rather than leaving TalkBack to say "plus".
+        assertThat(visible).isEqualTo("1/2000+")
+        assertThat(spoken).isEqualTo("Match 1 of the first 2000")
+    }
+
+    @Test
     fun selectionLabel_condenses_and_caps_the_selected_text() {
         assertThat(ReaderSemantics.selectionLabel("two\nlines")).isEqualTo("Selected text: two lines")
         assertThat(ReaderSemantics.selectionLabel("y".repeat(1_000))).endsWith("…")
