@@ -33,6 +33,15 @@ class HebrewCalendarView extends WatchUi.View {
         var color  = AppSettings.textColor();
         var accent = (color == Graphics.COLOR_WHITE) ? DeviceInfo.colorAccent() : color;
 
+        // Hybrid watch (Instinct Crossover): the hands cover the centre band —
+        // date above it, year + day letter below it.
+        var k = Hands.keepOut();
+        if (k > 0) {
+            _drawAroundHands(dc, w, h, cx, k, color, accent);
+            ParashaView.drawDots(dc, 0, solar ? 3 : 2);
+            return;
+        }
+
         if (solar) {
             // Measure actual font heights so spacing is always correct
             var lh = dc.getFontHeight(fLarge);
@@ -104,5 +113,39 @@ class HebrewCalendarView extends WatchUi.View {
         }
 
         ParashaView.drawDots(dc, 0, DeviceInfo.isSolar() ? 3 : 2);
+    }
+
+    // Crossover layout: day+month just above the hands band (largest font
+    // that fits the chord there), year with the day letter to its right
+    // (RTL: the day reads first) just below it.
+    private function _drawAroundHands(dc as Graphics.Dc, w as Number, h as Number,
+                                      cx as Number, k as Number,
+                                      color as Number, accent as Number) as Void {
+        var dm = hebrewDate.getDayGematria() + " " + hebrewDate.getMonthName();
+        var font = fLarge;
+        var ink = dc.getFontHeight(font) * 3 / 8;
+        var y1 = h / 2 - k - ink;
+        if (dc.getTextWidthInPixels(dm, font) > DeviceInfo.usableWidthAtY(y1 - ink)) {
+            font = fMedium;
+            ink = dc.getFontHeight(font) * 3 / 8;
+            y1 = h / 2 - k - ink;
+        }
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, y1, font, dm,
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+
+        var yr  = hebrewDate.getYearGematria();
+        var dow = hebrewDate.getDayOfWeekLetter();
+        var gap = 14;
+        var yrW = dc.getTextWidthInPixels(yr, fMedium);
+        var dwW = dc.getTextWidthInPixels(dow, fMedium);
+        var left = cx - (yrW + gap + dwW) / 2;
+        var y2 = h / 2 + k + dc.getFontHeight(fMedium) * 3 / 8;
+        dc.setColor(DeviceInfo.colorDim(), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, y2, fMedium, yr,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(accent, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left + yrW + gap, y2, fMedium, dow,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }

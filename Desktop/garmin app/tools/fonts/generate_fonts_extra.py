@@ -91,7 +91,7 @@ def generate_fnt(name, size_px, out_dir):
 BASE = r"C:\Users\yosef\Desktop\garmin app"
 BUCKETS = {
     # bucket: (Small, Medium, Large, GlanceSmall, GlanceMedium)
-    "resources-mono166":   (17, 22, 26, 21, 27),
+    "resources-mono166":   (17, 22, 26, 20, 26),
     "resources-mip240":    (22, 29, 38, 26, 33),
     "resources-mip280":    (26, 34, 45, 26, 33),
     "resources-amoled360": (32, 44, 56, 34, 44),
@@ -99,7 +99,7 @@ BUCKETS = {
 GLANCE_ONLY = {
     "resources-glance92":    (33, 40),
     "resources-glance103":   (36, 46),
-    "resources-glancexover": (16, 20),
+    "resources-glancexover": (14, 18),
 }
 
 WIDGET_XML = """    <font id="HebrewSmall"  filename="HebrewSmall.fnt"  />

@@ -106,8 +106,13 @@ class DeviceInfo {
         var w = ds.screenWidth;
         var h = ds.screenHeight;
         var pad = 12;
-        if (w != h) { return w - 2 * pad; }   // non-square: treat as rectangular
-        var r  = w / 2.0;
+        // Clearly non-square (Venu Sq 2, Venu X1): rectangular. Nearly-square
+        // semi-octagons (Instinct 2S 163x156) are still round-edged: use the
+        // circle of the shorter side.
+        var diff = w - h;
+        if (diff < 0) { diff = -diff; }
+        if (diff > 16) { return w - 2 * pad; }
+        var r  = (w < h ? w : h) / 2.0;
         var dy = y - h / 2.0;
         if (dy < 0) { dy = -dy; }
         var inside = r * r - dy * dy;

@@ -39,6 +39,18 @@ class ParashaView extends WatchUi.View {
             // Day-of-week letter in the subscreen circle — same as the date page.
             // The Omer / next-event line gets its OWN page (page 3) on this 176px
             // 2-color screen — there is no room for a 3rd line under the circle.
+            var k = Hands.keepOut();
+            var bottom = DeviceInfo.dotsY() - DeviceInfo.dotsRadius() - 3;
+            if (k > 0) {
+                // Instinct Crossover: hands cover the centre band — header
+                // above it, name below it; no day-letter circle (no sub-screen).
+                var sInk = dc.getFontHeight(fSmall) * 3 / 8;
+                dc.setColor(DeviceInfo.colorDim(), Graphics.COLOR_TRANSPARENT);
+                dc.drawText(cx, h / 2 - k - sInk, fSmall, header,
+                    Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                _drawNameFit(dc, name, cx, (h / 2 + k + bottom) / 2, w - 20, color, 0,
+                    h / 2 + k, bottom);
+            } else {
             var gpsR  = 27;
             var gpsCX = 120;
             var gpsCY = 52;
@@ -61,30 +73,48 @@ class ParashaView extends WatchUi.View {
             dc.drawText(cx, 96 - lift, fSmall, header,
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            _drawNameFit(dc, name, cx, 135 - lift, w - 20, color, 0);
+            // Two-line (doubled) names must sit between the header and the dots.
+            _drawNameFit(dc, name, cx, 135 - lift, w - 20, color, 0,
+                96 - lift + dc.getFontHeight(fSmall) * 2 / 5, bottom);
+            }
         } else {
             // 28%/53% (not higher): at 22% the header clipped on the round
             // top edge of small screens — user-reported on fr55
             var yHdr = (h * 28) / 100;
+            // Instinct Crossover AMOLED: header AND name go above the hands
+            // band (header raised to 15% to make room), contextual below it.
+            var k = Hands.keepOut();
+            if (k > 0) { yHdr = (h * 15) / 100; }
+            // Small round screens (FR55 208px, FR255S 218px) need the room for a
+            // doubled parasha + two-line countdown: header in the small font.
+            var hdrFont = (h < 230) ? fSmall : fMedium;
             dc.setColor(DeviceInfo.colorDim(), Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, yHdr, fMedium, header,
+            dc.drawText(cx, yHdr, hdrFont, header,
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-
-            _drawNameFit(dc, name, cx, (h * 53) / 100, w - 24, color, 0);
 
             // Non-solar has room: append the contextual line under the name —
             // Omer count in season, else the closest Jewish date + countdown.
+            // Laid out FIRST so the name (which may wrap to two lines) is
+            // fitted above wherever the contextual block actually starts.
+            var extraTop = (h * 74) / 100 - dc.getFontHeight(fSmall) * 3 / 8;
             var c = HebrewEvents.contextual(hebrewDate, israel);
             if (c != null) {
                 if ((c[0] as String).equals("omer")) {
-                    _drawExtra(dc, c[1] as String, null, null,
+                    extraTop = _drawExtra(dc, c[1] as String, null, null,
                         cx, (h * 74) / 100, w - 24, true);
                 } else {
-                    _drawExtra(dc, null, c[1] as String,
+                    extraTop = _drawExtra(dc, null, c[1] as String,
                         HebrewEvents.countdownText(c[2] as Number),
                         cx, (h * 74) / 100, w - 24, true);
                 }
             }
+
+            // ...and the name below it (between the hands and the contextual line)
+            var nameTop = yHdr + dc.getFontHeight(hdrFont) * 3 / 8;
+            var nameBot = (k > 0) ? h / 2 - k - 3 : extraTop - 4;
+            var nameCy  = (k > 0) ? (nameTop + nameBot) / 2 : (h * 53) / 100;
+            _drawNameFit(dc, name, cx, nameCy, w - 24, color, 0,
+                nameTop, nameBot);
         }
 
         drawDots(dc, 1, DeviceInfo.isSolar() ? 3 : 2);
@@ -95,13 +125,20 @@ class ParashaView extends WatchUi.View {
     private function _drawNameFit(dc as Graphics.Dc, name as String,
                                   cx as Number, cy as Number,
                                   maxW as Number, color as Number,
-                                  startIdx as Number) as Void {
+                                  startIdx as Number,
+                                  minTop as Number, maxBottom as Number) as Void {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
 
         var fonts = [fLarge, fMedium, fSmall] as Array<FontDef>;
         for (var i = startIdx; i < fonts.size(); i++) {
             if (dc.getTextWidthInPixels(name, fonts[i]) <= maxW) {
-                dc.drawText(cx, cy, fonts[i], name,
+                // Keep the ink between minTop and maxBottom: nudge up if it
+                // would touch what's below; if it can't fit, try a smaller font.
+                var ink = dc.getFontHeight(fonts[i]) * 3 / 8;
+                var y = cy;
+                if (y + ink > maxBottom - 4) { y = maxBottom - 4 - ink; }
+                if (y - ink < minTop + 4 and i < fonts.size() - 1) { continue; }
+                dc.drawText(cx, y, fonts[i], name,
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
                 return;
             }
@@ -117,10 +154,28 @@ class ParashaView extends WatchUi.View {
             or dc.getTextWidthInPixels(line2, font) > maxW) {
             font = fSmall;
         }
+        // Fit the two-line block between minTop (header ink bottom) and
+        // maxBottom (dots / contextual line): Hebrew glyph ink is ~3/4 of the
+        // font height, lines are pitched at 3/4 of it. Drop to fSmall if
+        // Medium can't fit, then centre the block in the gap.
+        // Lines are pitched at 9/10 of the font height so the ascenders of
+        // line 2 (ק, ל) never touch line 1 (was 3/4: cramped on FR255S).
         var lh = dc.getFontHeight(font);
-        dc.drawText(cx, cy - lh / 2, font, line1,
+        var gap = maxBottom - minTop - 10;   // >= 5px clear of header and line below
+        if (lh * 9 / 10 + lh * 3 / 4 > gap and font == fMedium) {
+            font = fSmall;
+            lh = dc.getFontHeight(font);
+        }
+        var pitch = lh * 9 / 10;
+        var blockH = pitch + lh * 3 / 4;           // ink top of line1 .. ink bottom of line2
+        var y1 = cy - pitch / 2;
+        var inkTop = y1 - lh * 3 / 8;
+        if (inkTop + blockH > maxBottom - 5) { inkTop = maxBottom - 5 - blockH; }
+        if (inkTop < minTop + 5) { inkTop = minTop + 5 + (gap - blockH) / 2; }
+        y1 = inkTop + lh * 3 / 8;
+        dc.drawText(cx, y1, font, line1,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(cx, cy + lh / 2, font, line2,
+        dc.drawText(cx, y1 + pitch, font, line2,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
@@ -129,11 +184,13 @@ class ParashaView extends WatchUi.View {
     // otherwise `name`/`count` are drawn together, wrapping to two lines when
     // twoLines is set and the combined string is too wide (else count dropped).
     // cy is clamped up so nothing collides with the page-indicator dots.
+    // Returns the ink top of what it drew, so the name can be fitted above it.
     private function _drawExtra(dc as Graphics.Dc, single as String?,
                                name as String?, count as String?,
                                cx as Number, cy as Number,
-                               maxW as Number, twoLines as Boolean) as Void {
-        if (single == null and name == null) { return; }
+                               maxW as Number, twoLines as Boolean) as Number {
+        var ink = dc.getFontHeight(fSmall) * 3 / 8;
+        if (single == null and name == null) { return cy - ink; }
         dc.setColor(DeviceInfo.colorHighlight(), Graphics.COLOR_TRANSPARENT);
         var lh = dc.getFontHeight(fSmall);
         var bottom = DeviceInfo.dotsY() - 6;
@@ -147,7 +204,7 @@ class ParashaView extends WatchUi.View {
             if (cy + lh / 2 > bottom) { cy = bottom - lh / 2; }
             dc.drawText(cx, cy, fSmall, single,
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-            return;
+            return cy - ink;
         }
 
         var combined = name + " " + count;
@@ -157,7 +214,7 @@ class ParashaView extends WatchUi.View {
             if (cy + lh / 2 > bottom) { cy = bottom - lh / 2; }
             dc.drawText(cx, cy, fSmall, s,
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-            return;
+            return cy - ink;
         }
 
         if (cy + lh > bottom) { cy = bottom - lh; }
@@ -165,6 +222,7 @@ class ParashaView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(cx, cy + lh / 2, fSmall, count,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        return cy - lh / 2 - ink;
     }
 
     // Page-indicator dots shared by the widget pages. active = current page;

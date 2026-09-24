@@ -1,0 +1,4 @@
+<resources>
+    <!-- Instinct Crossover (176 MIP): hub radius 20 + 6px margin (simulator.json analogHands) -->
+    <jsonData id="HandsKeepOut">26</jsonData>
+</resources>

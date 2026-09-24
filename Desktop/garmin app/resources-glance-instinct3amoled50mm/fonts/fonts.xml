@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<resources>
+    <!-- instinct3amoled50mm: glance clear of the sub-screen (tools/fonts/fit_instinct_glance.py) -->
+    <font id="HebrewGlanceSmall" filename="HebrewGlanceSmall.fnt" scope="glance" />
+</resources>

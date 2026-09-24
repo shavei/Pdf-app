@@ -25,11 +25,19 @@ class OmerView extends WatchUi.View {
         dc.clear();
 
         var w  = dc.getWidth();
+        var h  = dc.getHeight();
         var cx = w / 2;
 
         var hebrewDate = new HebrewDate(Time.now());
 
+        // Instinct Crossover: hands cover the centre band — no day-letter
+        // circle, header above the band, name/count below it.
+        var k = Hands.keepOut();
+        var sInk = dc.getFontHeight(fSmall) * 3 / 8;
+        var lInk = dc.getFontHeight(fLarge) * 3 / 8;
+
         // Day-of-week letter in the subscreen circle — same as the other pages.
+        if (k == 0) {
         var gpsR  = 27;
         var gpsCX = 120;
         var gpsCY = 52;
@@ -46,28 +54,33 @@ class OmerView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(gpsCX, gpsCY, fMedium, hebrewDate.getDayOfWeekLetter(),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        }
 
         var lift = DeviceInfo.solarLift();
+        var yHead  = (k > 0) ? h / 2 - k - sInk : 96 - lift;
+        var yCount = (k > 0) ? h / 2 + k + lInk : 134 - lift;
+        var yName  = (k > 0) ? h / 2 + k + lInk : 126 - lift;
+        var yDays  = (k > 0) ? yName + lInk + 4 + sInk : 152 - lift;
         var c = HebrewEvents.contextual(hebrewDate, AppSettings.israelSchedule());
         if (c != null and (c[0] as String).equals("omer")) {
             // Title + prominent count: ספירת העומר / ל״ג בעומר
             dc.setColor(DeviceInfo.colorDim(), Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, 98 - lift, fSmall, "ספירת העומר",
+            dc.drawText(cx, (k > 0) ? yHead : 98 - lift, fSmall, "ספירת העומר",
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            _drawFit(dc, c[1] as String, cx, 134 - lift, w - 16);
+            _drawFit(dc, c[1] as String, cx, yCount, w - 16);
         } else if (c != null) {
             // Closest event: "הבא" header (only when it's still upcoming),
             // the name, and the countdown below.
             var days = c[2] as Number;
             if (days > 0) {
                 dc.setColor(DeviceInfo.colorDim(), Graphics.COLOR_TRANSPARENT);
-                dc.drawText(cx, 96 - lift, fSmall, "הבא",
+                dc.drawText(cx, yHead, fSmall, "הבא",
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             }
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            _drawFit(dc, c[1] as String, cx, 126 - lift, w - 16);
-            dc.drawText(cx, 152 - lift, fSmall, HebrewEvents.countdownText(days),
+            _drawFit(dc, c[1] as String, cx, yName, w - 16);
+            dc.drawText(cx, yDays, fSmall, HebrewEvents.countdownText(days),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
@@ -78,6 +91,10 @@ class OmerView extends WatchUi.View {
     // that fits maxW.
     private function _drawFit(dc as Graphics.Dc, text as String,
                               cx as Number, cy as Number, maxW as Number) as Void {
+        // Budget against the round/semi-octagon chord at this row, not the
+        // full width — "ראש חודש אדר א׳" clipped both edges on Instinct 2S.
+        var chordW = DeviceInfo.usableWidthAtY(cy);
+        if (chordW < maxW) { maxW = chordW; }
         var fonts = [fLarge, fMedium, fSmall] as Array<FontDef>;
         for (var i = 0; i < fonts.size(); i++) {
             if (dc.getTextWidthInPixels(text, fonts[i]) <= maxW) {
@@ -85,6 +102,11 @@ class OmerView extends WatchUi.View {
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
                 return;
             }
+        }
+        // Still too wide at the smallest size: use the standard abbreviation.
+        var rc = "ראש חודש ";
+        if (text.find(rc) == 0) {
+            text = "ר״ח " + text.substring(rc.length(), text.length());
         }
         dc.drawText(cx, cy, fSmall, text,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);

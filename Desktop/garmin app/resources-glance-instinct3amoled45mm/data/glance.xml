@@ -1,0 +1,4 @@
+<resources>
+    <!-- [mode, a, b, c, d] (see fit_instinct_glance.py docstring) for a 320x99 glance; see fit_instinct_glance.py -->
+    <jsonData id="GlanceLayout" scope="glance">[2, 26, 82, 222, 214, 6]</jsonData>
+</resources>

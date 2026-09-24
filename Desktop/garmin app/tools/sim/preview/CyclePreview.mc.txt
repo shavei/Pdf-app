@@ -1,0 +1,90 @@
+import Toybox.Graphics;
+import Toybox.Lang;
+import Toybox.System;
+import Toybox.Time;
+import Toybox.Time.Gregorian;
+import Toybox.Timer;
+import Toybox.WatchUi;
+
+// Preview harness (NOT shipped — copied into a %TEMP% build by run.ps1).
+// Steps through every page on the worst-case (longest-string) dates, one
+// state every STEP_MS, and prints "STATE n" after drawing each so run.ps1
+// knows when to capture. Views call PreviewDims.now() instead of Time.now().
+//   0 glance @ D0 (longest date -> compact layout where needed)
+//   1 glance @ D3 (typical date -> normal layout)   2 date page @ D0
+//   3 parasha @ D1   4 parasha @ D2
+//   Solar only: 5 Omer/events page @ D1   6 Omer/events page @ D2
+(:glance)
+module PreviewDims {
+    // D0 = 29 Adar I 5787 (longest date: כ״ט אדר א׳)
+    // D1 = 2028-05-01 (parasha אחרי מות־קדושים, inside the Omer)
+    // D2 = 16 Shvat 5787 (countdown: ראש חודש אדר א׳ בעוד י״ד ימים)
+    // D3 = 13 Tishrei 5787 (a typical date: י״ג תשרי)
+    const DATES = [[2027, 3, 8], [2028, 5, 1], [2027, 1, 24], [2026, 9, 24]];
+    var idx = 0;
+    function now() as Time.Moment {
+        var d = DATES[idx];
+        return Gregorian.moment({:year => d[0], :month => d[1], :day => d[2],
+                                 :hour => 12, :minute => 0, :second => 0});
+    }
+}
+
+class CyclePreviewView extends WatchUi.View {
+    const STEP_MS = 5000;
+    var state = 0;
+    var last = -1;
+    var timer as Timer.Timer?;
+    var sub as WatchUi.View?;
+
+    function initialize() { View.initialize(); }
+
+    function onShow() as Void {
+        timer = new Timer.Timer();
+        timer.start(method(:tick), STEP_MS, true);
+    }
+
+    function tick() as Void {
+        var n = DeviceInfo.isSolar() ? 7 : 5;
+        if (state < n - 1) { state++; WatchUi.requestUpdate(); }
+        else { System.println("DONE"); timer.stop(); }
+    }
+
+    function onUpdate(dc as Graphics.Dc) as Void {
+        if (state <= 1) {
+            PreviewDims.idx = state == 0 ? 0 : 3;
+            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_DK_GRAY);
+            dc.clear();
+            var bw = PreviewDims.W; var bh = PreviewDims.H;
+            var bmp;
+            if (Graphics has :createBufferedBitmap) {
+                bmp = Graphics.createBufferedBitmap({:width => bw, :height => bh}).get();
+            } else {
+                bmp = new Graphics.BufferedBitmap({:width => bw, :height => bh});
+            }
+            new HebrewCalendarGlanceView().onUpdate(bmp.getDc());
+            var x = (dc.getWidth() - bw) / 2; var y = (dc.getHeight() - bh) / 2;
+            // Hybrid (Instinct Crossover): the real carousel shows the focused
+            // glance in the upper half, above the parked hands.
+            if (Hands.keepOut() > 0) { y = dc.getHeight() / 2 - Hands.keepOut() - bh; }
+            // Keep the glance clear of an Instinct sub-screen (the real glance
+            // is never under it) so the whole glance is visible for review.
+            if (WatchUi has :getSubscreen) {
+                var sb = WatchUi.getSubscreen();
+                if (sb != null and y < sb.y + sb.height + 3) { y = sb.y + sb.height + 3; }
+            }
+            dc.drawBitmap(x, y, bmp);
+            dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+            dc.drawRectangle(x - 1, y - 1, bw + 2, bh + 2);
+        } else {
+            if (state != last) {
+                if (state == 2) { PreviewDims.idx = 0; sub = new HebrewCalendarView(); }
+                else if (state == 3) { PreviewDims.idx = 1; sub = new ParashaView(); }
+                else if (state == 4) { PreviewDims.idx = 2; sub = new ParashaView(); }
+                else if (state == 5) { PreviewDims.idx = 1; sub = new OmerView(); }
+                else { PreviewDims.idx = 2; sub = new OmerView(); }
+            }
+            sub.onUpdate(dc);
+        }
+        if (state != last) { last = state; System.println("STATE " + state); }
+    }
+}

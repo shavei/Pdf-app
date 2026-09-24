@@ -291,6 +291,20 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
   instinctcrossover(+amoled), fr255s, fenix7s, fr945lte, fenix6, fenix7x, enduro3, fr265s,
   venusq2, vivoactive6, fr170, fenix9pro51mm, venux1, epix2pro51mm, fenix8solar47mm — all OK.
   Store package: 147/147 part-number builds, ~4MB.
+- **Text-fit audit (2026-09-24, user demanded "perfect, 10/10 on every watch")**: every page on
+  all 95 watches captured on the worst-case strings (see CLAUDE.md) and scored; everything
+  below 10 fixed and re-shot until all 95 scored 10/10. Fixes that came out of it:
+  compact glance on long dates; Instinct glances solved against REAL carousel masks (the
+  sub-screen window + halo is far bigger than the profile says) — MIP Instincts use the
+  user-chosen "stacked" glance; Crossover hands keep-out layout on all pages; parasha
+  name fitted between header and contextual block with >=5px clearance, small screens
+  (<230px) use the small header font; countdown fits the round chord, falls back to ר״ח;
+  ״ looked broken on the 1-bit MIP glance at 23px — gone with the solved fonts.
+  8/8 unit tests pass; store package 147/147.
+- Sim capture gotchas learned: glance capture needs ~40s boot on some profiles (Instinct
+  3 Solar / E 40 showed the GARMIN boot screen at 22s); a device captured right after
+  another in the same run occasionally shows the previous device's cached resources —
+  re-shoot it alone. `stale.py` catches shifted state captures.
 - Gotcha: after preview builds (same app id) the sim showed GARBLED glyphs for the real build —
   stale font cache; restarting simulator.exe fixes it. Not a real bug.
 

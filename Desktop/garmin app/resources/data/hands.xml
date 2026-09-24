@@ -1,0 +1,7 @@
+<resources>
+    <!-- Half-height (px) of the band across the screen centre that must stay
+         clear of text because physical watch hands cover it (Instinct
+         Crossover: hands park at 9:15 while an app is open). 0 = no hands.
+         Overridden by resources-handsmip / resources-handsamoled. -->
+    <jsonData id="HandsKeepOut">0</jsonData>
+</resources>

@@ -1,0 +1,4 @@
+<resources>
+    <!-- Instinct Crossover AMOLED (390): hub radius 21 + 9px margin (simulator.json analogHands) -->
+    <jsonData id="HandsKeepOut">30</jsonData>
+</resources>

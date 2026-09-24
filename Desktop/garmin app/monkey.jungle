@@ -9,14 +9,14 @@ instinct3solar45mm.excludeAnnotations = roundGlance
 
 # Per-device resource overrides
 fr165m.resourcePath             = $(fr165m.resourcePath);resources-fr165m
-instinct3amoled45mm.resourcePath = $(instinct3amoled45mm.resourcePath);resources-instinct3amoled
-instinct3amoled50mm.resourcePath = $(instinct3amoled50mm.resourcePath);resources-instinct3amoled
-instinct3solar45mm.resourcePath  = $(instinct3solar45mm.resourcePath);resources-instinct3solar
+instinct3amoled45mm.resourcePath = $(instinct3amoled45mm.resourcePath);resources-instinct3amoled;resources-glance-instinct3amoled45mm
+instinct3amoled50mm.resourcePath = $(instinct3amoled50mm.resourcePath);resources-instinct3amoled;resources-glance-instinct3amoled50mm
+instinct3solar45mm.resourcePath  = $(instinct3solar45mm.resourcePath);resources-instinct3solar;resources-glance-instinct3solar45mm
 # Instinct 2 family: same 176x176 MIP semioctagon class as Instinct 3 Solar
-instinct2.resourcePath           = $(instinct2.resourcePath);resources-instinct3solar
+instinct2.resourcePath           = $(instinct2.resourcePath);resources-instinct3solar;resources-glance-instinct2
 
 # MIP round 208x208 (fr55) — own font sizes + 35px icon
-fr55.resourcePath = $(fr55.resourcePath);resources-mip208
+fr55.resourcePath = $(fr55.resourcePath);resources-mip208;resources-gs19
 
 # MIP round 260x260 (fenix7, fr255, fr955) — own font sizes + 40px icon
 # fenix7's glance content area is only 63px tall -> smaller glance fonts
@@ -40,25 +40,25 @@ vivoactive5.resourcePath = $(vivoactive5.resourcePath);resources-instinct3amoled
 # Pattern: <font bucket>[;<glance-font overlay>][;<icon overlay>]
 
 # MIP semi-octagon 163-166px (Instinct 2S, Instinct E 40mm) - own small fonts; flush-right glance
-instinct2s.resourcePath    = $(instinct2s.resourcePath);resources-mono166;resources-icon54
-instincte40mm.resourcePath = $(instincte40mm.resourcePath);resources-mono166;resources-icon52
+instinct2s.resourcePath    = $(instinct2s.resourcePath);resources-mono166;resources-icon54;resources-glance-instinct2s
+instincte40mm.resourcePath = $(instincte40mm.resourcePath);resources-mono166;resources-icon52;resources-glance-instincte40mm
 instinct2s.excludeAnnotations    = roundGlance
 instincte40mm.excludeAnnotations = roundGlance
 
 # MIP semi-octagon 176px - same class as Instinct 3 Solar; flush-right glance. Instinct Crossover is a
 # hybrid (analog hands, no sub-screen) with a 110x60 glance -> tiny glance fonts + 26px icon
-instinct2x.resourcePath        = $(instinct2x.resourcePath);resources-instinct3solar
-descentg1.resourcePath         = $(descentg1.resourcePath);resources-instinct3solar
-instincte45mm.resourcePath     = $(instincte45mm.resourcePath);resources-instinct3solar
-instinctcrossover.resourcePath = $(instinctcrossover.resourcePath);resources-instinct3solar;resources-glancexover;resources-icon26
+instinct2x.resourcePath        = $(instinct2x.resourcePath);resources-instinct3solar;resources-glance-instinct2x
+descentg1.resourcePath         = $(descentg1.resourcePath);resources-instinct3solar;resources-glance-descentg1
+instincte45mm.resourcePath     = $(instincte45mm.resourcePath);resources-instinct3solar;resources-glance-instincte45mm
+instinctcrossover.resourcePath = $(instinctcrossover.resourcePath);resources-instinct3solar;resources-glancexover;resources-icon26;resources-gs13;resources-handsmip
 instinct2x.excludeAnnotations        = roundGlance
 descentg1.excludeAnnotations         = roundGlance
 instincte45mm.excludeAnnotations     = roundGlance
 instinctcrossover.excludeAnnotations = roundGlance
 
 # MIP round 218px (FR255S) - fr55's fonts fit; 40px icon
-fr255s.resourcePath  = $(fr255s.resourcePath);resources-mip208;resources-icon40
-fr255sm.resourcePath = $(fr255sm.resourcePath);resources-mip208;resources-icon40
+fr255s.resourcePath  = $(fr255s.resourcePath);resources-mip208;resources-icon40;resources-gs19
+fr255sm.resourcePath = $(fr255sm.resourcePath);resources-mip208;resources-icon40;resources-gs19
 
 # MIP round 240px - own fonts; most have a 63px glance -> glance63 (FR945 LTE has 83px)
 fenix7s.resourcePath        = $(fenix7s.resourcePath);resources-mip240;resources-glance63;resources-icon40
@@ -74,7 +74,7 @@ marqcommander.resourcePath  = $(marqcommander.resourcePath);resources-mip240;res
 marqdriver.resourcePath     = $(marqdriver.resourcePath);resources-mip240;resources-glance63;resources-icon40
 marqexpedition.resourcePath = $(marqexpedition.resourcePath);resources-mip240;resources-glance63;resources-icon40
 marqgolfer.resourcePath     = $(marqgolfer.resourcePath);resources-mip240;resources-glance63;resources-icon40
-fr945lte.resourcePath       = $(fr945lte.resourcePath);resources-mip240;resources-icon40
+fr945lte.resourcePath       = $(fr945lte.resourcePath);resources-mip240;resources-icon40;resources-gs23
 
 # MIP round 260px - mip260 bucket; fenix 7 Pro has fenix7's 63px glance
 fenix6.resourcePath             = $(fenix6.resourcePath);resources-mip260
@@ -114,7 +114,7 @@ marq2aviator.resourcePath            = $(marq2aviator.resourcePath);resources-in
 descentg2.resourcePath               = $(descentg2.resourcePath);resources-instinct3amoled
 descentmk343mm.resourcePath          = $(descentmk343mm.resourcePath);resources-instinct3amoled
 approachs7042mm.resourcePath         = $(approachs7042mm.resourcePath);resources-instinct3amoled
-instinctcrossoveramoled.resourcePath = $(instinctcrossoveramoled.resourcePath);resources-instinct3amoled;resources-glance92;resources-icon38
+instinctcrossoveramoled.resourcePath = $(instinctcrossoveramoled.resourcePath);resources-instinct3amoled;resources-glance92;resources-icon38;resources-handsamoled
 fr165.resourcePath                   = $(fr165.resourcePath);resources-fr165m
 fr170.resourcePath                   = $(fr170.resourcePath);resources-fr165m
 fr170m.resourcePath                  = $(fr170m.resourcePath);resources-fr165m

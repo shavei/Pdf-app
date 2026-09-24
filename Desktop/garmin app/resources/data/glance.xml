@@ -1,0 +1,6 @@
+<resources>
+    <!-- Glance layout override: [mode, ...] (see tools/fonts/fit_instinct_glance.py). mode 0 = standard
+         glance. Instincts get a solved layout from resources-glance-<device>
+         (tools/fonts/fit_instinct_glance.py) so nothing sits under the sub-screen. -->
+    <jsonData id="GlanceLayout" scope="glance">[0, 0, 0, 0, 0, 0]</jsonData>
+</resources>
