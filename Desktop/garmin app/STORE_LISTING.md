@@ -3,51 +3,41 @@
 Upload at: https://apps.garmin.com/developer/dashboard → app → **Upload New Version**
 
 ═══════════════════════════════════════════════════════════════════════
-# ▶ COPY-PASTE FOR THIS UPLOAD — v1.6.0
+# ▶ COPY-PASTE FOR THIS UPLOAD — v1.7.0
 ═══════════════════════════════════════════════════════════════════════
 
+(v1.7.0 includes everything from 1.6.0. If 1.6.0 was never uploaded, this upload
+replaces it — the What's New below covers both.)
+
 ### 1. Binary
-`bin\HebrewCalendar.iq`  (built 2026-06-14, 1.6.0, 26 device variants)
+`bin\HebrewCalendar.iq`  (built 2026-09-24, 1.7.0, 95 devices / 147 part-number variants, ~4 MB)
 
 ### 2. "What's New" — paste into the version-notes field
 
 **English:**
 ```
-Now with the Omer count and a countdown to the next date on the Hebrew calendar! During Sefirat HaOmer (Pesach to Shavuot) the parasha page shows the day's count; otherwise it counts down to the closest upcoming day — holiday, fast, Rosh Chodesh, or a special day like Tu BiShvat, Lag BaOmer or Yom HaAtzma'ut. On Instinct and Solar watches this gets its own new page.
+Now on 95 Garmin watches! Added the vivoactive 6, Venu 4, Venu 2S / 2 Plus / 3S / Sq 2 / X1, Forerunner 70, 165, 170, 255S, 265S, 570, 945 LTE and 970, every fenix 6, 7, 8 and 9 model, fenix E, epix Pro, Enduro, MARQ, Instinct 2S / 2X / E / Crossover, Descent, Approach and D2 — with text and icons tuned for every screen. Also includes the Sefirat HaOmer count and a countdown to the next holiday, fast or Rosh Chodesh.
 ```
 
 **Hebrew:**
 ```
-עכשיו עם ספירת העומר וספירה לאחור לתאריך הבא בלוח העברי! בתקופת הספירה (מפסח עד שבועות) דף הפרשה מציג את ספירת היום; בשאר השנה הוא סופר לאחור ליום הקרוב הבא — חג, צום, ראש חודש או יום מיוחד כמו ט"ו בשבט, ל"ג בעומר או יום העצמאות. בשעוני Instinct ו-Solar זה מקבל דף חדש משלו.
+עכשיו על 95 שעוני Garmin! נוספה תמיכה ב-vivoactive 6‏, Venu 4‏, Venu 2S / 2 Plus / 3S / Sq 2 / X1‏, Forerunner 70 / 165 / 170 / 255S / 265S / 570 / 945 LTE / 970‏, כל דגמי fenix 6, 7, 8 ו-9‏, fenix E‏, epix Pro‏, Enduro‏, MARQ‏, Instinct 2S / 2X / E / Crossover‏, Descent‏, Approach ו-D2 — עם גדלי טקסט ואייקונים מותאמים לכל מסך. כולל גם ספירת העומר וספירה לאחור לחג, לצום או לראש החודש הבא.
 ```
 
 ### 3. "Notes for the reviewer" field
 ```
-v1.6.0 adds pure date-math features to the existing parasha page: the Sefirat HaOmer count (in season), and otherwise a Hebrew-gematria countdown to the closest upcoming date on the Hebrew calendar — major holidays, public fast days, Rosh Chodesh, minor/festive days (Tu BiShvat, Lag BaOmer, Pesach Sheni, etc.) and the modern Israeli days. Dates are nominal (no Shabbat-postponement applied). On the 176px 2-color Instinct/Solar watches these get a dedicated third page (no room for a third line). No new permissions; still no GPS/internet/sensors. All calculations are on-device and unit-tested against the open-source pyluach library.
+v1.7.0 adds support for 79 more watches (95 total). No functional changes beyond 1.6.0: per-screen bitmap font sizes and launcher icons for the new screen sizes, plus a small layout adjustment for the shorter Instinct 2S / Instinct E 40mm screens. Still no permissions, GPS, internet or sensors; all date math is on-device.
 ```
 
-### 4. Screenshots — replace the gallery (in `bin\store_images\`)
-**Garmin allows a maximum of 5 gallery images.** Upload these 5 (styled cards —
-watch cut-out on a gradient with a soft shadow, matching the hero):
-1. `1_venu3_date.jpg` — date page (Venu 3, AMOLED)
-2. `2_epix2_omer.jpg` — **NEW** parasha page with the Omer count (epix Gen 2, AMOLED)
-3. `3_fr55_event.jpg` — **NEW** next holiday / Rosh Chodesh countdown (Forerunner 55, MIP)
-4. `4_solar_omer.jpg` — **NEW** dedicated Omer page (Instinct 3 Solar)
-5. `5_fr265_glance.jpg` — glance (FR265)
+### 4. Screenshots
+No change needed — keep the current 5 gallery images (`bin\store_images\1_*.jpg`–`5_*.jpg`).
 
-(The matching `*.png` files are clean white-bg twins used only to build the
-hero — do not upload those.)
+### 5. Full description
+Re-paste the EN and HE full description below — the **supported-watches line changed**.
 
-### 5. Hero image (if the store asks / to refresh)
-`bin\store_images\hero_1440x720.png` (regenerated — Omer page + date, "PARASHA · OMER · HOLIDAYS")
-
-### 6. Fields that DO change this release
-- **Full description:** updated below to list the Omer / holidays / Rosh Chodesh.
-  Re-paste the EN and HE full description (section "Full description" below).
-
-### 7. Fields that DON'T change
+### 6. Fields that DON'T change
 - App name, category (Widget → Lifestyle), short description, permissions (none),
-  cover icon (`cover_500.png`), supported-watch list (no new devices in 1.6.0).
+  cover icon (`cover_500.png`), hero image.
 
 ═══════════════════════════════════════════════════════════════════════
 # Canonical listing fields (reference)
@@ -83,7 +73,7 @@ Features:
 • Glance support — your Hebrew date without opening anything
 • Lightweight and battery-friendly: no GPS, no internet, no permissions
 
-Supported watches: Instinct 2 (incl. Solar / Dual Power / dēzl Edition), Instinct 3 (Solar 45mm, AMOLED 45mm & 50mm), Forerunner 55, Forerunner 165 Music, Forerunner 255, 265, 955 and 965, fenix 7, fenix 8 (47mm), epix (Gen 2), Venu 2, Venu 3, and vivoactive 5.
+Supported watches (95): fenix 6, 7, 8 and 9 (all sizes, incl. Pro / Solar / X / S), fenix E, epix (Gen 2) and epix Pro, Enduro and Enduro 3, MARQ (Gen 1 and 2), Forerunner 55, 70, 165, 170, 255 / 255S, 265 / 265S, 570, 945 LTE, 955, 965 and 970, Venu 2 / 2S / 2 Plus, Venu 3 / 3S, Venu 4, Venu Sq 2, Venu X1, vivoactive 5 and 6, Instinct 2 / 2S / 2X, Instinct 3, Instinct E, Instinct Crossover (incl. AMOLED), Descent, Approach S50 / S70, and D2 — including their Solar, Sapphire, quatix and tactix editions.
 
 Parasha calculation is based on the open-source pyluach library (MIT License) and was verified against Hebcal.com (CC BY 4.0).
 
@@ -104,7 +94,7 @@ Parasha calculation is based on the open-source pyluach library (MIT License) an
 • תמיכה ב-Glance — התאריך העברי בלי לפתוח כלום
 • קל ונטול הרשאות: ללא GPS, ללא אינטרנט, ללא הרשאות
 
-שעונים נתמכים: Instinct 2 (כולל Solar / Dual Power / dēzl)‏, Instinct 3 (Solar 45 מ"מ, AMOLED ‏45/50 מ"מ)‏, Forerunner 55‏, Forerunner 165 Music‏, Forerunner 255 / 265 / 955 / 965‏, fenix 7‏, fenix 8 (47 מ"מ)‏, epix (Gen 2)‏, Venu 2‏, Venu 3 ו-vivoactive 5.
+שעונים נתמכים (95): fenix 6, 7, 8 ו-9 (כל הגדלים, כולל Pro / Solar / X / S)‏, fenix E‏, epix (Gen 2) ו-epix Pro‏, Enduro ו-Enduro 3‏, MARQ (דור 1 ו-2)‏, Forerunner 55 / 70 / 165 / 170 / 255 / 255S / 265 / 265S / 570 / 945 LTE / 955 / 965 / 970‏, Venu 2 / 2S / 2 Plus‏, Venu 3 / 3S‏, Venu 4‏, Venu Sq 2‏, Venu X1‏, vivoactive 5 ו-6‏, Instinct 2 / 2S / 2X‏, Instinct 3‏, Instinct E‏, Instinct Crossover (כולל AMOLED)‏, Descent‏, Approach S50 / S70 ו-D2 — כולל גרסאות Solar‏, Sapphire‏, quatix ו-tactix.
 
 חישוב פרשת השבוע מבוסס על ספריית הקוד הפתוח pyluach (רישיון MIT) ואומת מול Hebcal.com (רישיון CC BY 4.0).
 
@@ -118,6 +108,9 @@ None. The app uses no GPS, sensors, internet, or stored data.
 ═══════════════════════════════════════════════════════════════════════
 # Version history — "What's new" archive
 ═══════════════════════════════════════════════════════════════════════
+
+## v1.7.0 — 2026-09-24
+EN/HE: see "COPY-PASTE FOR THIS UPLOAD" at the top (79 more watches, 95 total).
 
 ## v1.6.0 — 2026-06-17
 EN: Now with the Omer count and a countdown to the next date on the Hebrew calendar! During Sefirat HaOmer (Pesach to Shavuot) the parasha page shows the day's count; otherwise it counts down to the closest upcoming day — holiday, fast, Rosh Chodesh, or a special day like Tu BiShvat, Lag BaOmer or Yom HaAtzma'ut. On Instinct and Solar watches this gets its own new page.
