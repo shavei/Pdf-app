@@ -43,7 +43,7 @@ monkeyc -e -r -o "bin\HebrewCalendar.iq" -f monkey.jungle -y "developer_key.der"
 every `.mc` under the project**, not just `source/` — keep scratch/harness Monkey C files
 out of the tree (the preview harness stores its view as `GlancePreview.mc.txt`).
 
-**Bulk visual check:** `tools\sim\previewun.ps1 -Devices a,b,c` builds each device as an
+**Bulk visual check:** `tools\sim\preview\run.ps1 -Devices a,b,c` builds each device as an
 auto-launching watch-app from a %TEMP% copy (real tree untouched), draws the REAL glance
 into an offscreen bitmap sized to that device's glance contentArea (red outline — no
 carousel navigation), and captures glance/date/parasha(/Omer on Solar) into
