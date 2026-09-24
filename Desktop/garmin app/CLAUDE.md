@@ -1,8 +1,9 @@
 # Hebrew Calendar — Garmin Connect IQ Widget
 
 Monkey C widget showing the Hebrew date (day-of-week letter, day+month, year). Hebrew RTL,
-bitmap fonts, glance + widget views. Published on the Connect IQ store (v1.4.0 live,
-16 devices; **next release must be ≥ 1.5.0**).
+bitmap fonts, glance + widget views. Published on the Connect IQ store (v1.5.0 live,
+16 devices; v1.6.0 was packaged for upload). **manifest is now v1.7.0 with 95 devices**
+(2026-09-24) — next upload is 1.7.0 (it includes everything in 1.6.0; must stay > live).
 
 Deep architecture notes, hard-won gotchas, and store history live in [MEMORY.md](MEMORY.md) —
 read it before touching fonts, date math, or layout.
@@ -33,9 +34,21 @@ monkeyc -o "bin\<device>.prg" -f monkey.jungle -y "developer_key.der" -d <device
 Start-Process "C:\Users\yosef\AppData\Roaming\Garmin\ConnectIQ\Sdks\connectiq-sdk-win-9.1.0-2026-03-09-6a872a80b\bin\simulator.exe"
 monkeydo "bin\<device>.prg" <device>
 
-# Store package (release)
+# Store package (release) — ALSO the fastest all-device build check (one pass, ~4 min)
 monkeyc -e -r -o "bin\HebrewCalendar.iq" -f monkey.jungle -y "developer_key.der"
 ```
+
+**Never run several `monkeyc` in parallel in this dir** — they share a generated
+`default.jungle` and corrupt each other ("mismatched input '='"). And **monkeyc compiles
+every `.mc` under the project**, not just `source/` — keep scratch/harness Monkey C files
+out of the tree (the preview harness stores its view as `GlancePreview.mc.txt`).
+
+**Bulk visual check:** `tools\sim\previewun.ps1 -Devices a,b,c` builds each device as an
+auto-launching watch-app from a %TEMP% copy (real tree untouched), draws the REAL glance
+into an offscreen bitmap sized to that device's glance contentArea (red outline — no
+carousel navigation), and captures glance/date/parasha(/Omer on Solar) into
+`bin\preview\shots`; `python tools\sim\preview\sheet.py a b c` makes a contact sheet.
+Restart the sim first if other builds of this app ran (stale font cache → garbled glyphs).
 
 **CRITICAL: all `monkeydo`/simulator commands need `dangerouslyDisableSandbox: true`** —
 sandboxed monkeydo writes to a %TEMP% the real simulator can't read; the new build never loads.
@@ -54,11 +67,24 @@ opening apps from the glance; `capture.ps1` can return stale frames after sim re
 `type="watch-app"` with getGlanceView commented out — the app then auto-launches
 full-screen on monkeydo with no glance navigation.
 
-## Target devices (16)
+## Target devices (95 — v1.7.0)
 
-`instinct3solar45mm` `instinct3amoled45mm` `instinct3amoled50mm` `instinct2` `fr165m`
-`fenix7` `fr255` `fr955` (MIP 260) · `fr55` (MIP 208) · `fenix847mm` `fr965` `venu3`
-(AMOLED 454) · `fr265` `epix2` `venu2` `vivoactive5` (AMOLED 390/416)
+The authoritative list is `manifest.xml`; the device → resource mapping is `monkey.jungle`
+(pattern `<font bucket>[;<glance-font overlay>][;<icon overlay>]`, later paths override).
+Font buckets by screen: `resources-mono166` (163–166 MIP semi-octagon: instinct2s,
+instincte40mm) · `resources-instinct3solar` (176 MIP: Instinct 2/2X/3 Solar/E 45/Crossover,
+Descent G1) · `resources-mip208` (fr55, fr255s) · `resources-mip240` (fenix 6S/7S, MARQ Gen 1,
+FR945 LTE, Descent Mk2S) · `resources-mip260` · `resources-mip280` (fenix 6X/7X, Enduro,
+fenix 8/9 Solar 51) · `resources-amoled360` (FR265S, Venu 2S, Venu Sq 2) ·
+`resources-instinct3amoled` (390/416 AMOLED) · `resources-fr165m` (FR165/170/70 family) ·
+`resources-amoled454` (454/466 AMOLED + Venu X1).
+Glance-only overlays for short glance areas: `resources-glance63` (63px), `glance92`
+(Crossover AMOLED), `glance103` (454px w/ 103px glance), `glancexover` (Crossover 110x60).
+Icon overlays `resources-iconNN` for each launcher size. Fonts for the post-1.6 buckets come
+from `tools/fonts/generate_fonts_extra.py`; icons from `tools/fonts/generate_icons.py`.
+Device specs (screen, glance contentArea, launcher icon, memory) are in the SDK profiles:
+`%APPDATA%\Garmin\ConnectIQ\Devices\<id>\compiler.json` + `simulator.json`.
+Edge bike computers are deliberately excluded.
 
 Retail editions (quatix, tactix, Solar/Tactical variants, etc.) are auto-covered by these
 ids — never add them as new products. See MEMORY.md for the full mapping and for the list
@@ -105,7 +131,7 @@ per-device `resources-*` variant dirs. Everything else is sorted into:
 | `source/` `resources/` `resources-*/` | App code + per-device resource buckets (the build) |
 | `tools/fonts/` | `generate_fonts*.py`, `generate_icons.py` (regenerate bitmap fonts/icons into `resources-*`) |
 | `tools/verify/` | `verify_parsha.py`, `crosscheck_hebcal.py` + `hebcal_fixtures/` (offline parasha checks) |
-| `tools/sim/` | Simulator helpers: `capture.ps1` `capture2.ps1` (robust largest-window grab) `openshot.ps1` (tap glance band + capture) `click.ps1` `runshot.ps1` `retake_v15.ps1` `make_v15_shots.ps1` `scap.ps1` `sendkey.ps1` |
+| `tools/sim/` | Simulator helpers: `capture.ps1` `capture2.ps1` (robust largest-window grab) `openshot.ps1` (tap glance band + capture) `click.ps1` `runshot.ps1` `retake_v15.ps1` `make_v15_shots.ps1` `scap.ps1` `sendkey.ps1`; `preview/` bulk glance+widget harness (see Build & run) |
 | `tools/store/` | Listing-image generators: `make_cover.py` `make_hero.py` `make_store_images.py` |
 | `bin/` (gitignored) | Build output (`*.prg`, `HebrewCalendar.iq`), `shots/v15/`, `store_images/` |
 
@@ -147,6 +173,9 @@ Arabic digits** (fonts carry 0-9 but we don't use them). Non-Solar draws this un
 name (chord-aware width — see round-clip rule); Solar shows it on page 3. Unit-tested
 (`testOmerDay`, `testNextEvent`, `testContextual`) vs pyluach fixtures — keep green.
 
+- **Solar layouts are pixel-tuned for 176px.** Shorter semi-octagons (instinct2s 163x156,
+  instincte40mm 166) lift the fixed Y positions via `DeviceInfo.solarLift()` (0 at 176) and the
+  date page's overflow nudge — keep both no-ops on 176px so Instinct 2/3 Solar don't move.
 - **Round-screen text width:** any text low/high on a round screen must budget width with
   `DeviceInfo.usableWidthAtY(y)` (chord at that row), NOT `w-…` — else medium lines clip the
   bezel (the contextual line did; fixed).

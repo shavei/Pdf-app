@@ -56,11 +56,12 @@ class ParashaView extends WatchUi.View {
             dc.drawText(gpsCX, gpsCY, fMedium, hebrewDate.getDayOfWeekLetter(),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
+            var lift = DeviceInfo.solarLift();
             dc.setColor(DeviceInfo.colorDim(), Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, 96, fSmall, header,
+            dc.drawText(cx, 96 - lift, fSmall, header,
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
-            _drawNameFit(dc, name, cx, 135, w - 20, color, 0);
+            _drawNameFit(dc, name, cx, 135 - lift, w - 20, color, 0);
         } else {
             // 28%/53% (not higher): at 22% the header clipped on the round
             // top edge of small screens — user-reported on fr55

@@ -4,7 +4,11 @@ launcher-icon sizes. PIL re-draw of resources/drawables/launcher_icon.svg
 (no SVG rasterizer available on this machine), supersampled then downscaled.
 
 Sizes: 35 (fr55), 40 (fenix7/fr255/fr955), 56 (vivoactive5),
-65 (fenix8 47mm/fr965), 70 (venu2/venu3).
+65 (fenix8 47mm/fr965), 70 (venu2/venu3), plus icon-only overlay dirs
+resources-iconNN for every other launcher size in the fleet
+(26 Instinct Crossover, 38 Crossover AMOLED, 52 Instinct E 40mm,
+54 vivoactive6/venu4 41mm/Instinct 2S, 60, 61 Venu 2S, 40 MIP buckets
+without their own icon). Each overlay also gets a drawables.xml.
 """
 
 from PIL import Image, ImageDraw, ImageFont
@@ -54,9 +58,21 @@ TARGETS = {
     65: os.path.join(BASE, "resources-amoled454", "drawables"),
     70: os.path.join(BASE, "resources-icon70", "drawables"),
 }
+OVERLAYS = [26, 38, 40, 52, 54, 60, 61]
+for n in OVERLAYS:
+    TARGETS.setdefault(("overlay", n), os.path.join(BASE, f"resources-icon{n}", "drawables"))
 
-for size, out_dir in TARGETS.items():
+DRAWABLES_XML = """<drawables xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <bitmap id="LauncherIcon" filename="launcher_icon.png" dithering="none" />
+</drawables>
+"""
+
+for key, out_dir in TARGETS.items():
+    size = key[1] if isinstance(key, tuple) else key
     os.makedirs(out_dir, exist_ok=True)
+    if isinstance(key, tuple):
+        with open(os.path.join(out_dir, "drawables.xml"), "w", encoding="utf-8") as f:
+            f.write(DRAWABLES_XML)
     img.resize((size, size), Image.LANCZOS).save(os.path.join(out_dir, "launcher_icon.png"))
     print(f"  launcher_icon.png @ {size}px -> {out_dir}")
 print("Done!")

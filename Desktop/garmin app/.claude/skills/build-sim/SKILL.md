@@ -8,14 +8,14 @@ description: Build the Hebrew Calendar widget for a Garmin device and run it in 
 Project root: `C:\Users\yosef\Desktop\garmin app` (run everything from there).
 
 ## Inputs
-- `$DEVICE` — one of the 16 ids below (default `instinct3amoled45mm`). Fuzzy-match user
+- `$DEVICE` — any product id in `manifest.xml` (95 as of v1.7.0; default `instinct3amoled45mm`). Fuzzy-match user
   wording: "solar" → instinct3solar45mm, "amoled 50" → instinct3amoled50mm, "fenix 7" →
   fenix7, "fenix 8" → fenix847mm, "venu 3" → venu3, "forerunner 55" → fr55, etc.
 - `all` — compile every device (no simulator) to verify nothing broke.
 - `shot` — after launching, capture a screenshot via `tools\sim\runshot.ps1` / `tools\sim\capture.ps1`.
 
-Devices: instinct3solar45mm instinct3amoled45mm instinct3amoled50mm instinct2 fr165m
-fenix7 fr255 fr955 fr55 fenix847mm fr965 venu3 fr265 epix2 venu2 vivoactive5
+Devices: read the `<iq:product id=...>` list from `manifest.xml` (e.g. "vivoactive 6" →
+vivoactive6, "fenix 9 pro 47" → fenix9pro47mm, "instinct 2s" → instinct2s).
 
 ## Steps
 
@@ -24,7 +24,9 @@ fenix7 fr255 fr955 fr55 fenix847mm fr965 venu3 fr265 epix2 venu2 vivoactive5
    monkeyc -o "bin\$DEVICE.prg" -f monkey.jungle -y "developer_key.der" -d $DEVICE
    ```
    On compile errors: report file:line and stop. Warnings: report but continue.
-   For `all`: loop over the 16 ids, build each, summarize pass/fail per device, skip the simulator.
+   For `all`: DON'T loop per device — run the store-package build (compiles every device in one
+   pass, background, ~4 min): `monkeyc -e -r -w -o "bin\HebrewCalendar.iq" -f monkey.jungle -y "developer_key.der"`
+   and report `N OUT OF N DEVICES BUILT`. Never run monkeyc processes in parallel (shared default.jungle).
 
 2. **Ensure simulator is running** — check `Get-Process simulator -ErrorAction SilentlyContinue`;
    if not running:

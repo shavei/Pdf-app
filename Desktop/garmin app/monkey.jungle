@@ -34,3 +34,113 @@ fr265.resourcePath       = $(fr265.resourcePath);resources-instinct3amoled
 epix2.resourcePath       = $(epix2.resourcePath);resources-instinct3amoled
 venu2.resourcePath       = $(venu2.resourcePath);resources-instinct3amoled;resources-icon70
 vivoactive5.resourcePath = $(vivoactive5.resourcePath);resources-instinct3amoled;resources-icon56
+
+# ---- Devices added in v1.7.0 (generated fonts: tools/fonts/generate_fonts_extra.py,
+# icon overlays: tools/fonts/generate_icons.py). Later paths override earlier ones.
+# Pattern: <font bucket>[;<glance-font overlay>][;<icon overlay>]
+
+# MIP semi-octagon 163-166px (Instinct 2S, Instinct E 40mm) - own small fonts; flush-right glance
+instinct2s.resourcePath    = $(instinct2s.resourcePath);resources-mono166;resources-icon54
+instincte40mm.resourcePath = $(instincte40mm.resourcePath);resources-mono166;resources-icon52
+instinct2s.excludeAnnotations    = roundGlance
+instincte40mm.excludeAnnotations = roundGlance
+
+# MIP semi-octagon 176px - same class as Instinct 3 Solar; flush-right glance. Instinct Crossover is a
+# hybrid (analog hands, no sub-screen) with a 110x60 glance -> tiny glance fonts + 26px icon
+instinct2x.resourcePath        = $(instinct2x.resourcePath);resources-instinct3solar
+descentg1.resourcePath         = $(descentg1.resourcePath);resources-instinct3solar
+instincte45mm.resourcePath     = $(instincte45mm.resourcePath);resources-instinct3solar
+instinctcrossover.resourcePath = $(instinctcrossover.resourcePath);resources-instinct3solar;resources-glancexover;resources-icon26
+instinct2x.excludeAnnotations        = roundGlance
+descentg1.excludeAnnotations         = roundGlance
+instincte45mm.excludeAnnotations     = roundGlance
+instinctcrossover.excludeAnnotations = roundGlance
+
+# MIP round 218px (FR255S) - fr55's fonts fit; 40px icon
+fr255s.resourcePath  = $(fr255s.resourcePath);resources-mip208;resources-icon40
+fr255sm.resourcePath = $(fr255sm.resourcePath);resources-mip208;resources-icon40
+
+# MIP round 240px - own fonts; most have a 63px glance -> glance63 (FR945 LTE has 83px)
+fenix7s.resourcePath        = $(fenix7s.resourcePath);resources-mip240;resources-glance63;resources-icon40
+fenix7spro.resourcePath     = $(fenix7spro.resourcePath);resources-mip240;resources-glance63;resources-icon40
+fenix6s.resourcePath        = $(fenix6s.resourcePath);resources-mip240;resources-glance63;resources-icon40
+fenix6spro.resourcePath     = $(fenix6spro.resourcePath);resources-mip240;resources-glance63;resources-icon40
+descentmk2s.resourcePath    = $(descentmk2s.resourcePath);resources-mip240;resources-glance63;resources-icon40
+marqadventurer.resourcePath = $(marqadventurer.resourcePath);resources-mip240;resources-glance63;resources-icon40
+marqathlete.resourcePath    = $(marqathlete.resourcePath);resources-mip240;resources-glance63;resources-icon40
+marqaviator.resourcePath    = $(marqaviator.resourcePath);resources-mip240;resources-glance63;resources-icon40
+marqcaptain.resourcePath    = $(marqcaptain.resourcePath);resources-mip240;resources-glance63;resources-icon40
+marqcommander.resourcePath  = $(marqcommander.resourcePath);resources-mip240;resources-glance63;resources-icon40
+marqdriver.resourcePath     = $(marqdriver.resourcePath);resources-mip240;resources-glance63;resources-icon40
+marqexpedition.resourcePath = $(marqexpedition.resourcePath);resources-mip240;resources-glance63;resources-icon40
+marqgolfer.resourcePath     = $(marqgolfer.resourcePath);resources-mip240;resources-glance63;resources-icon40
+fr945lte.resourcePath       = $(fr945lte.resourcePath);resources-mip240;resources-icon40
+
+# MIP round 260px - mip260 bucket; fenix 7 Pro has fenix7's 63px glance
+fenix6.resourcePath             = $(fenix6.resourcePath);resources-mip260
+fenix6pro.resourcePath          = $(fenix6pro.resourcePath);resources-mip260
+fr255m.resourcePath             = $(fr255m.resourcePath);resources-mip260
+fenix8solar47mm.resourcePath    = $(fenix8solar47mm.resourcePath);resources-mip260
+fenix9prosolar47mm.resourcePath = $(fenix9prosolar47mm.resourcePath);resources-mip260
+fenix7pro.resourcePath          = $(fenix7pro.resourcePath);resources-mip260;resources-glance63
+fenix7pronowifi.resourcePath    = $(fenix7pronowifi.resourcePath);resources-mip260;resources-glance63
+
+# MIP round 280px - own fonts; 63px-glance models add glance63
+fenix7x.resourcePath            = $(fenix7x.resourcePath);resources-mip280;resources-glance63;resources-icon40
+fenix7xpro.resourcePath         = $(fenix7xpro.resourcePath);resources-mip280;resources-glance63;resources-icon40
+fenix7xpronowifi.resourcePath   = $(fenix7xpronowifi.resourcePath);resources-mip280;resources-glance63;resources-icon40
+fenix6xpro.resourcePath         = $(fenix6xpro.resourcePath);resources-mip280;resources-glance63;resources-icon40
+enduro.resourcePath             = $(enduro.resourcePath);resources-mip280;resources-glance63;resources-icon40
+descentmk2.resourcePath         = $(descentmk2.resourcePath);resources-mip280;resources-glance63;resources-icon40
+enduro3.resourcePath            = $(enduro3.resourcePath);resources-mip280;resources-icon40
+fenix8solar51mm.resourcePath    = $(fenix8solar51mm.resourcePath);resources-mip280;resources-icon40
+fenix9prosolar51mm.resourcePath = $(fenix9prosolar51mm.resourcePath);resources-mip280;resources-icon40
+
+# AMOLED 360px round (FR265S, Venu 2S) + Venu Sq 2 (320x360 rectangle) - own fonts
+fr265s.resourcePath   = $(fr265s.resourcePath);resources-amoled360;resources-icon60
+venu2s.resourcePath   = $(venu2s.resourcePath);resources-amoled360;resources-icon61
+venusq2.resourcePath  = $(venusq2.resourcePath);resources-amoled360;resources-icon40
+venusq2m.resourcePath = $(venusq2m.resourcePath);resources-amoled360;resources-icon40
+
+# AMOLED 390px round - instinct3amoled fonts (FR165/170/70 family: fr165m fonts)
+vivoactive6.resourcePath             = $(vivoactive6.resourcePath);resources-instinct3amoled;resources-icon54
+venu441mm.resourcePath               = $(venu441mm.resourcePath);resources-instinct3amoled;resources-icon54
+fr57042mm.resourcePath               = $(fr57042mm.resourcePath);resources-instinct3amoled;resources-icon54
+venu3s.resourcePath                  = $(venu3s.resourcePath);resources-instinct3amoled;resources-icon70
+approachs50.resourcePath             = $(approachs50.resourcePath);resources-instinct3amoled;resources-icon56
+epix2pro42mm.resourcePath            = $(epix2pro42mm.resourcePath);resources-instinct3amoled
+marq2.resourcePath                   = $(marq2.resourcePath);resources-instinct3amoled
+marq2aviator.resourcePath            = $(marq2aviator.resourcePath);resources-instinct3amoled
+descentg2.resourcePath               = $(descentg2.resourcePath);resources-instinct3amoled
+descentmk343mm.resourcePath          = $(descentmk343mm.resourcePath);resources-instinct3amoled
+approachs7042mm.resourcePath         = $(approachs7042mm.resourcePath);resources-instinct3amoled
+instinctcrossoveramoled.resourcePath = $(instinctcrossoveramoled.resourcePath);resources-instinct3amoled;resources-glance92;resources-icon38
+fr165.resourcePath                   = $(fr165.resourcePath);resources-fr165m
+fr170.resourcePath                   = $(fr170.resourcePath);resources-fr165m
+fr170m.resourcePath                  = $(fr170m.resourcePath);resources-fr165m
+fr70.resourcePath                    = $(fr70.resourcePath);resources-fr165m
+
+# AMOLED 416px round - instinct3amoled fonts
+epix2pro47mm.resourcePath  = $(epix2pro47mm.resourcePath);resources-instinct3amoled
+fenix843mm.resourcePath    = $(fenix843mm.resourcePath);resources-instinct3amoled
+fenix943mm.resourcePath    = $(fenix943mm.resourcePath);resources-instinct3amoled
+fenix9pro43mm.resourcePath = $(fenix9pro43mm.resourcePath);resources-instinct3amoled
+fenixe.resourcePath        = $(fenixe.resourcePath);resources-instinct3amoled
+d2mach1.resourcePath       = $(d2mach1.resourcePath);resources-instinct3amoled
+venu2plus.resourcePath     = $(venu2plus.resourcePath);resources-instinct3amoled;resources-icon70
+d2airx10.resourcePath      = $(d2airx10.resourcePath);resources-instinct3amoled;resources-icon70
+
+# AMOLED 454/466px round + Venu X1 (448x486) - amoled454 fonts; 103px-tall glances -> glance103
+fr970.resourcePath           = $(fr970.resourcePath);resources-amoled454
+fr57047mm.resourcePath       = $(fr57047mm.resourcePath);resources-amoled454
+fenix8pro47mm.resourcePath   = $(fenix8pro47mm.resourcePath);resources-amoled454
+fenix947mm.resourcePath      = $(fenix947mm.resourcePath);resources-amoled454
+fenix9pro47mm.resourcePath   = $(fenix9pro47mm.resourcePath);resources-amoled454
+fenix9pro51mm.resourcePath   = $(fenix9pro51mm.resourcePath);resources-amoled454
+venu445mm.resourcePath       = $(venu445mm.resourcePath);resources-amoled454
+d2mach2.resourcePath         = $(d2mach2.resourcePath);resources-amoled454
+d2mach2pro.resourcePath      = $(d2mach2pro.resourcePath);resources-amoled454
+venux1.resourcePath          = $(venux1.resourcePath);resources-amoled454
+epix2pro51mm.resourcePath    = $(epix2pro51mm.resourcePath);resources-amoled454;resources-glance103;resources-icon60
+descentmk351mm.resourcePath  = $(descentmk351mm.resourcePath);resources-amoled454;resources-glance103;resources-icon60
+approachs7047mm.resourcePath = $(approachs7047mm.resourcePath);resources-amoled454;resources-glance103;resources-icon70

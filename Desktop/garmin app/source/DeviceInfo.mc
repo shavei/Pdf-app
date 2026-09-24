@@ -17,6 +17,14 @@ class DeviceInfo {
         return screenW() <= 176;
     }
 
+    // Solar pages use fixed Y positions tuned for the 176px Instincts; shorter
+    // semi-octagons (Instinct 2S 156px, Instinct E 40mm 166px) lift them by
+    // the height shortfall so the bottom line clears the page dots. 0 at 176.
+    static function solarLift() as Number {
+        var h = System.getDeviceSettings().screenHeight;
+        return h < 176 ? 176 - h : 0;
+    }
+
     // True on Instinct 3 AMOLED 50mm (416x416)
     static function isLarge() as Boolean {
         return screenW() >= 416;

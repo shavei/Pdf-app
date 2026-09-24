@@ -1,33 +1,32 @@
 ---
 name: release
-description: Prepare a Connect IQ store release of the Hebrew Calendar widget - bump the manifest version, build all 16 devices as a check, package the signed .iq, and walk through the upload checklist. Use when the user wants to ship, publish, or upload a new version.
+description: Prepare a Connect IQ store release of the Hebrew Calendar widget - bump the manifest version, build all devices as a check, package the signed .iq, and walk through the upload checklist. Use when the user wants to ship, publish, or upload a new version.
 ---
 
 # Store Release
 
 Project root: `C:\Users\yosef\Desktop\garmin app`. Store history & rules: MEMORY.md.
-**v1.4.0 is live — the store requires every new version to be higher (next ≥ 1.5.0).**
+**v1.5.0 is live — the store requires every new version to be higher (next ≥ 1.6.0).**
 
 ## Steps
 
 1. **Pick the version.** Read `version=` from `manifest.xml`. Default: bump the minor
-   (1.4.0 → 1.5.0) unless the user named a version. Confirm it's strictly greater than
+   (1.5.0 → 1.6.0) unless the user named a version. Confirm it's strictly greater than
    the live store version.
 
-2. **Pre-flight build check** — compile all 16 devices; any failure stops the release:
-   instinct3solar45mm instinct3amoled45mm instinct3amoled50mm instinct2 fr165m fenix7
-   fr255 fr955 fr55 fenix847mm fr965 venu3 fr265 epix2 venu2 vivoactive5
-   ```powershell
-   monkeyc -o "bin\check-$d.prg" -f monkey.jungle -y "developer_key.der" -d $d
-   ```
+2. **Bump** `manifest.xml` version (Edit the `version="..."` attribute only).
 
-3. **Bump** `manifest.xml` version (Edit the `version="..."` attribute only).
-
-4. **Package** the signed store binary:
+3. **Package** the signed store binary — this compiles EVERY device in `manifest.xml`
+   (95 as of v1.7.0) in one pass (~4 min, run in background) and doubles as the
+   pre-flight check; any error stops the release:
    ```powershell
-   monkeyc -e -r -o "bin\HebrewCalendar.iq" -f monkey.jungle -y "developer_key.der"
+   monkeyc -e -r -w -o "bin\HebrewCalendar.iq" -f monkey.jungle -y "developer_key.der"
    ```
-   Verify `bin\HebrewCalendar.iq` exists and report its size.
+   Expect `N OUT OF N DEVICES BUILT` + `BUILD SUCCESSFUL`. Never run several monkeyc
+   processes in parallel here (shared default.jungle). Report the .iq size.
+
+4. (Optional, after layout changes) Spot-check devices per font bucket with
+   `tools\sim\preview\run.ps1 -Devices ...` + `sheet.py` (see CLAUDE.md).
 
 5. **Commit** the version bump (message: `Release vX.Y.Z`).
 

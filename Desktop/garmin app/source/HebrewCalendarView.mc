@@ -42,6 +42,14 @@ class HebrewCalendarView extends WatchUi.View {
             var contentTop = 52 + 27 + 4; // ≈83 (nudged up slightly)
             var y1 = contentTop + lh / 2;
             var y2 = y1 + lh / 2 + 10 + mh / 2;
+            // Shorter semi-octagons (Instinct 2S is 163x156) would push the
+            // year line off the bottom — lift both lines just enough. A no-op
+            // on the 176px Instincts (their year bottom sits exactly at h-10).
+            var overflow = (y2 + mh / 2) - (h - 10);
+            if (overflow > 0) {
+                y1 -= overflow;
+                y2 -= overflow;
+            }
 
             // Day-of-week letter in a circle, mirroring the GPS button (upper-left).
             var gpsR  = 27;

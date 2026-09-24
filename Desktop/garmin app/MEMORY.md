@@ -7,7 +7,8 @@
 - SDK: `C:\Users\yosef\AppData\Roaming\Garmin\ConnectIQ\Sdks\connectiq-sdk-win-9.1.0-2026-03-09-6a872a80b` (`monkeyc`/`monkeydo` are on PATH)
 - Developer key: **`developer_key.der` in the project root** (NOT in the Garmin AppData dir — that path does not exist)
 - Build output: `bin\` folder inside project
-- Target devices (16): `instinct3solar45mm`, `instinct3amoled45mm`, `instinct3amoled50mm`, `fr165m`, `fenix7`, `fenix847mm`, `fr965`, `fr265`, `fr255`, `fr955`, `venu3`, `venu2`, `vivoactive5`, `epix2`, `instinct2`, `fr55`
+- Target devices: **95 as of v1.7.0 (2026-09-24)** — list in `manifest.xml`, mapping in `monkey.jungle`.
+  The original 16: `instinct3solar45mm`, `instinct3amoled45mm`, `instinct3amoled50mm`, `fr165m`, `fenix7`, `fenix847mm`, `fr965`, `fr265`, `fr255`, `fr955`, `venu3`, `venu2`, `vivoactive5`, `epix2`, `instinct2`, `fr55`
 
 ## Quick Build & Run Commands
 ```powershell
@@ -266,6 +267,32 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
    fr55) moves it to the focused mid-screen band. fr265-class never moves — band is
    fixed high (that's why the glance inset exists). If the sim display wedges (black
    screen / frozen frame ignoring keys): kill + restart simulator.exe.
+
+## v1.7.0 — 16 → 95 devices (2026-09-24, NOT yet uploaded)
+- User asked to "add as many as possible". Device profiles were downloaded via the SDK Manager
+  (`C:\Users\yosef\Downloads\connectiq-sdk-manager\sdkmanager.exe`, Devices tab → download
+  whole API-level groups 6.0/5.2/5.1/5.0/3.4). Its window can open BEHIND Chrome — bring it to
+  the front (SetForegroundWindow on the sdkmanager process) before clicking anything.
+- Added every WATCH with a glance (79 new ids): fenix 6/7/8/9 all sizes incl. the new fenix 9
+  family, MARQ Gen1+2, epix Pro, Enduro 1/3, FR165/170/70/255S/265S/570/945LTE/970, Venu 2S/2+/
+  3S/4/Sq2/X1, vivoactive6, Instinct 2S/2X/E/Crossover(+AMOLED), Descent, Approach S50/S70, D2.
+  **Edge bike computers excluded.**
+- Only buckets/overlays + two small layout fixes were needed; see CLAUDE.md "Target devices".
+  Glance font sizes chosen from each device's `simulator.json` glance.contentArea with the rule
+  LH(GlanceSmall) ≤ h/2 and (LH(S)+LH(M))/2 ≲ h/2+8% (both glance lines draw in GlanceSmall).
+- **Instinct 2S (163x156)**: year line fell off the bottom and the parasha name hit the page dots
+  → `DeviceInfo.solarLift()` + date-page overflow nudge (no-op at 176px; Instinct 3 Solar
+  re-shot identical).
+- **Instinct Crossover (+AMOLED)** are hybrids: the sim draws physical hands across the middle
+  of the screen. Nothing to do in-app.
+- CIQ 3.4 devices (fenix 6, MARQ Gen1, FR945 LTE, Instinct 2S/2X/Crossover, Descent G1/Mk2)
+  have 32KB glance / 64KB widget: fenix6 glance measured 19.6/27.9KB, widget ~43KB — OK.
+- Sim-verified with the preview harness (`tools\sim\preview\`): instinct2s, instincte40mm/45mm,
+  instinctcrossover(+amoled), fr255s, fenix7s, fr945lte, fenix6, fenix7x, enduro3, fr265s,
+  venusq2, vivoactive6, fr170, fenix9pro51mm, venux1, epix2pro51mm, fenix8solar47mm — all OK.
+  Store package: 147/147 part-number builds, ~4MB.
+- Gotcha: after preview builds (same app id) the sim showed GARBLED glyphs for the real build —
+  stale font cache; restarting simulator.exe fixes it. Not a real bug.
 
 ## Store status — PUBLISHED ✅ (v1.4.0 LIVE, 2026-06-11, 16 devices)
 - **Garmin developer account email: `yosefnider@gmail.com`** (NOT the user's general
