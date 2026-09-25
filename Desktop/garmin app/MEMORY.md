@@ -130,7 +130,7 @@ Built on branch `garmin-hebrew-widget` after a store review asked for customizab
   watch-app trick (below) + real widget flow on epix2/instinct3amoled45/instinct3solar45/
   instinct2. Remaining before release: version bump ≥1.5.0 + store listing update.
 
-## v1.6.0 (2026-06-14) — Omer / next-holiday / Rosh Chodesh — packaged, superseded by v1.7.0
+## v1.6.0 (2026-06-14) — Omer / next-holiday / Rosh Chodesh — UPLOADED (dashboard shows it as latest)
 Built on branch `showcase-site`. Three pure-math calendar features (no location/permission):
 - **Omer counter** (`HebrewDate.omerDay`/`getOmerDay`): 16 Nisan(day1)..5 Sivan(day49),
   gematria + `בעומר` (e.g. `ל״ג בעומר`). Months Nisan=7/Iyar=8/Sivan=9.
@@ -163,8 +163,8 @@ Built on branch `showcase-site`. Three pure-math calendar features (no location/
   round-clip fix — repackage again if code changes). Gallery refreshed to
   `1_venu3_date` `2_epix2_omer` `3_fr55_event` `4_solar_omer` `5_fr265_glance` + new hero
   (Omer page + date, tagline "PARASHA · OMER · HOLIDAYS"); STORE_LISTING.md updated (what's-new
-  EN+HE, full description, reviewer notes). Glance unchanged (date only). Never confirmed
-  uploaded; v1.7.0 (2026-09-24) includes all of it and is the next upload.
+  EN+HE, full description, reviewer notes). Glance unchanged (date only). **Uploaded:
+  the dashboard's "Latest app version" reads v1.6.0 (user pasted the upload page 2026-09-25).**
 
 ## Round-screen clip bug (fixed 2026-06-14) — chord-aware text width
 The contextual line at ~76%h on the parasha page CLIPPED both bezel edges on round
@@ -256,7 +256,7 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
    fixed high (that's why the glance inset exists). If the sim display wedges (black
    screen / frozen frame ignoring keys): kill + restart simulator.exe.
 
-## v1.7.0 — 16 → 95 devices (2026-09-24, NOT yet uploaded)
+## v1.7.0 — 16 → 95 devices (2026-09-24, ready to upload; dashboard latest is v1.6.0)
 - User asked to "add as many as possible". Device profiles were downloaded via the SDK Manager
   (`C:\Users\yosef\Downloads\connectiq-sdk-manager\sdkmanager.exe`, Devices tab → download
   whole API-level groups 6.0/5.2/5.1/5.0/3.4). Its window can open BEHIND Chrome — bring it to
@@ -300,7 +300,8 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
 - Gotcha: after preview builds (same app id) the sim showed GARBLED glyphs for the real build —
   stale font cache; restarting simulator.exe fixes it. Not a real bug.
 
-## Store status — PUBLISHED ✅ (v1.5.0 LIVE since 2026-06-13, 16 devices; next upload v1.7.0 / 95 devices)
+## Store status — PUBLISHED ✅ (dashboard latest v1.6.0, 16 devices; next upload v1.7.0 / 95 devices)
+- **2026-09-25: the upload page shows "Latest app version: v1.6.0"** — so v1.6.0 (Omer/countdown) was uploaded after June; earlier notes saying it was never submitted were wrong. Always check the dashboard's "Latest app version" line before writing store copy.
 - **Garmin developer account email: `yosefnider@gmail.com`** (NOT the user's general
   shilomeir@gmail.com). Store review verdicts and Connect IQ dashboard mail go here.
 - **v1.5.0 LIVE ✅ 2026-06-13** (internal build 6) — parasha page + settings shipped.

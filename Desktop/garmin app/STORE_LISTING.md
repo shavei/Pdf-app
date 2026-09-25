@@ -6,9 +6,9 @@ Upload at: https://apps.garmin.com/developer/dashboard → app → **Upload New 
 # ▶ COPY-PASTE FOR THIS UPLOAD — v1.7.0
 ═══════════════════════════════════════════════════════════════════════
 
-(v1.7.0 includes everything from 1.6.0. The dashboard's latest release is v1.5.0 (1.6.0 was
-never submitted), so the What's New and reviewer note below cover both. If the dashboard
-ever shows 1.6.0 as released, drop point 1 from the reviewer note.)
+(The dashboard shows v1.6.0 as the latest app version (confirmed 2026-09-25), so v1.7.0 is
+the watch-support + text-fit update on top of it. In the upload form: choose the file below
+and type **1.7.0** in "App Version".)
 
 ### 1. Binary
 `bin\HebrewCalendar.iq`  (built 2026-09-24 after the text-fit pass, 1.7.0, 95 devices / 147 part-number variants, ~4 MB)
@@ -17,25 +17,22 @@ ever shows 1.6.0 as released, drop point 1 from the reviewer note.)
 
 **English:**
 ```
-Now on 95 Garmin watches! Added the vivoactive 6, Venu 4, Venu 2S / 2 Plus / 3S / Sq 2 / X1, Forerunner 70, 165, 170, 255S, 265S, 570, 945 LTE and 970, every fenix 6, 7, 8 and 9 model, fenix E, epix Pro, Enduro, MARQ, Instinct 2S / 2X / E / Crossover, Descent, Approach and D2 — with text and icons tuned for every screen, and text that now fits perfectly on every watch. Also includes the Sefirat HaOmer count and a countdown to the next holiday, fast or Rosh Chodesh.
+Now on 95 Garmin watches! Added dozens of new models, including the vivoactive 6, Venu 4, every fenix 6, 7, 8 and 9, Forerunner 70, 165, 170, 570 and 970, Instinct E and Instinct Crossover, and many more. Text sizes and icons are tuned for every screen, so all text now fits perfectly on every watch.
 ```
 
 **Hebrew:**
 ```
-עכשיו על 95 שעוני Garmin! נוספה תמיכה בעשרות שעונים חדשים, ביניהם vivoactive 6, Venu 4, כל דגמי fenix 6, 7, 8 ו-9, Forerunner 70, 165, 170, 570 ו-970, Instinct E ו-Instinct Crossover, ועוד רבים. גדלי הטקסט והאייקונים הותאמו לכל מסך, כך שכל הטקסט מוצג במלואו בכל שעון. בנוסף: ספירת העומר וספירה לאחור לחג, לצום או לראש החודש הקרוב.
+עכשיו על 95 שעוני Garmin! נוספה תמיכה בעשרות שעונים חדשים, ביניהם vivoactive 6, Venu 4, כל דגמי fenix 6, 7, 8 ו-9, Forerunner 70, 165, 170, 570 ו-970, Instinct E ו-Instinct Crossover, ועוד רבים. גדלי הטקסט והאייקונים הותאמו לכל מסך, כך שכל הטקסט מוצג במלואו בכל שעון.
 ```
 
 ### 3. "Notes for the reviewer" field
 ```
-v1.7.0 is the first update since v1.5.0 (v1.6.0 was never submitted), so it includes two changes:
-1) New pure date-math features on the existing parasha page: the Sefirat HaOmer count (in season), and otherwise a Hebrew-gematria countdown to the closest upcoming date on the Hebrew calendar — major holidays, public fast days, Rosh Chodesh, minor/festive days (Tu BiShvat, Lag BaOmer, Pesach Sheni, etc.) and the modern Israeli days. Dates are nominal (no Shabbat-postponement applied). On the 176px 2-color Instinct/Solar watches these get a dedicated third page.
-2) Support for 79 more watches (95 total), with per-screen bitmap font sizes and launcher icons, and layout refinements so every line of text fits on every screen — the glance date moves beside the year on the longest dates, Instinct glances are laid out clear of the sub-screen circle, and on the Instinct Crossover all text stays clear of the physical watch hands.
-No new permissions; still no GPS, internet or sensors. All calculations are on-device and unit-tested against the open-source pyluach library.
+v1.7.0 adds support for 79 more watches (95 total). No new features beyond v1.6.0: per-screen bitmap font sizes and launcher icons for the new screen sizes, and layout refinements so every line of text fits on every screen — the glance date moves beside the year on the longest dates, Instinct glances are laid out clear of the sub-screen circle, and on the Instinct Crossover all text stays clear of the physical watch hands. Still no permissions, GPS, internet or sensors; all date math is on-device.
 ```
 
 ### 4. Screenshots — REPLACE the gallery (in `bin\store_images\`)
 Re-captured 2026-09-25 from the final v1.7.0 code. **Garmin allows a maximum of 5 gallery
-images.** Delete the current gallery (still the v1.5.0 images) and upload these 5:
+images.** Replace the current gallery (captured in June from older code) with these 5:
 1. `1_venu3_date.jpg` — date page (Venu 3)
 2. `2_epix2_omer.jpg` — parasha page with the Omer count (epix Gen 2)
 3. `3_fr55_event.jpg` — parasha page with the Rosh Chodesh countdown (Forerunner 55)
@@ -48,8 +45,7 @@ images.** Delete the current gallery (still the v1.5.0 images) and upload these 
 `bin\store_images\hero_1440x720.png` (regenerated 2026-09-25 from the new screenshots).
 
 ### 6. Full description
-Re-paste the EN and HE full description below — it now lists the Omer / countdown features
-and the **95 supported watches**.
+Re-paste the EN and HE full description below — the **supported-watches line changed** (95 watches).
 
 ### 7. Fields that DON'T change
 - App name, category (Widget → Lifestyle), short description, permissions (none),

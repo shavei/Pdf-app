@@ -3,8 +3,8 @@
 Research-backed roadmap, written after **v1.5.0** (2026-06-14).
 
 > **Status (2026-09-25):** Tier 1 is **built** — Sefirat HaOmer, the holiday countdown and
-> Rosh Chodesh were added in v1.6.0 (molad time not added; they reach users with the v1.7.0 upload). v1.7.0 expanded support from 16 to
-> **95 watches** with every screen text-fit checked. v1.5.0 is live; v1.7.0 is the next upload.
+> Rosh Chodesh were added in v1.6.0 (molad time not added; released in v1.6.0). v1.7.0 expanded support from 16 to
+> **95 watches** with every screen text-fit checked. v1.6.0 is the latest on the store; v1.7.0 is the next upload.
 > Still open below: Tier 2 (date browsing, Daf Yomi) and the separate-product ideas.
 
 > Sourced from a deep-research pass (2026-06-14): 67 claims across 30 sources;
