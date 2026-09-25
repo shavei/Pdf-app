@@ -289,6 +289,10 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
   (<230px) use the small header font; countdown fits the round chord, falls back to ר״ח;
   ״ looked broken on the 1-bit MIP glance at 23px — gone with the solved fonts.
   8/8 unit tests pass; store package 147/147.
+- **Store gallery re-captured 2026-09-25 from the final v1.7.0 code** (`tools/store/capture_store_shots.ps1`
+  → `bin/shots/store`; same 5 picks: venu3 date, epix2 parasha+Omer, fr55 parasha+countdown,
+  Instinct 3 Solar Omer page, fr265 glance; Omer shots pinned to 2026-05-07 = ל״ה בעומר because
+  on ל״ג בעומר itself the app shows the event "ל״ג בעומר היום"). Hero + cover regenerated.
 - Sim capture gotchas learned: glance capture needs ~40s boot on some profiles (Instinct
   3 Solar / E 40 showed the GARMIN boot screen at 22s); a device captured right after
   another in the same run occasionally shows the previous device's cached resources —

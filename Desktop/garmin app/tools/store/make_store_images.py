@@ -1,6 +1,7 @@
 """
-Build the Connect IQ Store gallery screenshots from the v15 simulator
-captures (bin/shots/v15) into bin/store_images/.
+Build the Connect IQ Store gallery screenshots from the simulator captures in
+bin/shots/store (re-capture them from the current code with
+tools/store/capture_store_shots.ps1) into bin/store_images/.
 
 The Garmin dashboard allows at most 5 gallery images, so this emits 5.
 
@@ -17,7 +18,7 @@ import storelib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.abspath(os.path.join(HERE, "..", ".."))
-SHOTS = os.path.join(PROJ, "bin", "shots", "v15")
+SHOTS = os.path.join(PROJ, "bin", "shots", "store")
 OUT = os.path.join(PROJ, "bin", "store_images")
 MAX_BYTES = 150 * 1024
 
