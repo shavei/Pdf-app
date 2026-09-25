@@ -88,7 +88,7 @@ display once (focus) + send {DOWN}, open widget = {ENTER}.
 - Sub-screen (Solar circle) layout safe: only fires via `DeviceInfo.isSolar()` = screenW ≤ 176; smallest new device is 260.
 - All new devices have 64KB glance memory (glance uses ~12.5KB) — no memory issues.
 - Sim screenshot workflow: `tools\sim\capture.ps1` (PrintWindow), `tools\sim\click.ps1`, `tools\sim\runshot.ps1` (monkeydo → tap glance → tap again → capture). fr255 has no touch — click the chrome START button instead.
-- **Reviewing all devices at a glance: open `bin\shots\v15\index.html`** — it's the sorted grid of every device's glance/date/parasha shots, the canonical place to eyeball the whole fleet (e.g. before a release or after a layout change). Regenerate the shots with `tools\sim\retake_v15.ps1`. (Build output + screenshots live in the gitignored `bin\`; dev scripts live in tracked `tools\`.)
+- **Reviewing all devices at a glance (current, 95 watches):** `python tools\sim\preview\sheet.py --all 6` → `bin\preview\review_XX.png`, built from the worst-case harness shots in `bin\preview\shots` (re-shoot with `tools\sim\preview\run.ps1 -All`). The June-2026 16-watch screenshots (`shots\v15`, `shots\feat`) are archived in `bin\archive\2026-06\`; their `retake_v15.ps1` / `make_v15_shots.ps1` scripts were removed 2026-09-25 (still in git history). (Build output + screenshots live in the gitignored `bin\`; dev scripts live in tracked `tools\`.)
 
 ## v1.5.0 in progress (2026-06-12) — parasha page + settings, NOT yet released
 Built on branch `garmin-hebrew-widget` after a store review asked for customizability:
@@ -249,7 +249,7 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
    from the parasha page, capturing date as "parasha"). For touch devices capture the
    date page with NO clicks (fresh launch), then ONE tap = parasha page. For non-touch,
    click display (focus) + {ENTER} — the first ENTER after a click is often eaten:
-   ALWAYS verify the capture and resend click+ENTER (script `tools\sim\retake_v15.ps1`).
+   ALWAYS verify the capture and resend click+ENTER (the removed `retake_v15.ps1` did this; `tools\sim\preview\` avoids navigation entirely).
 6. **Glance carousel band position varies** per device firmware: some sims show the
    glance in a high "top slot" (clipped by the round edge), one {DOWN} (sometimes two,
    fr55) moves it to the focused mid-screen band. fr265-class never moves — band is

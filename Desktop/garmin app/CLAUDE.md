@@ -144,9 +144,9 @@ per-device `resources-*` variant dirs. Everything else is sorted into:
 | `source/` `resources/` `resources-*/` | App code + per-device resource buckets (the build) |
 | `tools/fonts/` | `generate_fonts*.py`, `generate_icons.py` (regenerate bitmap fonts/icons into `resources-*`); `fontgen.py` (shared .fnt writer); `fit_glance_fonts.py` (per-device glance date size → `resources-gsNN`); `fit_instinct_glance.py` (Instinct glance layouts vs real masks → `resources-glance-<dev>`) |
 | `tools/verify/` | `verify_parsha.py`, `crosscheck_hebcal.py` + `hebcal_fixtures/` (offline parasha checks); `check_glance_fit.py` (standard-glance width check, all devices) |
-| `tools/sim/` | Simulator helpers: `capture.ps1` `capture2.ps1` (robust largest-window grab) `openshot.ps1` (tap glance band + capture) `click.ps1` `runshot.ps1` `retake_v15.ps1` `make_v15_shots.ps1` `scap.ps1` `sendkey.ps1`; `preview/` worst-case harness `run.ps1` + `sheet.py` + `stale.py`, real-carousel glance capture `real_glance.ps1` (see Build & run) |
+| `tools/sim/` | Simulator helpers: `capture.ps1` `capture2.ps1` (robust largest-window grab) `openshot.ps1` (tap glance band + capture) `click.ps1` `runshot.ps1` `scap.ps1` `sendkey.ps1`; `preview/` worst-case harness `run.ps1` + `sheet.py` + `stale.py`, real-carousel glance capture `real_glance.ps1` (see Build & run) |
 | `tools/store/` | Listing images: `capture_store_shots.ps1` (re-captures the 5 gallery sources from the CURRENT code into `bin/shots/store`, dates pinned) → `make_store_images.py` → `make_hero.py` → `make_cover.py`. Re-run after any visual change. |
-| `bin/` (gitignored) | Build output (`*.prg`, `HebrewCalendar.iq`), `shots/v15/`, `store_images/`, `preview/` (harness shots, review sheets, real-carousel shots, Instinct `masks/`) |
+| `bin/` (gitignored) | Build output (`*.prg`, `HebrewCalendar.iq`), `shots/store/` (gallery sources), `store_images/`, `archive/2026-06/` (old 16-watch shots), `preview/` (harness shots, review sheets, real-carousel shots, Instinct `masks/`) |
 
 ## Source map
 
