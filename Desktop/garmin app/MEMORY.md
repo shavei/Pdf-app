@@ -256,7 +256,7 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
    fixed high (that's why the glance inset exists). If the sim display wedges (black
    screen / frozen frame ignoring keys): kill + restart simulator.exe.
 
-## v1.7.0 — 16 → 95 devices (2026-09-24, ready to upload; dashboard latest is v1.6.0)
+## v1.7.0 — 16 → 95 devices — LIVE ✅ 2026-09-25 (internal build 8)
 - User asked to "add as many as possible". Device profiles were downloaded via the SDK Manager
   (`C:\Users\yosef\Downloads\connectiq-sdk-manager\sdkmanager.exe`, Devices tab → download
   whole API-level groups 6.0/5.2/5.1/5.0/3.4). Its window can open BEHIND Chrome — bring it to
@@ -300,7 +300,11 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
 - Gotcha: after preview builds (same app id) the sim showed GARBLED glyphs for the real build —
   stale font cache; restarting simulator.exe fixes it. Not a real bug.
 
-## Store status — PUBLISHED ✅ (dashboard latest v1.6.0, 16 devices; next upload v1.7.0 / 95 devices)
+## Store status — PUBLISHED ✅ (v1.7.0 LIVE 2026-09-25, 95 devices; next release ≥ 1.8.0)
+- **v1.7.0 LIVE ✅ 2026-09-25** (Internal: 8). Store page: 4.7★ / 3 reviews, **100+ downloads**.
+  After publishing, the store's What's New still showed the OLD v1.6.0 Omer text — the dashboard
+  carries the previous What's New forward unless it's replaced; fix via Manage Your App → Edit
+  Details (paste from STORE_LISTING.md). Check the description/gallery updated too.
 - **2026-09-25: the upload page shows "Latest app version: v1.6.0"** — so v1.6.0 (Omer/countdown) was uploaded after June; earlier notes saying it was never submitted were wrong. Always check the dashboard's "Latest app version" line before writing store copy.
 - **Garmin developer account email: `yosefnider@gmail.com`** (NOT the user's general
   shilomeir@gmail.com). Store review verdicts and Connect IQ dashboard mail go here.

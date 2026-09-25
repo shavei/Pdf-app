@@ -3,7 +3,7 @@
 Upload at: https://apps.garmin.com/developer/dashboard → app → **Upload New Version**
 
 ═══════════════════════════════════════════════════════════════════════
-# ▶ COPY-PASTE FOR THIS UPLOAD — v1.7.0
+# ▶ v1.7.0 — PUBLISHED 2026-09-25 (fix: What's New still shows the v1.6.0 text — paste §2 via Edit Details)
 ═══════════════════════════════════════════════════════════════════════
 
 (The dashboard shows v1.6.0 as the latest app version (confirmed 2026-09-25), so v1.7.0 is

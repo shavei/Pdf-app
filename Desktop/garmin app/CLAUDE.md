@@ -1,9 +1,8 @@
 # Hebrew Calendar — Garmin Connect IQ Widget
 
 Monkey C widget showing the Hebrew date (day-of-week letter, day+month, year). Hebrew RTL,
-bitmap fonts, glance + widget views. Published on the Connect IQ store (**v1.6.0 is the
-latest version on the dashboard**, 16 devices). **manifest is now v1.7.0 with 95 devices**
-(2026-09-24) — next upload is 1.7.0 (must stay > the dashboard's latest version).
+bitmap fonts, glance + widget views. Published on the Connect IQ store: **v1.7.0 LIVE since 2026-09-25
+(95 devices, internal build 8)** — **next release must be ≥ 1.8.0**.
 
 Deep architecture notes, hard-won gotchas, and store history live in [MEMORY.md](MEMORY.md) —
 read it before touching fonts, date math, or layout.

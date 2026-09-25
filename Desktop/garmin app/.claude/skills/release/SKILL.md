@@ -6,12 +6,12 @@ description: Prepare a Connect IQ store release of the Hebrew Calendar widget - 
 # Store Release
 
 Project root: `C:\Users\yosef\Desktop\garmin app`. Store history & rules: MEMORY.md.
-**Dashboard latest app version: v1.6.0. manifest is already 1.7.0 (95 devices, packaged 2026-09-24, ready to upload) — the store requires every new version to be higher than the dashboard's latest. Check the upload page's "(Latest app version: …)" line before writing What's New / reviewer notes.**
+**v1.7.0 is LIVE (2026-09-25, 95 devices) — next release must be ≥ 1.8.0. Check the upload page's "(Latest app version: …)" line before writing What's New / reviewer notes. After publishing, confirm the store page's What's New shows the NEW text (the dashboard keeps the previous one unless replaced).**
 
 ## Steps
 
 1. **Pick the version.** Read `version=` from `manifest.xml`. Default: bump the minor
-   (e.g. 1.7.0 → 1.8.0) unless the user named a version, or ship the current 1.7.0 if it was never uploaded. Confirm it's strictly greater than
+   (e.g. 1.7.0 → 1.8.0) unless the user named a version. Confirm it's strictly greater than
    the live store version.
 
 2. **Bump** `manifest.xml` version (Edit the `version="..."` attribute only).
