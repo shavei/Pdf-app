@@ -3,7 +3,38 @@
 Upload at: https://apps.garmin.com/developer/dashboard → app → **Upload New Version**
 
 ═══════════════════════════════════════════════════════════════════════
-# ▶ v1.7.0 — PUBLISHED 2026-09-25 (fix: What's New still shows the v1.6.0 text — paste §2 via Edit Details)
+# ▶ COPY-PASTE FOR THIS UPLOAD — v1.8.0
+═══════════════════════════════════════════════════════════════════════
+
+(Store's latest is v1.7.0. In the upload form: choose the file below and type **1.8.0** in
+"App Version". After publishing, check the store page shows THIS What's New — the dashboard
+keeps the previous one unless you replace it.)
+
+### 1. Binary
+`bin\HebrewCalendar.iq`  (built 2026-09-25, 1.8.0, 95 devices / 147 part-number variants)
+
+### 2. "What's New" — paste into the version-notes field
+
+**English:**
+```
+Move between pages with the UP and DOWN buttons: DOWN goes to the next page, UP goes back. Start, Back and touch work as before.
+```
+
+**Hebrew:**
+```
+מעבר בין הדפים בעזרת כפתורי UP ו-DOWN: כפתור DOWN עובר לדף הבא, ו-UP חוזר לדף הקודם. כפתורי START ו-BACK והמגע ממשיכים לעבוד כרגיל.
+```
+
+### 3. "Notes for the reviewer" field
+```
+v1.8.0 adds page navigation with the UP/DOWN buttons (BehaviorDelegate onNextPage/onPreviousPage): DOWN = next page, UP = previous page; at the first/last page the key does nothing. No other changes: same layouts, no new permissions, no GPS/internet/sensors.
+```
+
+### 4. Screenshots, hero, description
+No change — the screen layouts are identical to v1.7.0 (gallery re-captured 2026-09-25).
+
+═══════════════════════════════════════════════════════════════════════
+# v1.7.0 — PUBLISHED 2026-09-25 (kept for reference)
 ═══════════════════════════════════════════════════════════════════════
 
 (The dashboard shows v1.6.0 as the latest app version (confirmed 2026-09-25), so v1.7.0 is
@@ -120,6 +151,9 @@ None. The app uses no GPS, sensors, internet, or stored data.
 ═══════════════════════════════════════════════════════════════════════
 # Version history — "What's new" archive
 ═══════════════════════════════════════════════════════════════════════
+
+## v1.8.0 — 2026-09-25
+EN/HE: see "COPY-PASTE FOR THIS UPLOAD — v1.8.0" at the top (UP/DOWN page navigation).
 
 ## v1.7.0 — 2026-09-24
 EN/HE: see "COPY-PASTE FOR THIS UPLOAD" at the top (79 more watches, 95 total).

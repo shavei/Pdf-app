@@ -130,6 +130,17 @@ class OmerDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
+    // DOWN button (or swipe up): last page — nothing after it.
+    function onNextPage() as Boolean {
+        return true;
+    }
+
+    // UP button (or swipe down): previous page = the parasha page
+    function onPreviousPage() as Boolean {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        return true;
+    }
+
     function onSwipe(e as WatchUi.SwipeEvent) as Boolean {
         if (e.getDirection() == WatchUi.SWIPE_RIGHT) {
             WatchUi.popView(WatchUi.SLIDE_RIGHT);

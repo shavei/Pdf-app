@@ -300,7 +300,18 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
 - Gotcha: after preview builds (same app id) the sim showed GARBLED glyphs for the real build —
   stale font cache; restarting simulator.exe fixes it. Not a real bug.
 
-## Store status — PUBLISHED ✅ (v1.7.0 LIVE 2026-09-25, 95 devices; next release ≥ 1.8.0)
+## v1.8.0 — UP/DOWN page navigation (2026-09-25, packaged, NOT yet uploaded)
+- User request: navigate pages with the UP/DOWN buttons too (not just touch/START/BACK).
+  Added `onNextPage`/`onPreviousPage` to HebrewCalendarDelegate, ParashaDelegate, OmerDelegate
+  (DOWN = next, UP = previous, no-op at the ends). Branch `v1.8.0-updown`.
+- Sim-verified by clicking the simulator's on-screen buttons: fr255 (date ⇄ parasha, UP on page 1
+  = nothing) and Instinct 3 Solar (1→2→3, DOWN on 3 = nothing, 3→2→1). 147/147 builds, 8/8 tests.
+- **Sim input gotcha:** SendKeys arrow keys and scripted clicks (click.ps1 / a click helper using
+  the capture window) did NOT reach the watch reliably — the working method was a real mouse
+  click on the on-screen button (Windows-MCP Click at screen coords from a screenshot).
+- Screen layouts unchanged → no text-fit re-run needed; store gallery unchanged.
+
+## Store status — PUBLISHED ✅ (v1.7.0 LIVE 2026-09-25, 95 devices; v1.8.0 packaged)
 - **v1.7.0 LIVE ✅ 2026-09-25** (Internal: 8). Store page: 4.7★ / 3 reviews, **100+ downloads**.
   After publishing, the store's What's New still showed the OLD v1.6.0 Omer text — the dashboard
   carries the previous What's New forward unless it's replaced; fix via Manage Your App → Edit
