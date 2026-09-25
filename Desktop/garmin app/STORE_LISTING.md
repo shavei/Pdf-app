@@ -22,7 +22,7 @@ Now on 95 Garmin watches! Added the vivoactive 6, Venu 4, Venu 2S / 2 Plus / 3S 
 
 **Hebrew:**
 ```
-עכשיו על 95 שעוני Garmin! נוספה תמיכה ב-vivoactive 6‏, Venu 4‏, Venu 2S / 2 Plus / 3S / Sq 2 / X1‏, Forerunner 70 / 165 / 170 / 255S / 265S / 570 / 945 LTE / 970‏, כל דגמי fenix 6, 7, 8 ו-9‏, fenix E‏, epix Pro‏, Enduro‏, MARQ‏, Instinct 2S / 2X / E / Crossover‏, Descent‏, Approach ו-D2 — עם גדלי טקסט ואייקונים מותאמים לכל מסך, וטקסט שנכנס בדיוק בכל שעון. כולל גם ספירת העומר וספירה לאחור לחג, לצום או לראש החודש הבא.
+עכשיו על 95 שעוני Garmin! נוספה תמיכה בעשרות שעונים חדשים, ביניהם vivoactive 6, Venu 4, כל דגמי fenix 6, 7, 8 ו-9, Forerunner 70, 165, 170, 570 ו-970, Instinct E ו-Instinct Crossover, ועוד רבים. גדלי הטקסט והאייקונים הותאמו לכל מסך, כך שכל הטקסט מוצג במלואו בכל שעון. בנוסף: ספירת העומר וספירה לאחור לחג, לצום או לראש החודש הקרוב.
 ```
 
 ### 3. "Notes for the reviewer" field
@@ -110,7 +110,7 @@ Parasha calculation is based on the open-source pyluach library (MIT License) an
 • תמיכה ב-Glance — התאריך העברי בלי לפתוח כלום
 • קל ונטול הרשאות: ללא GPS, ללא אינטרנט, ללא הרשאות
 
-שעונים נתמכים (95): fenix 6, 7, 8 ו-9 (כל הגדלים, כולל Pro / Solar / X / S)‏, fenix E‏, epix (Gen 2) ו-epix Pro‏, Enduro ו-Enduro 3‏, MARQ (דור 1 ו-2)‏, Forerunner 55 / 70 / 165 / 170 / 255 / 255S / 265 / 265S / 570 / 945 LTE / 955 / 965 / 970‏, Venu 2 / 2S / 2 Plus‏, Venu 3 / 3S‏, Venu 4‏, Venu Sq 2‏, Venu X1‏, vivoactive 5 ו-6‏, Instinct 2 / 2S / 2X‏, Instinct 3‏, Instinct E‏, Instinct Crossover (כולל AMOLED)‏, Descent‏, Approach S50 / S70 ו-D2 — כולל גרסאות Solar‏, Sapphire‏, quatix ו-tactix.
+שעונים נתמכים (95): fenix 6, 7, 8 ו-9 (כל הגדלים, כולל Pro / Solar / X / S), fenix E, epix (Gen 2) ו-epix Pro, Enduro ו-Enduro 3, MARQ (דור 1 ו-2), Forerunner 55 / 70 / 165 / 170 / 255 / 255S / 265 / 265S / 570 / 945 LTE / 955 / 965 / 970, Venu 2 / 2S / 2 Plus, Venu 3 / 3S, Venu 4, Venu Sq 2, Venu X1, vivoactive 5 ו-6, Instinct 2 / 2S / 2X, Instinct 3, Instinct E, Instinct Crossover (כולל AMOLED), Descent, Approach S50 / S70 ו-D2 — כולל גרסאות Solar, Sapphire, quatix ו-tactix.
 
 חישוב פרשת השבוע מבוסס על ספריית הקוד הפתוח pyluach (רישיון MIT) ואומת מול Hebcal.com (רישיון CC BY 4.0).
 
@@ -142,7 +142,7 @@ HE: נוספה תמיכה ב-Forerunner 55, עם גדלי טקסט ואייקו�
 
 ## v1.2.0 (published as v1.3.0) — 2026-06-11
 EN: Now on 11 more watches! Added support for Instinct 2 (incl. Solar / Dual Power / dēzl Edition), fenix 7, fenix 8 (47mm), epix (Gen 2), Forerunner 255, 265, 955 and 965, Venu 2, Venu 3, and vivoactive 5 — with text and icons tuned for every screen.
-HE: עכשיו על עוד 11 שעונים! נוספה תמיכה ב-Instinct 2 (כולל Solar / Dual Power / dēzl)‏, fenix 7‏, fenix 8 (47 מ"מ)‏, epix (Gen 2)‏, Forerunner 255 / 265 / 955 / 965‏, Venu 2‏, Venu 3 ו-vivoactive 5 — עם גדלי טקסט ואייקונים מותאמים לכל מסך.
+HE: עכשיו על עוד 11 שעונים! נוספה תמיכה ב-Instinct 2 (כולל Solar / Dual Power / dēzl), fenix 7, fenix 8 (47 מ"מ), epix (Gen 2), Forerunner 255 / 265 / 955 / 965, Venu 2, Venu 3 ו-vivoactive 5 — עם גדלי טקסט ואייקונים מותאמים לכל מסך.
 
 ## v1.1.0 / v1.0.0
 v1.1.0: accurate Hebrew date and day-of-week on all watches; larger, clearer text.
