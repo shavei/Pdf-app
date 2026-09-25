@@ -21,14 +21,13 @@ monkeydo "bin\instinct3amoled45mm.prg" instinct3amoled45mm
 
 ---
 
-## Current Design (simplified — all confirmed working ✅)
-The app was stripped down to **ONE screen**: the Hebrew date. All extra pages (Parasha/Holiday/Zmanim/Candles/Omer) were removed.
-
-- **Widget** (`HebrewCalendarView`):
-  - Solar: white circle (mirrors the GPS button) holding the **day-of-week letter** on the RIGHT side, with day+month and year centered below the GPS circle.
-  - AMOLED/fr165m: day-of-week letter, day+month, year — all centered.
-- **Glance** (`HebrewCalendarGlanceView`): day-of-week Hebrew letter (א=Sun … ז=Sat) on the LEFT, date (day+month over year) right-aligned RTL.
-- Day-of-week letters in `HebrewDate.DOW_LETTERS`, via `getDayOfWeekLetter()`.
+## Current Design (2026-09-24)
+Widget pages: 1 date · 2 parasha (+ Omer / next-event line on non-Solar) · 3 Omer/events
+(Solar/Instinct only). Glance: standard (letter left, date+year right, compact on long dates)
+or a solved per-device Instinct layout. Current source/resource map and layout rules live in
+CLAUDE.md ("Source map", "Target devices", "Rules") — this file keeps history and gotchas.
+(History: in June 2026 the app was briefly stripped to one screen; the parasha page came back
+in v1.5.0 and Omer/events in v1.6.0.)
 
 ## Hebrew date math (`HebrewDate.mc`) — VERIFIED CORRECT
 - `hebrewNewYear` uses the **Reingold–Dershowitz** algorithm with ALL FOUR dechiyot: `hebrewElapsedDays(y)` folds molad-zaken + lo-ADU via `(3*(day+1))%7 < 3`; `hebrewNewYear` adds GaTaRaD (356) / BeTUTaKPaT (382) year-length corrections; JD base **347998**.
@@ -46,12 +45,12 @@ Hebrew renders via **bitmap `.fnt`/`.png` fonts** generated from `NotoSansHebrew
   - `generate_fonts_fr165m.py` → `resources-fr165m/fonts` — fr165m widget **34/46/58**, glance **40/50** (Large capped 58 for the 360px edge).
   - `generate_fonts_mip260.py` → `resources-mip260/fonts` — MIP 260px (fenix7/fr255/fr955) widget **24/32/42**, glance **26/33**. ALSO writes `resources-glance63/fonts` — glance **21/23** for fenix7 only, whose glance content area is just **63px tall** (fr255/fr955 get 93px); appended after the bucket in monkey.jungle so its glance font IDs override. 21/23 is the MAX that fits the glance layout: lineHeight(Small) ≤ 30 (top line vs y=0) and LH(Small)+LH(Medium) ≤ 62 (year-line bottom vs y=63); NotoSansHebrew LH ≈ size+9 in this range.
   - `generate_fonts_amoled454.py` → `resources-amoled454/fonts` — AMOLED 454px (fenix847mm/fr965/venu3) widget **38/52/68**, glance **40/50**.
-  - `generate_fonts_mip208.py` → `resources-mip208/fonts` — fr55 (MIP 208px) widget **20/26/34**, glance **20/26**. fr55's glance contentArea is **144x75** (narrower than fr255's 176): glance Small 20 is the max where the longest date line (כ״ט אדר א׳ = 104px) fits right of the day letter; widget = mip260 sizes × 208/260.
+  - `generate_fonts_mip208.py` → `resources-mip208/fonts` — fr55 (MIP 208px) widget **20/26/34**, glance **20/26**. fr55's glance contentArea is **144x75** (narrower than fr255's 176): glance Small 20 is the max where the longest date line (כ״ט אדר א׳ = 104px) fits right of the day letter; widget = mip260 sizes × 208/260. (v1.7.0: fr55/fr255s glance date now 19px via `resources-gs19` so the longest date keeps an 8px gap.)
 
 ## Resource layout
-- Font buckets (same font IDs, different bitmap sizes): `resources-instinct3solar` (176 MIP: Instinct 3 Solar + Instinct 2 — same semioctagon class, same 62px icon), `resources-mip260` (fenix7/fr255/fr955), `resources-fr165m` (390), `resources-instinct3amoled` (390/416: both Instinct 3 AMOLED + fr265/epix2/venu2/vivoactive5), `resources-amoled454` (fenix847mm/fr965/venu3), `resources-mip208` (fr55).
-- `monkey.jungle` sets per-device `resourcePath`; later paths override earlier (used for icon-size overlays `resources-icon56` → vivoactive5, `resources-icon70` → venu2/venu3).
-- Launcher icons: `generate_icons.py` renders the calendar+א icon (PIL redraw, NotoSansHebrew א glyph) at 35/40/56/65/70px. Existing 54/60/62px PNGs untouched.
+See CLAUDE.md "Target devices" for the current bucket/overlay map (95 devices). Launcher
+icons: `tools/fonts/generate_icons.py` renders the calendar+א icon at every size the fleet
+uses (base 54/60/62 PNGs + `resources-iconNN` overlays).
 
 ## Platform limitation (can't fix — told the user)
 The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row) is Garmin's **system-drawn launcher icon**; a custom GlanceView has no API to hide/replace it. (Drawing into the Solar sub-screen from the glance drew a stray circle over content — reverted.) The WIDGET *can* use `WatchUi.getSubscreen()`, which is why the Solar widget shows the day letter in that circle.
@@ -59,28 +58,17 @@ The **calendar icon in the glance** (Solar corner sub-screen + fr165m glance row
 ---
 
 ## File Map
-| File | Role |
-|---|---|
-| `source/HebrewCalendarApp.mc` | App entry: `getInitialView` (widget) + `getGlanceView` (`:glance`) |
-| `source/HebrewCalendarView.mc` | Widget view (single Hebrew-date screen) |
-| `source/HebrewCalendarGlanceView.mc` | Glance view (day letter + Hebrew date) |
-| `source/HebrewCalendarDelegate.mc` | Back/exit handling only |
-| `source/HebrewFonts.mc` | `HebrewFonts` (glance) + `HebrewFontsEx` (widget) bitmap font loading |
-| `source/HebrewDate.mc` | Hebrew date calc + day-of-week letters |
-| `source/DeviceInfo.mc` | Device/layout/color helpers (`isSolar`, `colorDim`, etc.) |
-| `generate_fonts.py` / `generate_fonts_amoled.py` / `generate_fonts_fr165m.py` | Per-device bitmap font generators (use getmetrics for lineHeight) |
-| `manifest.xml` | App ID, target devices, version |
-| `monkey.jungle` | Build config, per-device resource paths |
+Moved to CLAUDE.md "Source map" / "Repo layout" (kept current there).
 
 ## Retail editions ALREADY COVERED — never add these as "new" devices
-The store auto-expands each CIQ device id into all retail editions on the same platform (same screen + same binary). These are **already live** via our 15 ids — do NOT download profiles or add products for them:
+The store auto-expands each CIQ device id into all retail editions on the same platform (same screen + same binary). These are covered by our device ids — do NOT download profiles or add products for them:
 - `instinct2` covers: Instinct 2 Camo / dēzl / Surf / Tactical / Solar / Dual Power / ONE PIECE editions.
 - `fenix7` covers: fenix 7 Sapphire / Solar / Dual Power, **quatix 7** (+ Sapphire).
 - `fenix847mm` covers: fenix 8 AMOLED **51mm**, **tactix 8** 47/51mm (+ Cerakote), **quatix 8** 47/51mm.
 - `epix2` covers: Porsche Epix 2. · `venu2` covers: Mercedes-Benz Venu 2. · `vivoactive5` covers: GarminActive 5.
 - `fr955` covers: FR955 Solar / Dual Power. · Instinct 3 ids cover the Tactical editions.
 
-Genuinely SEPARATE ids (different screens — these WOULD be new work if requested): instinct2s (163px), instinct2x, fenix7s (240px), fenix7x (280px), fenix7pro*, fr265s (360px), venu2s (360px), venu2plus, venu3s (390px), epix2pro42/47/51, fenix843mm, fr165 (non-Music).
+The genuinely separate ids (different screens: instinct2s, instinct2x, fenix7s/7x/7pro*, fr265s, venu2s, venu2plus, venu3s, epix2pro42/47/51, fenix843mm, fr165, …) were ALL added in v1.7.0 — see the v1.7.0 section.
 
 ## fr55 (Forerunner 55, MIP 208x208) — added + SIM-VERIFIED ✅, shipped in v1.4.0
 `generate_fonts_mip208.py` (widget 20/26/34, glance 20/26 — sized for fr55's 144x75 glance
@@ -142,7 +130,7 @@ Built on branch `garmin-hebrew-widget` after a store review asked for customizab
   watch-app trick (below) + real widget flow on epix2/instinct3amoled45/instinct3solar45/
   instinct2. Remaining before release: version bump ≥1.5.0 + store listing update.
 
-## v1.6.0 in progress (2026-06-14) — Omer / next-holiday / Rosh Chodesh, NOT released
+## v1.6.0 (2026-06-14) — Omer / next-holiday / Rosh Chodesh — packaged, superseded by v1.7.0
 Built on branch `showcase-site`. Three pure-math calendar features (no location/permission):
 - **Omer counter** (`HebrewDate.omerDay`/`getOmerDay`): 16 Nisan(day1)..5 Sivan(day49),
   gematria + `בעומר` (e.g. `ל״ג בעומר`). Months Nisan=7/Iyar=8/Sivan=9.
@@ -175,8 +163,8 @@ Built on branch `showcase-site`. Three pure-math calendar features (no location/
   round-clip fix — repackage again if code changes). Gallery refreshed to
   `1_venu3_date` `2_epix2_omer` `3_fr55_event` `4_solar_omer` `5_fr265_glance` + new hero
   (Omer page + date, tagline "PARASHA · OMER · HOLIDAYS"); STORE_LISTING.md updated (what's-new
-  EN+HE, full description, reviewer notes). Glance unchanged (date only). **User still needs to
-  Upload New Version on the dashboard** (yosefnider@gmail.com account). Once live → mark LIVE.
+  EN+HE, full description, reviewer notes). Glance unchanged (date only). Never confirmed
+  uploaded; v1.7.0 (2026-09-24) includes all of it and is the next upload.
 
 ## Round-screen clip bug (fixed 2026-06-14) — chord-aware text width
 The contextual line at ~76%h on the parasha page CLIPPED both bezel edges on round
@@ -308,12 +296,12 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
 - Gotcha: after preview builds (same app id) the sim showed GARBLED glyphs for the real build —
   stale font cache; restarting simulator.exe fixes it. Not a real bug.
 
-## Store status — PUBLISHED ✅ (v1.4.0 LIVE, 2026-06-11, 16 devices)
+## Store status — PUBLISHED ✅ (v1.5.0 LIVE since 2026-06-13, 16 devices; next upload v1.7.0 / 95 devices)
 - **Garmin developer account email: `yosefnider@gmail.com`** (NOT the user's general
   shilomeir@gmail.com). Store review verdicts and Connect IQ dashboard mail go here.
 - **v1.5.0 LIVE ✅ 2026-06-13** (internal build 6) — parasha page + settings shipped.
   Dashboard confirms: Latest Release 2026-06-13, v1.5.0 (Internal: 6), still 4.7★/3 reviews,
-  10+ downloads. **Next release must be ≥ 1.6.0.** (Built from commit `4bdffd7`: manifest
+  10+ downloads. (Next upload: v1.7.0.) (Built from commit `4bdffd7`: manifest
   bumped, `bin\HebrewCalendar.iq` 613KB/26 variants, gallery `1_instinct2_date`
   `2_fenix7_date` `3_venu3_parasha` `4_fr965_parasha` `5_fr955_parasha` `6_fenix7_glance`
   + hero, what's-new from STORE_LISTING.md.)

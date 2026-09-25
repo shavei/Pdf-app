@@ -10,23 +10,23 @@ Upload at: https://apps.garmin.com/developer/dashboard → app → **Upload New 
 replaces it — the What's New below covers both.)
 
 ### 1. Binary
-`bin\HebrewCalendar.iq`  (built 2026-09-24, 1.7.0, 95 devices / 147 part-number variants, ~4 MB)
+`bin\HebrewCalendar.iq`  (built 2026-09-24 after the text-fit pass, 1.7.0, 95 devices / 147 part-number variants, ~4 MB)
 
 ### 2. "What's New" — paste into the version-notes field
 
 **English:**
 ```
-Now on 95 Garmin watches! Added the vivoactive 6, Venu 4, Venu 2S / 2 Plus / 3S / Sq 2 / X1, Forerunner 70, 165, 170, 255S, 265S, 570, 945 LTE and 970, every fenix 6, 7, 8 and 9 model, fenix E, epix Pro, Enduro, MARQ, Instinct 2S / 2X / E / Crossover, Descent, Approach and D2 — with text and icons tuned for every screen. Also includes the Sefirat HaOmer count and a countdown to the next holiday, fast or Rosh Chodesh.
+Now on 95 Garmin watches! Added the vivoactive 6, Venu 4, Venu 2S / 2 Plus / 3S / Sq 2 / X1, Forerunner 70, 165, 170, 255S, 265S, 570, 945 LTE and 970, every fenix 6, 7, 8 and 9 model, fenix E, epix Pro, Enduro, MARQ, Instinct 2S / 2X / E / Crossover, Descent, Approach and D2 — with text and icons tuned for every screen, and text that now fits perfectly on every watch. Also includes the Sefirat HaOmer count and a countdown to the next holiday, fast or Rosh Chodesh.
 ```
 
 **Hebrew:**
 ```
-עכשיו על 95 שעוני Garmin! נוספה תמיכה ב-vivoactive 6‏, Venu 4‏, Venu 2S / 2 Plus / 3S / Sq 2 / X1‏, Forerunner 70 / 165 / 170 / 255S / 265S / 570 / 945 LTE / 970‏, כל דגמי fenix 6, 7, 8 ו-9‏, fenix E‏, epix Pro‏, Enduro‏, MARQ‏, Instinct 2S / 2X / E / Crossover‏, Descent‏, Approach ו-D2 — עם גדלי טקסט ואייקונים מותאמים לכל מסך. כולל גם ספירת העומר וספירה לאחור לחג, לצום או לראש החודש הבא.
+עכשיו על 95 שעוני Garmin! נוספה תמיכה ב-vivoactive 6‏, Venu 4‏, Venu 2S / 2 Plus / 3S / Sq 2 / X1‏, Forerunner 70 / 165 / 170 / 255S / 265S / 570 / 945 LTE / 970‏, כל דגמי fenix 6, 7, 8 ו-9‏, fenix E‏, epix Pro‏, Enduro‏, MARQ‏, Instinct 2S / 2X / E / Crossover‏, Descent‏, Approach ו-D2 — עם גדלי טקסט ואייקונים מותאמים לכל מסך, וטקסט שנכנס בדיוק בכל שעון. כולל גם ספירת העומר וספירה לאחור לחג, לצום או לראש החודש הבא.
 ```
 
 ### 3. "Notes for the reviewer" field
 ```
-v1.7.0 adds support for 79 more watches (95 total). No functional changes beyond 1.6.0: per-screen bitmap font sizes and launcher icons for the new screen sizes, plus a small layout adjustment for the shorter Instinct 2S / Instinct E 40mm screens. Still no permissions, GPS, internet or sensors; all date math is on-device.
+v1.7.0 adds support for 79 more watches (95 total). No new features beyond 1.6.0: per-screen bitmap font sizes and launcher icons for the new screen sizes, and layout refinements so every line of text fits on every screen — the glance date moves beside the year on the longest dates, Instinct glances are laid out clear of the sub-screen circle, and on the Instinct Crossover all text stays clear of the physical watch hands. Still no permissions, GPS, internet or sensors; all date math is on-device.
 ```
 
 ### 4. Screenshots

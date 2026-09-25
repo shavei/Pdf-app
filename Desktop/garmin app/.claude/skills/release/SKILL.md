@@ -6,12 +6,12 @@ description: Prepare a Connect IQ store release of the Hebrew Calendar widget - 
 # Store Release
 
 Project root: `C:\Users\yosef\Desktop\garmin app`. Store history & rules: MEMORY.md.
-**v1.5.0 is live — the store requires every new version to be higher (next ≥ 1.6.0).**
+**v1.5.0 is live. manifest is already 1.7.0 (95 devices, packaged 2026-09-24, not yet uploaded) — the store requires every new version to be higher than the live one.**
 
 ## Steps
 
 1. **Pick the version.** Read `version=` from `manifest.xml`. Default: bump the minor
-   (1.5.0 → 1.6.0) unless the user named a version. Confirm it's strictly greater than
+   (e.g. 1.7.0 → 1.8.0) unless the user named a version, or ship the current 1.7.0 if it was never uploaded. Confirm it's strictly greater than
    the live store version.
 
 2. **Bump** `manifest.xml` version (Edit the `version="..."` attribute only).
@@ -25,8 +25,11 @@ Project root: `C:\Users\yosef\Desktop\garmin app`. Store history & rules: MEMORY
    Expect `N OUT OF N DEVICES BUILT` + `BUILD SUCCESSFUL`. Never run several monkeyc
    processes in parallel here (shared default.jungle). Report the .iq size.
 
-4. (Optional, after layout changes) Spot-check devices per font bucket with
-   `tools\sim\preview\run.ps1 -Devices ...` + `sheet.py` (see CLAUDE.md).
+4. **After ANY layout/font/glance change: full text-fit check** (the user requires 10/10 on
+   every watch): `tools\sim\preview\run.ps1 -All` (~90 min, worst-case strings) →
+   `python tools\sim\preview\sheet.py --all 6` → review every sheet + `stale.py`; Instincts
+   also `real_glance.ps1` (real carousel). Fix and re-shoot anything that clips or touches
+   before packaging. See CLAUDE.md "Bulk visual check".
 
 5. **Commit** the version bump (message: `Release vX.Y.Z`).
 
@@ -34,7 +37,7 @@ Project root: `C:\Users\yosef\Desktop\garmin app`. Store history & rules: MEMORY
    - Connect IQ developer dashboard → app → "Upload New Version" → `bin\HebrewCalendar.iq`
    - What's-new text: summarize the commits since the last `Release`/`Published` commit
      and draft it for them (English + Hebrew, see STORE_LISTING.md for tone)
-   - Listing assets if changed: `bin\store_images\` (cover_500.png, hero_1440x720.png, 1–6 jpg)
+   - Listing assets if changed: `bin\store_images\` (cover_500.png, hero_1440x720.png, 1–5 jpg — Garmin allows max 5)
    - Garmin review verdict arrives by email (Gmail is connected — offer to watch for it)
 
 7. After the user confirms it's live: update MEMORY.md store-status section (live version,

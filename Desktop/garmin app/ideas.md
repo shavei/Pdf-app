@@ -1,7 +1,11 @@
 # Feature Ideas — Hebrew Calendar Widget
 
-Research-backed roadmap for what to add after **v1.5.0** (parasha page + settings,
-uploaded 2026-06-14, awaiting Garmin review). Next release must be **≥ 1.6.0**.
+Research-backed roadmap, written after **v1.5.0** (2026-06-14).
+
+> **Status (2026-09-25):** Tier 1 is **built** — Sefirat HaOmer, the holiday countdown and
+> Rosh Chodesh were added in v1.6.0 (molad time not added; they reach users with the v1.7.0 upload). v1.7.0 expanded support from 16 to
+> **95 watches** with every screen text-fit checked. v1.5.0 is live; v1.7.0 is the next upload.
+> Still open below: Tier 2 (date browsing, Daf Yomi) and the separate-product ideas.
 
 > Sourced from a deep-research pass (2026-06-14): 67 claims across 30 sources;
 > competitor survey, Connect IQ feasibility, and app-store/ratings dynamics.
@@ -36,7 +40,7 @@ Implications for this app:
   what this app intentionally removed.
 - On Garmin, 1-star reviews from broken features **persist forever and can't be removed** —
   so the bar for shipping a location feature is very high.
-- This app's competitive edge is **correct, minimalist, zero-config, works-on-all-16-devices**
+- This app's competitive edge is **correct, minimalist, zero-config, works-on-all-95-devices**
   date + parasha. Lean into that, not away from it.
 
 ---
@@ -46,7 +50,7 @@ Implications for this app:
 All pure calendar math. No location, no new permissions, small memory, same feasibility
 class as the existing parasha page (which is verified against pyluach + hebcal).
 
-### 1. Sefirat HaOmer (Omer counter) — do this first
+### 1. Sefirat HaOmer (Omer counter) — ✅ added in v1.6.0
 - **What:** During the 49-day Omer period (Pesach → Shavuot), show the count
   (e.g. `Day 33 / ל״ג בעומר`).
 - **Why:** Highest value-to-risk ratio researched. Self-contained computation — hebcal/pyluach
@@ -56,13 +60,13 @@ class as the existing parasha page (which is verified against pyluach + hebcal).
 - **Suggested UX:** Auto-surface on the **existing parasha/festival page** during the Omer
   period rather than a permanent new page — keeps the minimalist feel.
 
-### 2. Holiday awareness / next-holiday + "days until"
+### 2. Holiday awareness / next-holiday + "days until" — ✅ added in v1.6.0
 - **What:** Show the upcoming holiday and a countdown (e.g. `ראש השנה · in 12 days`).
 - **Why:** Holiday awareness is described as a *baseline expected* feature for this category.
 - **Feasibility:** Festival computation already exists for the parasha fallback — extend it to
   look forward. Pure math, no location. Fits as enrichment of an existing screen.
 
-### 3. Rosh Chodesh / molad indicator
+### 3. Rosh Chodesh / molad indicator — ✅ Rosh Chodesh countdown added in v1.6.0 (molad not added)
 - **What:** "Rosh Chodesh [month] in N days," optionally the molad time.
 - **Why:** Very on-brand for a Hebrew-date purist app; small footprint.
 - **Feasibility:** Pure calendar math. Natural third pure-math addition.
@@ -168,7 +172,7 @@ reuses the most existing code.
 - Significant updates that remove relied-on functions generate negative reviews.
 - Reliability problems (crashes, slow perf, broken features) are a primary driver of low ratings.
 - On Garmin specifically, old 1-star reviews persist across versions and can't be removed —
-  shipping only features that work reliably across all 16 devices is the rating-safe path.
+  shipping only features that work reliably across all 95 devices is the rating-safe path.
 - Broad device support and timezone/Israel-vs-diaspora correctness are themselves valued —
   both already strengths of this app.
 

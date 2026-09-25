@@ -41,7 +41,7 @@ monkeyc -e -r -o "bin\HebrewCalendar.iq" -f monkey.jungle -y "developer_key.der"
 **Never run several `monkeyc` in parallel in this dir** — they share a generated
 `default.jungle` and corrupt each other ("mismatched input '='"). And **monkeyc compiles
 every `.mc` under the project**, not just `source/` — keep scratch/harness Monkey C files
-out of the tree (the preview harness stores its view as `GlancePreview.mc.txt`).
+out of the tree (the preview harness stores its view as `tools/sim/preview/CyclePreview.mc.txt`).
 
 **Bulk visual check:** `tools\sim\preview\run.ps1 -Devices a,b,c` builds each device as an
 auto-launching watch-app from a %TEMP% copy (real tree untouched), draws the REAL glance
@@ -87,6 +87,10 @@ fenix 8/9 Solar 51) · `resources-amoled360` (FR265S, Venu 2S, Venu Sq 2) ·
 `resources-amoled454` (454/466 AMOLED + Venu X1).
 Glance-only overlays for short glance areas: `resources-glance63` (63px), `glance92`
 (Crossover AMOLED), `glance103` (454px w/ 103px glance), `glancexover` (Crossover 110x60).
+`resources-gsNN` = smaller glance date font for narrow glances (fr55, fr255s, fr945lte,
+Crossover; from `fit_glance_fonts.py`); `resources-glance-<dev>` = solved Instinct glance
+(fonts + GlanceLayout; from `fit_instinct_glance.py`); `resources-handsmip/-handsamoled` =
+Crossover hands keep-out.
 Icon overlays `resources-iconNN` for each launcher size. Fonts for the post-1.6 buckets come
 from `tools/fonts/generate_fonts_extra.py`; icons from `tools/fonts/generate_icons.py`.
 Device specs (screen, glance contentArea, launcher icon, memory) are in the SDK profiles:
@@ -119,8 +123,10 @@ of genuinely separate ids (different screens).
   `(:glance,:flatGlance)` variants picked via `excludeAnnotations` in monkey.jungle
   (semi-octagon MIP Instincts = flat/flush-right; everything else incl. Instinct 3
   AMOLED = round, 20%-width date inset capped against day-letter collision).
-- **Parasha page (non-Solar): header at 28%h, name at 53%h** — lower values clip the
-  header on fr55's round top edge (user-reported). Solar branch has its own layout.
+- **Parasha page (non-Solar): header at 28%h, name at 53%h** — higher values clip the
+  header on fr55's round top edge (user-reported). Exceptions: screens <230px (fr55,
+  fr255s) draw the header in the SMALL font; Crossover AMOLED puts the header at 15%h so
+  header + name fit above the hands. Solar branch has its own layout.
 - Per-device font buckets are wired in [monkey.jungle](monkey.jungle) via `resourcePath`;
   later paths override earlier (icon overlays, fenix7's 63px-glance fonts).
 - Hebrew date math in `source/HebrewDate.mc` is Reingold–Dershowitz with all four dechiyot,
@@ -136,11 +142,11 @@ per-device `resources-*` variant dirs. Everything else is sorted into:
 | Dir | Contents |
 |---|---|
 | `source/` `resources/` `resources-*/` | App code + per-device resource buckets (the build) |
-| `tools/fonts/` | `generate_fonts*.py`, `generate_icons.py` (regenerate bitmap fonts/icons into `resources-*`) |
-| `tools/verify/` | `verify_parsha.py`, `crosscheck_hebcal.py` + `hebcal_fixtures/` (offline parasha checks) |
-| `tools/sim/` | Simulator helpers: `capture.ps1` `capture2.ps1` (robust largest-window grab) `openshot.ps1` (tap glance band + capture) `click.ps1` `runshot.ps1` `retake_v15.ps1` `make_v15_shots.ps1` `scap.ps1` `sendkey.ps1`; `preview/` bulk glance+widget harness (see Build & run) |
+| `tools/fonts/` | `generate_fonts*.py`, `generate_icons.py` (regenerate bitmap fonts/icons into `resources-*`); `fontgen.py` (shared .fnt writer); `fit_glance_fonts.py` (per-device glance date size → `resources-gsNN`); `fit_instinct_glance.py` (Instinct glance layouts vs real masks → `resources-glance-<dev>`) |
+| `tools/verify/` | `verify_parsha.py`, `crosscheck_hebcal.py` + `hebcal_fixtures/` (offline parasha checks); `check_glance_fit.py` (standard-glance width check, all devices) |
+| `tools/sim/` | Simulator helpers: `capture.ps1` `capture2.ps1` (robust largest-window grab) `openshot.ps1` (tap glance band + capture) `click.ps1` `runshot.ps1` `retake_v15.ps1` `make_v15_shots.ps1` `scap.ps1` `sendkey.ps1`; `preview/` worst-case harness `run.ps1` + `sheet.py` + `stale.py`, real-carousel glance capture `real_glance.ps1` (see Build & run) |
 | `tools/store/` | Listing-image generators: `make_cover.py` `make_hero.py` `make_store_images.py` |
-| `bin/` (gitignored) | Build output (`*.prg`, `HebrewCalendar.iq`), `shots/v15/`, `store_images/` |
+| `bin/` (gitignored) | Build output (`*.prg`, `HebrewCalendar.iq`), `shots/v15/`, `store_images/`, `preview/` (harness shots, review sheets, real-carousel shots, Instinct `masks/`) |
 
 ## Source map
 
@@ -154,11 +160,15 @@ per-device `resources-*` variant dirs. Everything else is sorted into:
 | `source/Parasha.mc` | Parasha-of-the-week algorithm (verified; see Rules) |
 | `source/AppSettings.mc` | App-settings access (israelSchedule, textColor) |
 | `source/ParashaTest.mc` | `(:test)` unit tests (parasha + Omer + nextEvent) — `monkeyc --unit-test`; flag is `/t` in PowerShell, `-t` in Bash |
-| `source/HebrewCalendarGlanceView.mc` | Glance: day letter left, RTL date right |
+| `source/HebrewCalendarGlanceView.mc` | Glance: standard (day letter left, date+year right; compact on long dates) or a solved Instinct layout from `GlanceLayout` jsonData — see Rules |
+| `source/HebrewCalendarDelegate.mc` | Page-1 input: select/tap/swipe-left → ParashaView |
+| `source/Hands.mc` | `Hands.keepOut()` — hands band half-height for Instinct Crossover (0 elsewhere) |
+| `source/TextUtils.mc` | Sub-screen bounds + safe text width on Solar |
 | `source/HebrewFonts.mc` | Bitmap font loading (glance + widget) |
 | `source/HebrewDate.mc` | Hebrew calendar math + DOW letters (exposes `jd`); `omerDay`/`monthNameOf` |
-| `source/DeviceInfo.mc` | Device/layout helpers (`isSolar` = screenW ≤ 176) |
+| `source/DeviceInfo.mc` | Device/layout helpers (`isSolar` = screenW ≤ 176, `solarLift`, `usableWidthAtY`) |
 | `resources/settings/` | properties.xml + settings.xml (Israel/diaspora, text color) |
+| `resources/data/` | `glance.xml` (GlanceLayout default) + `hands.xml` (HandsKeepOut default 0) — overridden per device |
 
 Navigation: page 1 → page 2 via select/tap or swipe-left; back/swipe-right goes back.
 On **Solar/Instinct 2 only** there is a page 3 (`OmerView`): page 2 select/swipe-left pushes
