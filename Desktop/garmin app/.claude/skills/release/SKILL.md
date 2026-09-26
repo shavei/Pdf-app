@@ -6,7 +6,7 @@ description: Prepare a Connect IQ store release of the Hebrew Calendar widget - 
 # Store Release
 
 Project root: `C:\Users\yosef\Desktop\garmin app`. Store history & rules: MEMORY.md.
-**v1.7.0 is LIVE (2026-09-25, 95 devices) — next release must be ≥ 1.8.0. Check the upload page's "(Latest app version: …)" line before writing What's New / reviewer notes. After publishing, confirm the store page's What's New shows the NEW text (the dashboard keeps the previous one unless replaced).**
+**v1.8.0 is LIVE (uploaded 2026-09-26, 95 devices; UP/DOWN navigation) — next upload 1.9.0. Check the upload page's "(Latest app version: …)" line before writing What's New / reviewer notes. After publishing, confirm the store page's What's New shows the NEW text (the dashboard keeps the previous one unless replaced).**
 
 ## Steps
 

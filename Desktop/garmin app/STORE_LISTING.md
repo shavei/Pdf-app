@@ -3,7 +3,42 @@
 Upload at: https://apps.garmin.com/developer/dashboard → app → **Upload New Version**
 
 ═══════════════════════════════════════════════════════════════════════
-# ▶ v1.7.0 — PUBLISHED 2026-09-25 (fix: What's New still shows the v1.6.0 text — paste §2 via Edit Details)
+# ▶ COPY-PASTE FOR THIS UPLOAD — v1.8.0
+═══════════════════════════════════════════════════════════════════════
+
+(Store's latest is v1.7.0. In the upload form: choose the file below and type **1.8.0** in
+"App Version". After publishing, check the store page shows THIS What's New — the dashboard
+keeps the previous one unless you replace it.)
+
+### 1. Binary
+`bin\HebrewCalendar.iq`  (built 2026-09-25, 1.8.0, 95 devices / 147 part-number variants)
+
+### 2. "What's New" — paste into the version-notes field
+
+**English:**
+```
+Move between pages with the UP and DOWN buttons: DOWN goes to the next page, UP goes back. Start, Back and touch work as before.
+```
+
+**Hebrew:**
+```
+מעבר בין הדפים בעזרת כפתורי UP ו-DOWN: כפתור DOWN עובר לדף הבא, ו-UP חוזר לדף הקודם. כפתורי START ו-BACK והמגע ממשיכים לעבוד כרגיל.
+```
+
+### 3. "Notes for the reviewer" field
+```
+v1.8.0 adds page navigation with the UP/DOWN buttons (BehaviorDelegate onNextPage/onPreviousPage): DOWN = next page, UP = previous page; at the first/last page the key does nothing. No other changes: same layouts, no new permissions, no GPS/internet/sensors.
+```
+
+### 4. Description — REPLACE via Edit Details
+The live description still lists only the original 16 watches. Paste the "Full description"
+below (English + Hebrew; mentions UP/DOWN and all 95 watches).
+
+### 5. Screenshots, hero
+No change — the screen layouts are identical to v1.7.0 (gallery re-captured 2026-09-25).
+
+═══════════════════════════════════════════════════════════════════════
+# v1.7.0 — PUBLISHED 2026-09-25 (kept for reference)
 ═══════════════════════════════════════════════════════════════════════
 
 (The dashboard shows v1.6.0 as the latest app version (confirmed 2026-09-25), so v1.7.0 is
@@ -71,7 +106,7 @@ Widget → Lifestyle (matches the live listing — keep as is)
 ### English
 Hebrew Calendar shows today's Hebrew (Jewish) date right on your watch.
 
-A clean glance gives you the day of the week and the full Hebrew date — day, month, and year — written in Hebrew letters with proper gematria. Open the widget for a larger, easy-to-read view, then swipe or tap to a second page for this week's Torah portion.
+A clean glance gives you the day of the week and the full Hebrew date — day, month, and year — written in Hebrew letters with proper gematria. Open the widget for a larger, easy-to-read view, then swipe, tap, or press the DOWN button to a second page for this week's Torah portion (UP goes back).
 
 Features:
 • Today's Hebrew date: day (gematria), month name, and year
@@ -81,6 +116,7 @@ Features:
 • Countdown to the closest upcoming Hebrew date — holiday, fast, Rosh Chodesh, or a special day (Tu BiShvat, Lag BaOmer, Yom HaAtzma'ut…); on Instinct/Solar it gets its own page
 • Choose your reading schedule: Israel or Diaspora
 • Pick your text color
+• Move between pages by touch, START/BACK, or the UP/DOWN buttons
 • Fully Hebrew text, rendered with crisp custom Hebrew fonts
 • Glance support — your Hebrew date without opening anything
 • Lightweight and battery-friendly: no GPS, no internet, no permissions
@@ -92,7 +128,7 @@ Parasha calculation is based on the open-source pyluach library (MIT License) an
 ### Hebrew
 לוח עברי מציג את התאריך העברי של היום ישירות על השעון.
 
-מבט מהיר (Glance) מציג את יום השבוע ואת התאריך העברי המלא — יום, חודש ושנה — באותיות עבריות עם גימטריה. פתחו את הווידג'ט לתצוגה גדולה וברורה יותר, והחליקו או הקישו לדף השני לפרשת השבוע.
+מבט מהיר (Glance) מציג את יום השבוע ואת התאריך העברי המלא — יום, חודש ושנה — באותיות עבריות עם גימטריה. פתחו את הווידג'ט לתצוגה גדולה וברורה יותר, והחליקו, הקישו או לחצו על כפתור DOWN לדף השני לפרשת השבוע (UP חוזר אחורה).
 
 תכונות:
 • התאריך העברי של היום: יום (גימטריה), שם החודש ושנה
@@ -102,6 +138,7 @@ Parasha calculation is based on the open-source pyluach library (MIT License) an
 • ספירה לאחור ליום העברי הקרוב — חג, צום, ראש חודש או יום מיוחד (ט"ו בשבט, ל"ג בעומר, יום העצמאות…); בשעוני Instinct/Solar בדף נפרד
 • בחירת לוח קריאה: ארץ ישראל או חו"ל
 • בחירת צבע הטקסט
+• מעבר בין הדפים במגע, ב-START/BACK או בכפתורי UP/DOWN
 • טקסט עברי מלא עם גופנים עבריים מותאמים
 • תמיכה ב-Glance — התאריך העברי בלי לפתוח כלום
 • קל ונטול הרשאות: ללא GPS, ללא אינטרנט, ללא הרשאות
@@ -120,6 +157,9 @@ None. The app uses no GPS, sensors, internet, or stored data.
 ═══════════════════════════════════════════════════════════════════════
 # Version history — "What's new" archive
 ═══════════════════════════════════════════════════════════════════════
+
+## v1.8.0 — 2026-09-25
+EN/HE: see "COPY-PASTE FOR THIS UPLOAD — v1.8.0" at the top (UP/DOWN page navigation).
 
 ## v1.7.0 — 2026-09-24
 EN/HE: see "COPY-PASTE FOR THIS UPLOAD" at the top (79 more watches, 95 total).

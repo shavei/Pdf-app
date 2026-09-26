@@ -272,6 +272,21 @@ class ParashaDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
+    // DOWN button (or swipe up): next page — the Omer page on Solar;
+    // page 2 is the last page elsewhere, so it does nothing there.
+    function onNextPage() as Boolean {
+        if (DeviceInfo.isSolar()) {
+            WatchUi.pushView(new OmerView(), new OmerDelegate(), WatchUi.SLIDE_UP);
+        }
+        return true;
+    }
+
+    // UP button (or swipe down): previous page = the date page
+    function onPreviousPage() as Boolean {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        return true;
+    }
+
     function onSwipe(e as WatchUi.SwipeEvent) as Boolean {
         if (e.getDirection() == WatchUi.SWIPE_RIGHT) {
             WatchUi.popView(WatchUi.SLIDE_RIGHT);

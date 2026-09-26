@@ -1,8 +1,8 @@
 # Hebrew Calendar — Garmin Connect IQ Widget
 
 Monkey C widget showing the Hebrew date (day-of-week letter, day+month, year). Hebrew RTL,
-bitmap fonts, glance + widget views. Published on the Connect IQ store: **v1.7.0 LIVE since 2026-09-25
-(95 devices, internal build 8)** — **next release must be ≥ 1.8.0**.
+bitmap fonts, glance + widget views. Published on the Connect IQ store: **v1.8.0 LIVE since 2026-09-26
+(95 devices; UP/DOWN page navigation)**. Previous: v1.7.0 (2026-09-25, internal build 8).
 
 Deep architecture notes, hard-won gotchas, and store history live in [MEMORY.md](MEMORY.md) —
 read it before touching fonts, date math, or layout.
@@ -170,6 +170,9 @@ per-device `resources-*` variant dirs. Everything else is sorted into:
 | `resources/data/` | `glance.xml` (GlanceLayout default) + `hands.xml` (HandsKeepOut default 0) — overridden per device |
 
 Navigation: page 1 → page 2 via select/tap or swipe-left; back/swipe-right goes back.
+**UP/DOWN (v1.8.0):** every delegate implements `onNextPage` (DOWN button / swipe up) = next
+page and `onPreviousPage` (UP button / swipe down) = previous page; at the first/last page they
+consume the key and do nothing. Verified in the sim on fr255 (2 pages) and Instinct 3 Solar (3).
 On **Solar/Instinct 2 only** there is a page 3 (`OmerView`): page 2 select/swipe-left pushes
 it; elsewhere page 2 is the last page (select returns to page 1). `ParashaView.drawDots`
 takes a page count — 2 normally, 3 on Solar. Color setting applies everywhere except
