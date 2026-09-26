@@ -312,7 +312,7 @@ change must keep the single-walk pattern and rerun verify_parsha.py.
 - Screen layouts unchanged → no text-fit re-run needed; store gallery unchanged.
 
 ## Store status — PUBLISHED ✅ (v1.8.0 LIVE 2026-09-26, 95 devices)
-- **v1.8.0 uploaded ✅ 2026-09-26** (user-confirmed; UP/DOWN navigation). Branch merged to main.
+- **v1.8.0 uploaded ✅ 2026-09-26** (user-confirmed; UP/DOWN navigation). Merged via PR shavei/Pdf-app#61 into `garmin-95-devices`.
 - **v1.7.0 LIVE ✅ 2026-09-25** (Internal: 8). Store page: 4.7★ / 3 reviews, **100+ downloads**.
   After publishing, the store's What's New still showed the OLD v1.6.0 Omer text — the dashboard
   carries the previous What's New forward unless it's replaced; fix via Manage Your App → Edit

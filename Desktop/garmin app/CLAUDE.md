@@ -20,6 +20,12 @@ this CLAUDE.md (build/architecture facts), [MEMORY.md](MEMORY.md) (history/statu
 or the skills in `.claude/skills/` (workflow changes). Then tell the user in one line
 that the notes were updated.
 
+## Git
+
+The git repo is the whole home dir (`C:\Users\yosef`, remote `shavei/Pdf-app`); there is no
+Garmin `main`. The Garmin line of work is branch **`garmin-95-devices`**: branch off it and open
+PRs **against it** (`gh pr create --base garmin-95-devices`).
+
 ## Build & run
 
 SDK 9.1.0 is on PATH (`monkeyc`, `monkeydo`). Developer key is `developer_key.der` in the
